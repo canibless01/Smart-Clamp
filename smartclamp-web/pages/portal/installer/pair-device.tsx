@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { fetchWithAuth } from '../../../lib/api';
 
 export default function PairDevicePage() {
+  const [safetyChecked, setConsentChecked] = useState(false);
   const [role, setRole] = useState('house_full');
   const [hasRelay, setHasRelay] = useState(true);
   const [hasVoltageSensor, setHasVoltageSensor] = useState(true);
@@ -12,6 +13,11 @@ export default function PairDevicePage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!safetyChecked) {
+      alert('You must confirm the physical installation safety protocol before registering.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -38,10 +44,28 @@ export default function PairDevicePage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', padding: 'var(--sp-6) var(--sp-4)', maxWidth: '520px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '28px', fontWeight 700, color: 'var(--sc-text)', marginBottom: 'var(--sp-6)' }}>
-        Installer Portal — Register Device
+    <div style={{ minHeight: '100vh', padding: 'var(--sp-6) var(--sp-4)', maxWidth: '600px', margin: '0 auto', color: 'var(--sc-text)' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: 'var(--sp-6)' }}>
+        Installer Portal — Device Registration
       </h1>
+
+      {/* Electrical Safety Protocol Banner */}
+      <div className="sc-glass-card" style={{ padding: 'var(--sp-5)', marginBottom: 'var(--sp-6)', borderColor: 'var(--sc-warn)' }}>
+        <h3 style={{ marginTop: 0, color: 'var(--sc-warn)', fontSize: '16px' }}>⚡ Physical Installation Safety Protocol</h3>
+        <ul style={{ fontSize: '13px', color: 'var(--sc-text-muted)', margin: 'var(--sp-2) 0', paddingLeft: '20px', lineHeight: '1.6' }}>
+          <li>Wear rated installer PPE (insulated gloves & protective eyewear).</li>
+          <li>Use voltage-rated insulated tools at every step.</li>
+          <li><strong>Live Wire CT Clamping:</strong> A qualified electrician must handle clamp closure around live un-energized wires.</li>
+        </ul>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: 'var(--sp-3)', fontSize: '13px', fontWeight: 600, color: 'var(--sc-text)' }}>
+          <input
+            type="checkbox"
+            checked={safetyChecked}
+            onChange={(e) => setConsentChecked(e.target.checked)}
+          />
+          I confirm physical safety protocol & electrician presence for live clamp closure.
+        </label>
+      </div>
 
       {!registeredKey ? (
         <form onSubmit={handleRegister} className="sc-glass-card" style={{ padding: 'var(--sp-6)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>

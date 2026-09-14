@@ -18,6 +18,20 @@ export default function TenantDashboard() {
   const [otpCode, setOtpCode] = useState('');
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
 
+  // Recharge Modal State
+  const [showRecharge, setShowRecharge] = useState(false);
+  const [rechargeAmount, setRechargeAmount] = useState('5000');
+  const [rechargeUrl, setRechargeUrl] = useState<string | null>(null);
+
+  // Schedule State
+  const [onTime, setOnTime] = useState('06:00');
+  const [offTime, setOffTime] = useState('22:00');
+  const [schedules, setSchedules] = useState<any[]>([]);
+
+  // Budget State
+  const [monthlyBudget, setMonthlyBudget] = useState('15000');
+  const [dailyUnits, setDailyUnits] = useState<number | null>(null);
+
   const { isFeatureEnabled } = useFeatureFlags();
 
   useEffect(() => {
@@ -27,6 +41,14 @@ export default function TenantDashboard() {
         const json = await response.json();
         if (response.ok) {
           setData(json);
+          // Load schedules
+          if (json.device_id) {
+            const schedRes = await fetchWithAuth(`/api/v1/devices/${json.device_id}/schedules`);
+            if (schedRes.ok) {
+              const schedJson = await schedRes.json();
+              setSchedules(schedJson.schedules || []);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load tenant dashboard:', err);
@@ -80,6 +102,56 @@ export default function TenantDashboard() {
     }
   };
 
+  const handleInitiateRecharge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetchWithAuth('/api/v1/wallets/mock-wallet-1/recharge', {
+        method: 'POST',
+        body: JSON.stringify({ amount_naira: parseFloat(rechargeAmount), payment_method: 'card' })
+      });
+      const json = await response.json();
+      if (response.ok) {
+        setRechargeUrl(json.checkout_url);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data?.device_id) return;
+    try {
+      const response = await fetchWithAuth(`/api/v1/devices/${data.device_id}/schedules`, {
+        method: 'POST',
+        body: JSON.stringify({ days_of_week: [0, 1, 2, 3, 4, 5, 6], on_time: onTime, off_time: offTime })
+      });
+      const json = await response.json();
+      if (response.ok) {
+        setSchedules([...schedules, { id: json.schedule_id, on_time: onTime, off_time: offTime }]);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSetBudget = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data?.device_id) return;
+    try {
+      const response = await fetchWithAuth(`/api/v1/devices/${data.device_id}/budget`, {
+        method: 'POST',
+        body: JSON.stringify({ monthly_limit_naira: parseFloat(monthlyBudget) })
+      });
+      const json = await response.json();
+      if (response.ok) {
+        setDailyUnits(json.daily_limit_units);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', padding: 'var(--sp-8)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--sc-text-muted)' }}>
@@ -89,14 +161,14 @@ export default function TenantDashboard() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', padding: 'var(--sp-6) var(--sp-4)', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', padding: 'var(--sp-6) var(--sp-4)', maxWidth: '900px', margin: '0 auto' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-6)' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0, color: 'var(--sc-text)' }}>
             Tenant Dashboard
           </h1>
           <p style={{ color: 'var(--sc-text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-            Live power telemetry & wallet controls
+            Live power telemetry, schedules & wallet controls
           </p>
         </div>
         {data?.nepa_verified && (
@@ -116,11 +188,16 @@ export default function TenantDashboard() {
           </div>
         </div>
 
-        <div className="sc-glass-card" style={{ padding: 'var(--sp-5)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--sc-text-muted)', marginBottom: 'var(--sp-2)' }}>Wallet Balance</div>
-          <div className="font-mono-data" style={{ fontSize: '32px', color: 'var(--sc-text)' }}>
-            ₦{data?.wallet_balance.toLocaleString()}
+        <div className="sc-glass-card" style={{ padding: 'var(--sp-5)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '13px', color: 'var(--sc-text-muted)', marginBottom: 'var(--sp-2)' }}>Wallet Balance</div>
+            <div className="font-mono-data" style={{ fontSize: '32px', color: 'var(--sc-text)' }}>
+              ₦{data?.wallet_balance.toLocaleString()}
+            </div>
           </div>
+          <button onClick={() => setShowRecharge(true)} className="sc-btn-primary" style={{ padding: '0 20px', height: '40px' }}>
+            + Top Up
+          </button>
         </div>
       </div>
 
@@ -136,6 +213,62 @@ export default function TenantDashboard() {
           {data?.relay_state ? 'Turn Relay Off' : 'Turn Relay On'}
         </button>
       </div>
+
+      {/* Schedule Manager & Monthly Budget Limit */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-4)', marginBottom: 'var(--sp-6)' }}>
+        <div className="sc-glass-card" style={{ padding: 'var(--sp-5)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '18px', color: 'var(--sc-text)' }}>Power Schedule Manager</h3>
+          <form onSubmit={handleCreateSchedule} style={{ display: 'flex', gap: 'var(--sp-2)', flexDirection: 'column', marginBottom: 'var(--sp-4)' }}>
+            <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+              <input type="time" value={onTime} onChange={(e) => setOnTime(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: 'var(--r-sm)', background: 'rgba(11,27,43,0.8)', border: '1px solid var(--sc-slate)', color: 'var(--sc-text)' }} />
+              <input type="time" value={offTime} onChange={(e) => setOffTime(e.target.value)} style={{ flex: 1, padding: '8px', borderRadius: 'var(--r-sm)', background: 'rgba(11,27,43,0.8)', border: '1px solid var(--sc-slate)', color: 'var(--sc-text)' }} />
+            </div>
+            <button type="submit" className="sc-btn-primary" style={{ height: '38px' }}>Add Schedule</button>
+          </form>
+          {schedules.map((s, idx) => (
+            <div key={idx} style={{ fontSize: '13px', color: 'var(--sc-text-muted)', background: 'rgba(18,38,58,0.5)', padding: '6px 12px', borderRadius: 'var(--r-sm)', marginBottom: '4px' }}>
+              Daily: ON at {s.on_time} · OFF at {s.off_time}
+            </div>
+          ))}
+        </div>
+
+        <div className="sc-glass-card" style={{ padding: 'var(--sp-5)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '18px', color: 'var(--sc-text)' }}>Monthly Budget Limit</h3>
+          <form onSubmit={handleSetBudget} style={{ display: 'flex', gap: 'var(--sp-2)', flexDirection: 'column' }}>
+            <input type="number" value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)} placeholder="Limit in ₦" style={{ height: '40px', borderRadius: 'var(--r-pill)', background: 'rgba(11,27,43,0.8)', border: '1px solid var(--sc-slate)', color: 'var(--sc-text)', padding: '0 var(--sp-4)' }} />
+            <button type="submit" className="sc-btn-primary" style={{ height: '38px' }}>Calculate Daily Cap</button>
+          </form>
+          {dailyUnits !== null && (
+            <div style={{ marginTop: 'var(--sp-3)', fontSize: '14px', color: 'var(--sc-green)' }}>
+              Daily Unit Limit: <strong className="font-mono-data">{dailyUnits} kWh/day</strong>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recharge Modal */}
+      {showRecharge && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="sc-glass-card" style={{ padding: 'var(--sp-6)', width: '100%', maxWidth: '400px' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--sc-text)' }}>Top Up Energy Wallet</h3>
+            {!rechargeUrl ? (
+              <form onSubmit={handleInitiateRecharge} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
+                <input type="number" value={rechargeAmount} onChange={(e) => setRechargeAmount(e.target.value)} placeholder="Amount in Naira" style={{ height: '48px', borderRadius: 'var(--r-pill)', background: 'rgba(11,27,43,0.8)', border: '1px solid var(--sc-slate)', color: 'var(--sc-text)', padding: '0 var(--sp-4)' }} />
+                <button type="submit" className="sc-btn-primary">Proceed to Payment Gateway</button>
+                <button type="button" onClick={() => setShowRecharge(false)} style={{ background: 'transparent', border: 'none', color: 'var(--sc-text-muted)', cursor: 'pointer' }}>Cancel</button>
+              </form>
+            ) : (
+              <div>
+                <p style={{ fontSize: '14px', color: 'var(--sc-green)' }}>Payment link generated!</p>
+                <a href={rechargeUrl} target="_blank" rel="noreferrer" className="sc-btn-primary" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none', lineHeight: '48px' }}>
+                  Pay on Paystack
+                </a>
+                <button onClick={() => setShowRecharge(false)} style={{ display: 'block', marginTop: '12px', background: 'transparent', border: 'none', color: 'var(--sc-text-muted)', cursor: 'pointer' }}>Close</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Step-Up OTP Modal */}
       {stepUpToken && (
