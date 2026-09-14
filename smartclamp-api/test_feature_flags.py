@@ -52,7 +52,7 @@ class TestFeatureFlags(unittest.TestCase):
         set_flag("basic_pro_load_signature", enabled_for_tiers=["basic_pro"])
         # Free tier request to gated endpoint
         response = self.client.get(
-            "/api/v1/analytics/load-signature/dev-1",
+            "/api/v1/analytics/load-signature",
             headers={"X-Test-Tier": "free"}
         )
         self.assertEqual(response.status_code, 403)
@@ -62,7 +62,7 @@ class TestFeatureFlags(unittest.TestCase):
         set_flag("basic_pro_load_signature", enabled_for_tiers=["basic_pro"])
         # Basic Pro tier request to gated endpoint
         response = self.client.get(
-            "/api/v1/analytics/load-signature/dev-1",
+            "/api/v1/analytics/load-signature",
             headers={"X-Test-Tier": "basic_pro"}
         )
         self.assertEqual(response.status_code, 200)
