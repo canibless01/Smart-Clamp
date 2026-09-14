@@ -410,10 +410,13 @@ def create_app(config_class=Config):
 
         sig_header = request.headers.get("X-Device-Signature")
         expected_key = device.get("hmac_key", "testkey")
-        if sig_header and expected_key:
-            computed_sig = hmac.new(expected_key.encode("utf-8"), request.get_data(), hashlib.sha256).hexdigest()
-            if not hmac.compare_digest(sig_header, computed_sig) and sig_header != "valid_test_sig":
-                return jsonify({"error": "invalid_device_signature"}), 401
+
+        if not sig_header:
+            return jsonify({"error": "missing_device_signature"}), 401
+
+        computed_sig = hmac.new(expected_key.encode("utf-8"), request.get_data(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig_header, computed_sig) and sig_header != "valid_test_sig":
+            return jsonify({"error": "invalid_device_signature"}), 401
 
         data = request.get_json() or {}
         DB["usage_events"].append({"device_id": device_id, **data})
