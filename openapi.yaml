@@ -1,0 +1,1798 @@
+openapi: 3.0.3
+info:
+  title: SmartClamp API
+  description: 'Contract for Phase 0/1/2/3/4/5 — the complete SmartClamp API, MVP
+    through multi-utility. Phase 1 gap-fill (relay/schedule/budget/analytics) included.
+    Flask validates requests/responses against this file; the Next.js frontend generates
+    its typed API client from this same file. This is the single source of truth —
+    if a field name needs to change, it changes here first, and both sides regenerate
+    from it.
+
+    '
+  version: 1.2.0
+servers:
+- url: https://api.smartclamp.ng/api/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    deviceHmac:
+      type: apiKey
+      in: header
+      name: X-Device-Signature
+      description: HMAC-SHA256 of the request body, signed with the device's device_hmac_key
+  schemas:
+    UserRole:
+      type: string
+      enum:
+      - tenant
+      - landlord
+      - homeowner
+      - installer
+      - agent
+      - referrer
+      - nepa_staff
+      - internal_ops
+      - internal_finance
+      - internal_support
+      - internal_engineering
+      - internal_superadmin
+    SubscriptionTier:
+      type: string
+      enum:
+      - free
+      - basic
+      - basic_pro
+      - pro
+    DeviceRole:
+      type: string
+      enum:
+      - transformer_monitor
+      - pole_gateway
+      - pole_device
+      - house_full
+      - building_hub
+      - ir_reader
+    MeterValidateRequest:
+      type: object
+      required:
+      - meter_number
+      properties:
+        meter_number:
+          type: string
+        utility_type:
+          type: string
+          enum:
+          - electricity
+          - water
+          - gas
+          default: electricity
+    MeterValidateResponse:
+      type: object
+      required:
+      - valid
+      properties:
+        valid:
+          type: boolean
+        customer_name:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        disco_name:
+          type: string
+          nullable: true
+        provider_name:
+          type: string
+          nullable: true
+        utility_type:
+          type: string
+          enum:
+          - electricity
+          - water
+          - gas
+    SignupRequest:
+      type: object
+      required:
+      - phone
+      - password
+      - full_name
+      - role
+      properties:
+        phone:
+          type: string
+          example: '+2348012345678'
+        password:
+          type: string
+          minLength: 8
+        full_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+    AuthResponse:
+      type: object
+      required:
+      - user_id
+      - role
+      - access_token
+      - refresh_token
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/UserRole'
+        subscription_tier:
+          $ref: '#/components/schemas/SubscriptionTier'
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+      - phone
+      - password
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+    CreateBuildingRequest:
+      type: object
+      required:
+      - name
+      - address
+      - meter_type
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        meter_type:
+          type: string
+          enum:
+          - with_meter
+          - no_meter
+    CreateBuildingResponse:
+      type: object
+      properties:
+        building_id:
+          type: string
+          format: uuid
+    AddRoomRequest:
+      type: object
+      required:
+      - label
+      properties:
+        label:
+          type: string
+          example: Room 3
+    AddRoomResponse:
+      type: object
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        invite_link:
+          type: string
+          format: uri
+    RegisterDeviceRequest:
+      type: object
+      required:
+      - role
+      - has_relay
+      - has_voltage_sensor
+      properties:
+        role:
+          $ref: '#/components/schemas/DeviceRole'
+        has_relay:
+          type: boolean
+        has_voltage_sensor:
+          type: boolean
+        room_id:
+          type: string
+          format: uuid
+          nullable: true
+        building_id:
+          type: string
+          format: uuid
+          nullable: true
+        pole_group_id:
+          type: string
+          format: uuid
+          nullable: true
+    RegisterDeviceResponse:
+      type: object
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        device_hmac_key_raw:
+          type: string
+          description: Returned exactly once. Burn into device firmware immediately.
+            Never retrievable again.
+    JoinRoomResponse:
+      type: object
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - joined
+          - room_already_claimed
+    LinkMeterRequest:
+      type: object
+      required:
+      - meter_number
+      properties:
+        meter_number:
+          type: string
+        disco_name:
+          type: string
+          nullable: true
+        utility_type:
+          type: string
+          enum:
+          - electricity
+          - water
+          - gas
+          default: electricity
+    LinkMeterResponse:
+      type: object
+      properties:
+        linked_meter_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum:
+          - link_confirmed_live
+          - link_failed
+        reason:
+          type: string
+          nullable: true
+          example: meter_unreachable
+    InitiateRechargeRequest:
+      type: object
+      required:
+      - amount_naira
+      - payment_method
+      properties:
+        amount_naira:
+          type: number
+          format: float
+          minimum: 100
+        payment_method:
+          type: string
+          enum:
+          - card
+          - bank_transfer
+          - ussd
+    InitiateRechargeResponse:
+      type: object
+      properties:
+        checkout_url:
+          type: string
+          format: uri
+        gateway_reference:
+          type: string
+    TenantDashboardResponse:
+      type: object
+      properties:
+        wallet_balance:
+          type: number
+          format: float
+        live_watts:
+          type: number
+          format: float
+        relay_state:
+          type: boolean
+          nullable: true
+        device_id:
+          type: string
+          format: uuid
+        recent_alerts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              severity:
+                type: string
+                enum:
+                - info
+                - warning
+                - critical
+              message:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+        nepa_verified:
+          type: boolean
+    FeatureFlagsResponse:
+      type: object
+      properties:
+        active_flags:
+          type: array
+          items:
+            type: string
+    ConfirmCommandRequest:
+      type: object
+      required:
+      - otp_code
+      properties:
+        otp_code:
+          type: string
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    DeviceReadingRequest:
+      type: object
+      required:
+      - recorded_at
+      - energy_kwh
+      properties:
+        recorded_at:
+          type: string
+          format: date-time
+        voltage:
+          type: number
+          format: float
+          nullable: true
+        current_amps:
+          type: number
+          format: float
+          nullable: true
+        power_watts:
+          type: number
+          format: float
+          nullable: true
+        energy_kwh:
+          type: number
+          format: float
+        relay_state:
+          type: boolean
+          nullable: true
+    BillBreakdownResponse:
+      type: object
+      properties:
+        flat_rate:
+          type: boolean
+        amount_naira:
+          type: number
+          format: float
+          nullable: true
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              tariff_name:
+                type: string
+              kwh:
+                type: number
+                format: float
+              rate_per_kwh:
+                type: number
+                format: float
+              subtotal_naira:
+                type: number
+                format: float
+        total_naira:
+          type: number
+          format: float
+          nullable: true
+    ManualReadingResponse:
+      type: object
+      properties:
+        status:
+          type: string
+    BillForecastResponse:
+      type: object
+      properties:
+        projected_kwh:
+          type: number
+          format: float
+        projected_cost_naira:
+          type: number
+          format: float
+    CommunityOverviewResponse:
+      type: object
+      properties:
+        transformer_count:
+          type: integer
+        total_consumption_kwh:
+          type: number
+          format: float
+        active_tamper_flags:
+          type: integer
+    TamperFlagItem:
+      type: object
+      properties:
+        alert_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        severity:
+          type: string
+          enum:
+          - info
+          - warning
+          - critical
+        customer_name:
+          type: string
+          nullable: true
+          description: Only populated if utility_control_consents shows active consent
+        general_area:
+          type: string
+    GrantConsentResponse:
+      type: object
+      properties:
+        status:
+          type: string
+    NepaCommandRequest:
+      type: object
+      required:
+      - device_id
+      - command
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        command:
+          type: string
+          enum:
+          - relay_on
+          - relay_off
+    NepaCommandResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - pending_customer_confirmation
+        command_token_id:
+          type: string
+          format: uuid
+    BroadcastRequest:
+      type: object
+      required:
+      - message
+      properties:
+        region:
+          type: string
+          nullable: true
+        building_id:
+          type: string
+          format: uuid
+          nullable: true
+        message:
+          type: string
+    BroadcastResponse:
+      type: object
+      properties:
+        broadcast_id:
+          type: string
+          format: uuid
+        recipient_count:
+          type: integer
+    DisconnectionListRequest:
+      type: object
+      required:
+      - min_days_overdue
+      properties:
+        min_days_overdue:
+          type: integer
+        region:
+          type: string
+          nullable: true
+    DisconnectionListResponse:
+      type: object
+      properties:
+        disconnection_list_id:
+          type: string
+          format: uuid
+        item_count:
+          type: integer
+    RelayToggleRequest:
+      type: object
+      required:
+      - state
+      properties:
+        state:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+    PendingConfirmationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        command_token_id:
+          type: string
+          format: uuid
+    ScheduleRequest:
+      type: object
+      required:
+      - days_of_week
+      - on_time
+      - off_time
+      properties:
+        days_of_week:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+        on_time:
+          type: string
+          example: 06:00
+        off_time:
+          type: string
+          example: '22:00'
+    ScheduleResponse:
+      type: object
+      properties:
+        schedule_id:
+          type: string
+          format: uuid
+    BudgetRequest:
+      type: object
+      required:
+      - monthly_limit_naira
+      properties:
+        monthly_limit_naira:
+          type: number
+          format: float
+    BudgetResponse:
+      type: object
+      properties:
+        daily_limit_units:
+          type: number
+          format: float
+    LoadSignatureResponse:
+      type: object
+      properties:
+        detected_appliances:
+          type: array
+          items:
+            type: object
+            properties:
+              appliance:
+                type: string
+              confidence:
+                type: number
+                format: float
+    PowerFactorResponse:
+      type: object
+      properties:
+        power_factor:
+          type: number
+          format: float
+          nullable: true
+        flagged_inefficient:
+          type: boolean
+    UndersupplyCreditResponse:
+      type: object
+      properties:
+        outage_hours:
+          type: number
+          format: float
+        suggested_credit_naira:
+          type: number
+          format: float
+        ready_to_submit_statement:
+          type: boolean
+    PeerBenchmarkResponse:
+      type: object
+      properties:
+        your_usage_kwh:
+          type: number
+          format: float
+        same_pole_average_kwh:
+          type: number
+          format: float
+          nullable: true
+        peer_count:
+          type: integer
+    ReportPreferencesRequest:
+      type: object
+      properties:
+        auto_delivery_enabled:
+          type: boolean
+        frequency:
+          type: string
+          enum:
+          - monthly
+    AddViewerRequest:
+      type: object
+      required:
+      - viewer_phone
+      properties:
+        viewer_phone:
+          type: string
+    MeetingViewResponse:
+      type: object
+      properties:
+        usage_graph_data:
+          type: array
+          items:
+            type: object
+        bill_breakdown:
+          $ref: '#/components/schemas/BillBreakdownResponse'
+    VerificationReportResponse:
+      type: object
+      properties:
+        microsite_url:
+          type: string
+          format: uri
+    PortfolioDashboardResponse:
+      type: object
+      properties:
+        buildings:
+          type: array
+          items:
+            type: object
+            properties:
+              building_id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              occupied:
+                type: integer
+              total_rooms:
+                type: integer
+              revenue_naira:
+                type: number
+                format: float
+              active_flags:
+                type: integer
+        portfolio_total_revenue_naira:
+          type: number
+          format: float
+    CreateOrganizationRequest:
+      type: object
+      required:
+      - name
+      - subdomain
+      properties:
+        name:
+          type: string
+        subdomain:
+          type: string
+        primary_color_hex:
+          type: string
+          nullable: true
+        logo_url:
+          type: string
+          nullable: true
+    CreateOrganizationResponse:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+    OrganizationBrandingResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        logo_url:
+          type: string
+          nullable: true
+        primary_color_hex:
+          type: string
+          nullable: true
+    SavingsRecommendationItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        recommendation_text:
+          type: string
+        estimated_savings_naira:
+          type: number
+          format: float
+    NepaGenerateBillRequest:
+      type: object
+      required:
+      - device_id
+      - period_start
+      - period_end
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+    NepaGenerateBillResponse:
+      type: object
+      properties:
+        bill_id:
+          type: string
+          format: uuid
+        amount_naira:
+          type: number
+          format: float
+paths:
+  /meters/validate:
+    post:
+      summary: Validate a meter number (no auth — homepage widget)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MeterValidateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeterValidateResponse'
+  /auth/signup:
+    post:
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/login:
+    post:
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /buildings:
+    post:
+      summary: Create a Building (landlord only)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBuildingRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBuildingResponse'
+        '403':
+          description: Not a landlord
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /buildings/{building_id}/rooms:
+    post:
+      summary: Add a Room to a Building (must own the Building)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: building_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddRoomRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddRoomResponse'
+        '403':
+          description: Not the owning landlord
+  /devices/register:
+    post:
+      summary: Register a physical device (installer/internal_ops only)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterDeviceResponse'
+  /rooms/{room_id}/join:
+    post:
+      summary: Tenant joins a Room via invite link
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: room_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JoinRoomResponse'
+        '409':
+          description: Room already claimed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /rooms/{room_id}/transfer:
+    post:
+      summary: Landlord vacates a Room ahead of a new tenant (Transfer Device flow)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: room_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddRoomResponse'
+  /meters/link:
+    post:
+      summary: Link a meter, with a real live connectivity check (not just a database
+        record) — Phase 2 gap fix
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkMeterRequest'
+      responses:
+        '200':
+          description: Link attempt result — may be confirmed live or failed, both
+            return 200 with a status field
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkMeterResponse'
+  /wallets/{wallet_id}/recharge:
+    post:
+      summary: Initiate a recharge (redirects to payment gateway checkout)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: wallet_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateRechargeRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateRechargeResponse'
+  /webhooks/payment:
+    post:
+      summary: Payment gateway webhook (Paystack calls this — signature-verified,
+        not user-auth'd)
+      responses:
+        '200':
+          description: Processed (or already-processed, idempotent)
+        '401':
+          description: Invalid signature
+  /dashboard/tenant:
+    get:
+      summary: Tenant dashboard aggregate data
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantDashboardResponse'
+      parameters:
+      - name: utility_type
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - electricity
+          - water
+          - gas
+          default: electricity
+  /feature-flags/active:
+    get:
+      summary: Which feature flags are active for the current user
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureFlagsResponse'
+  /commands/{command_token_id}/confirm:
+    post:
+      summary: Confirm a step-up OTP to authorize a pending relay command
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: command_token_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmCommandRequest'
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}/readings:
+    post:
+      summary: Device telemetry ingestion (device-signed, not user auth) — used by
+        every device type including IR-Reader
+      security:
+      - deviceHmac: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceReadingRequest'
+      responses:
+        '200':
+          description: Recorded
+        '401':
+          description: Invalid device signature
+  /bills/{bill_id}/breakdown:
+    get:
+      summary: Get itemized bill breakdown (flat-rate or dual-tariff)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: bill_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillBreakdownResponse'
+  /meters/{linked_meter_id}/manual-reading:
+    post:
+      summary: Submit a manual meter reading (dumb meter, no clamp or optical port)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: linked_meter_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                reading_kwh:
+                  type: number
+                  format: float
+                photo:
+                  type: string
+                  format: binary
+                  nullable: true
+              required:
+              - reading_kwh
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManualReadingResponse'
+  /analytics/bill-forecast:
+    get:
+      summary: 'Projected month-end usage/cost (Basic Pro, feature-flag gated: basic_pro_bill_forecast)'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: linked_meter_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillForecastResponse'
+        '403':
+          description: Feature not enabled for this account
+  /nepa/community-overview:
+    get:
+      summary: Regional aggregate overview (nepa_staff only, privacy-by-design — no
+        individual customer data by default)
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: region
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityOverviewResponse'
+  /nepa/tamper-flags:
+    get:
+      summary: Drill-down into flagged devices — customer identity only shown if active
+        consent exists
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: region
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TamperFlagItem'
+  /consents/utility-control:
+    post:
+      summary: Customer grants utility control consent (Section 06.4's disclosure
+        requirement)
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantConsentResponse'
+  /consents/utility-control/revoke:
+    post:
+      summary: Customer revokes utility control consent, effective immediately
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrantConsentResponse'
+  /nepa/commands:
+    post:
+      summary: NEPA staff requests a relay command — hard-blocked (403) unless active
+        consent exists; always requires customer step-up confirmation
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NepaCommandRequest'
+      responses:
+        '200':
+          description: Pending customer confirmation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NepaCommandResponse'
+        '403':
+          description: No active consent on file for this customer
+  /nepa/broadcasts:
+    post:
+      summary: Send a broadcast message to a region or building
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BroadcastRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResponse'
+  /nepa/disconnection-lists:
+    post:
+      summary: Generate a disconnection candidate report (a report only — never executes
+        a disconnect)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisconnectionListRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisconnectionListResponse'
+  /devices/{device_id}/relay:
+    post:
+      summary: 'Toggle a device''s relay (Pro tier, feature-flag gated: pro_relay_control)
+        — always requires step-up confirmation'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RelayToggleRequest'
+      responses:
+        '200':
+          description: Pending step-up confirmation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingConfirmationResponse'
+        '400':
+          description: Device has no relay
+  /devices/{device_id}/schedules:
+    post:
+      summary: Create a schedule
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleResponse'
+    get:
+      summary: List schedules for a device
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /schedules/{schedule_id}:
+    patch:
+      summary: Update a schedule
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequest'
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete a schedule
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}/budget:
+    post:
+      summary: Set or replace a device's monthly budget
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+  /analytics/load-signature:
+    get:
+      summary: 'Detected appliance load signatures (Basic Pro, feature-flag gated:
+        basic_pro_load_signature)'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: linked_meter_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadSignatureResponse'
+  /analytics/power-factor:
+    get:
+      summary: 'Power factor reading (Basic Pro, feature-flag gated: basic_pro_power_factor)'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: linked_meter_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PowerFactorResponse'
+  /analytics/undersupply-credit:
+    get:
+      summary: 'Suggested NEPA credit for outage hours (Basic Pro, feature-flag gated:
+        basic_pro_undersupply_credit)'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: period
+        in: query
+        required: true
+        schema:
+          type: string
+          example: 2026-08
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UndersupplyCreditResponse'
+  /analytics/peer-benchmark:
+    get:
+      summary: 'Anonymized same-pole peer usage comparison (Basic Pro, feature-flag
+        gated: basic_pro_peer_benchmark)'
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerBenchmarkResponse'
+  /users/me/report-preferences:
+    patch:
+      summary: Set scheduled Verification Report auto-delivery preference
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportPreferencesRequest'
+      responses:
+        '200':
+          description: OK
+  /devices/{device_id}/viewers:
+    post:
+      summary: Add a read-only viewer to a device
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddViewerRequest'
+      responses:
+        '200':
+          description: OK
+  /disputes/{dispute_id}/meeting-view:
+    get:
+      summary: Stripped-down data-minimized view for in-person dispute resolution
+        ('Meeting Mode')
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: dispute_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingViewResponse'
+  /verification-reports:
+    post:
+      summary: Generate a signed public Verification Report microsite link
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationReportResponse'
+  /verification-reports/{report_token}:
+    get:
+      summary: Public verification report view — no auth, token-based, signature re-verified
+        on each load
+      parameters:
+      - name: report_token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+  /dashboard/landlord/portfolio:
+    get:
+      summary: Multi-property portfolio overview (appears once a landlord owns >1
+        Building)
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioDashboardResponse'
+  /organizations:
+    post:
+      summary: Create a new white-label organization (internal_superadmin only)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOrganizationResponse'
+  /organizations/by-subdomain/{subdomain}:
+    get:
+      summary: Fetch branding for a white-label subdomain (called server-side by Next.js
+        on every request)
+      parameters:
+      - name: subdomain
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationBrandingResponse'
+  /devices/{device_id}/recommendations:
+    get:
+      summary: Get undismissed savings recommendations for a device
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavingsRecommendationItem'
+  /recommendations/{recommendation_id}/dismiss:
+    post:
+      summary: Dismiss a savings recommendation
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: recommendation_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /nepa/bills:
+    post:
+      summary: NEPA generates a bill from SmartClamp verified usage data (marks generated_by_nepa=true,
+        powers the NEPA-verified badge)
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NepaGenerateBillRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NepaGenerateBillResponse'
+  /ops/fleet-health-basic:
+    get:
+      summary: Phase 0 minimal fleet health list
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/manual-allocation:
+    post:
+      summary: Phase 0 manual wallet allocation (no billing engine yet)
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/error-log-raw:
+    get:
+      summary: Phase 0 raw unfiltered error log
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/fleet-health:
+    get:
+      summary: Panel A — full fleet health with map, firmware distribution, provenance
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/devices/{device_id}/provenance:
+    get:
+      summary: Panel A — single device lifecycle history
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+  /ops/alerts-feed:
+    get:
+      summary: Panel B — company-wide alerts, false-positive rate, data completeness
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/adoption-growth:
+    get:
+      summary: Panel C — adoption, tiers, churn, funnel, channel attribution
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/revenue:
+    get:
+      summary: Panel D — revenue by stream, reconciliation, wallet liability, CAC,
+        runway
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/disputes-support:
+    get:
+      summary: Panel E — dispute volume and resolution time by quadrant
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/error-logs:
+    get:
+      summary: Panel F — categorized backend/device/webhook error logs
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/compliance-tracker:
+    get:
+      summary: Panel G — regulatory/certification checklist with expiry dates
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/field-ops:
+    get:
+      summary: Panel H — install queue and installer performance
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/inventory:
+    get:
+      summary: Panel I — component/device stock levels and reorder alerts
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/feature-flags:
+    get:
+      summary: Panel J — list all feature flags
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/feature-flags/{flag_key}:
+    patch:
+      summary: Panel J — toggle a feature flag's rollout scope
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: flag_key
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+  /ops/access-audit:
+    get:
+      summary: Panel K — internal staff access log to customer data
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/geographic-tracker:
+    get:
+      summary: Panel L (Phase 2+) — per-region adoption and meter-type breakdown
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+  /ops/vendor-partner-tracker:
+    get:
+      summary: Panel M (Phase 2+) — telco/gateway/contractor relationship health
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
