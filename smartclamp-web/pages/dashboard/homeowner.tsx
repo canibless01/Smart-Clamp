@@ -3,7 +3,7 @@ import { fetchWithAuth } from '../../lib/api';
 
 export default function HomeownerDashboard() {
   const [reportUrl, setReportUrl] = useState<string | null>(null);
-  const [loadingReport, setLoading] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   const handleGenerateReport = async () => {
     setLoadingReport(true);
