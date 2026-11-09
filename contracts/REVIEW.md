@@ -1,0 +1,12 @@
+# API reconciliation checklist
+openapi.source.yaml is the exact uploaded contract, not a verified implementation or production hostname. Preserve it for provenance; create a revised version with changelog before generating clients.
+
+Review every operation for explicit authentication (public exceptions only), ownership and capability, request/response schema, error schema, pagination, limits and idempotency. Inventory with tools/check_foundation.py. Public meter validation must not invent provider availability. API server base includes /api/v1: do not duplicate this prefix in generated requests.
+
+Device ingestion source signs raw body HMAC-SHA256 in X-Device-Signature. Add explicit identity, protocol version, boot/session ID, monotonic sequence, measured timestamp, receipt timestamp, calibration and quality. Verify exact bytes before parsing; unknown device and duplicate payload handling required. Gateway forwarding preserves original device signatures, not merely a trusted gateway signature. Queue acknowledgment binds to original event identity and only occurs after durable commit.
+
+Command delivery needs exact signed bytes binding device ID, command ID, kind, arguments, issued_at, expiry, sequence and key version. A bare rotating OTP is insufficient: it must authenticate command contents and reject replay across restart. User step-up belongs on the account side, separately. Device acknowledgment must report observed relay feedback vs requested state. Source contract is insufficient for these protocol details; do not implement ad hoc incompatible variants.
+
+Also specify recovery/refresh/logout, building invitation/transfer, order fulfillment, payment status/vending callback, auto recharge consent, uploads, public token revocation, report verification, report/viewer preferences, utilities, support, telemetry ACK, BLE provisioning and firmware OTA metadata. Matter commissioning differs from Tuya OAuth. Validate contract with a real OpenAPI validator and server/client compatibility tests before release.
+
+Revision2 update: contracts/openapi.yaml is now the canonical expanded contract (128 operations), semantically validated locally. device-protocol.md and reference_protocol.py/vectors.json define signed envelopes; routes.json inventories48 screens. The source file remains unchanged. Earlier items above are release/audit requirements; their presence is not a claim a backend or hardware adapter implements them. See ../docs/VALIDATION.md for actual checks.

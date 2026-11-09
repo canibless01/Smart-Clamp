@@ -1,0 +1,70 @@
+# Uploaded API operations
+
+This is a source inventory, not proof of implemented endpoints or a complete security audit.
+
+| Method | Path (relative to server base) | Operation ID |
+|---|---|---|
+| POST | `/meters/validate` | — |
+| POST | `/auth/signup` | — |
+| POST | `/auth/login` | — |
+| POST | `/buildings` | — |
+| POST | `/buildings/{building_id}/rooms` | — |
+| POST | `/devices/register` | — |
+| POST | `/rooms/{room_id}/join` | — |
+| POST | `/rooms/{room_id}/transfer` | — |
+| POST | `/meters/link` | — |
+| POST | `/wallets/{wallet_id}/recharge` | — |
+| POST | `/webhooks/payment` | — |
+| GET | `/dashboard/tenant` | — |
+| GET | `/feature-flags/active` | — |
+| POST | `/commands/{command_token_id}/confirm` | — |
+| POST | `/devices/{device_id}/readings` | — |
+| GET | `/bills/{bill_id}/breakdown` | — |
+| POST | `/meters/{linked_meter_id}/manual-reading` | — |
+| GET | `/analytics/bill-forecast` | — |
+| GET | `/nepa/community-overview` | — |
+| GET | `/nepa/tamper-flags` | — |
+| POST | `/consents/utility-control` | — |
+| POST | `/consents/utility-control/revoke` | — |
+| POST | `/nepa/commands` | — |
+| POST | `/nepa/broadcasts` | — |
+| POST | `/nepa/disconnection-lists` | — |
+| POST | `/devices/{device_id}/relay` | — |
+| POST | `/devices/{device_id}/schedules` | — |
+| GET | `/devices/{device_id}/schedules` | — |
+| PATCH | `/schedules/{schedule_id}` | — |
+| DELETE | `/schedules/{schedule_id}` | — |
+| POST | `/devices/{device_id}/budget` | — |
+| GET | `/analytics/load-signature` | — |
+| GET | `/analytics/power-factor` | — |
+| GET | `/analytics/undersupply-credit` | — |
+| GET | `/analytics/peer-benchmark` | — |
+| PATCH | `/users/me/report-preferences` | — |
+| POST | `/devices/{device_id}/viewers` | — |
+| GET | `/disputes/{dispute_id}/meeting-view` | — |
+| POST | `/verification-reports` | — |
+| GET | `/verification-reports/{report_token}` | — |
+| GET | `/dashboard/landlord/portfolio` | — |
+| POST | `/organizations` | — |
+| GET | `/organizations/by-subdomain/{subdomain}` | — |
+| GET | `/devices/{device_id}/recommendations` | — |
+| POST | `/recommendations/{recommendation_id}/dismiss` | — |
+| POST | `/nepa/bills` | — |
+| GET | `/ops/fleet-health-basic` | — |
+| POST | `/ops/manual-allocation` | — |
+| GET | `/ops/error-log-raw` | — |
+| GET | `/ops/fleet-health` | — |
+| GET | `/ops/devices/{device_id}/provenance` | — |
+| GET | `/ops/alerts-feed` | — |
+| GET | `/ops/adoption-growth` | — |
+| GET | `/ops/revenue` | — |
+| GET | `/ops/disputes-support` | — |
+| GET | `/ops/error-logs` | — |
+| GET | `/ops/compliance-tracker` | — |
+| GET | `/ops/field-ops` | — |
+| GET | `/ops/inventory` | — |
+| GET | `/ops/feature-flags` | — |
+| PATCH | `/ops/feature-flags/{flag_key}` | — |
+| GET | `/ops/access-audit` | — |
+| GET | `/ops/geographic-tracker` | — |
+| GET | `/ops/vendor-partner-tracker` | — |

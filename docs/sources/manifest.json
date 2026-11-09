@@ -1,0 +1,14 @@
+[
+  {
+    "path": "docs/sources/master.md",
+    "sha256": "e1e4ac603e7c3e4107a2debc4d2a175f9286e95e1a30ca587ba1cce6d75c5acf"
+  },
+  {
+    "path": "docs/sources/build-guide.md",
+    "sha256": "470d70b74fd7669b7e375fea314979a64a22d7a6d6ee4df1828590ebe69ddcca"
+  },
+  {
+    "path": "contracts/openapi.source.yaml",
+    "sha256": "caefa50433bcb52efa9a3cff7be317fb8741e295add2499551f0513a5dde499d"
+  }
+]

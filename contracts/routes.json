@@ -1,0 +1,338 @@
+[
+  {
+    "id": "1",
+    "spec": "docs/pages/1.md",
+    "title": "Home",
+    "route": "/",
+    "phase": "0"
+  },
+  {
+    "id": "2",
+    "spec": "docs/pages/2.md",
+    "title": "How It Works",
+    "route": "/how-it-works",
+    "phase": "0"
+  },
+  {
+    "id": "3",
+    "spec": "docs/pages/3.md",
+    "title": "For Landlords",
+    "route": "/for-landlords",
+    "phase": "0"
+  },
+  {
+    "id": "4",
+    "spec": "docs/pages/4.md",
+    "title": "For Homeowners",
+    "route": "/for-homeowners",
+    "phase": "0"
+  },
+  {
+    "id": "5",
+    "spec": "docs/pages/5.md",
+    "title": "Already Have a Smart Meter",
+    "route": "/smart-meter",
+    "phase": "0/1"
+  },
+  {
+    "id": "5b",
+    "spec": "docs/pages/5b.md",
+    "title": "IR-Reader Order and Setup",
+    "route": "/ir-reader/setup",
+    "phase": "1"
+  },
+  {
+    "id": "6",
+    "spec": "docs/pages/6.md",
+    "title": "Pricing",
+    "route": "/pricing",
+    "phase": "0"
+  },
+  {
+    "id": "7",
+    "spec": "docs/pages/7.md",
+    "title": "Sign Up",
+    "route": "/signup",
+    "phase": "0"
+  },
+  {
+    "id": "8",
+    "spec": "docs/pages/8.md",
+    "title": "Log In",
+    "route": "/login",
+    "phase": "0"
+  },
+  {
+    "id": "9",
+    "spec": "docs/pages/9.md",
+    "title": "Tenant Dashboard",
+    "route": "/dashboard/tenant",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "10",
+    "spec": "docs/pages/10.md",
+    "title": "Landlord Dashboard",
+    "route": "/dashboard/landlord",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "11",
+    "spec": "docs/pages/11.md",
+    "title": "Homeowner Dashboard",
+    "route": "/dashboard/homeowner",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "12",
+    "spec": "docs/pages/12.md",
+    "title": "Device Pairing and Install",
+    "route": "/install",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "13",
+    "spec": "docs/pages/13.md",
+    "title": "Public Device View",
+    "route": "/d/[public_token]",
+    "phase": "0"
+  },
+  {
+    "id": "14",
+    "spec": "docs/pages/14.md",
+    "title": "Dispute Center",
+    "route": "/disputes",
+    "phase": "1"
+  },
+  {
+    "id": "15",
+    "spec": "docs/pages/15.md",
+    "title": "Settings and Account",
+    "route": "/settings",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "16",
+    "spec": "docs/pages/16.md",
+    "title": "Installer Agent Referrer Portal",
+    "route": "/portal",
+    "phase": "1"
+  },
+  {
+    "id": "16b",
+    "spec": "docs/pages/16b.md",
+    "title": "Internal Ops and Fleet",
+    "route": "/ops",
+    "phase": "0\u21922"
+  },
+  {
+    "id": "17",
+    "spec": "docs/pages/17.md",
+    "title": "About",
+    "route": "/about",
+    "phase": "0"
+  },
+  {
+    "id": "18",
+    "spec": "docs/pages/18.md",
+    "title": "Contact Support",
+    "route": "/support",
+    "phase": "0"
+  },
+  {
+    "id": "19",
+    "spec": "docs/pages/19.md",
+    "title": "FAQs",
+    "route": "/faqs",
+    "phase": "0"
+  },
+  {
+    "id": "20",
+    "spec": "docs/pages/20.md",
+    "title": "Terms",
+    "route": "/terms",
+    "phase": "0"
+  },
+  {
+    "id": "21",
+    "spec": "docs/pages/21.md",
+    "title": "Privacy",
+    "route": "/privacy",
+    "phase": "0"
+  },
+  {
+    "id": "22",
+    "spec": "docs/pages/22.md",
+    "title": "Meter Linking",
+    "route": "/meters/link",
+    "phase": "2"
+  },
+  {
+    "id": "22b",
+    "spec": "docs/pages/22b.md",
+    "title": "Verification Report",
+    "route": "/verification-reports/[token]",
+    "phase": "1"
+  },
+  {
+    "id": "23",
+    "spec": "docs/pages/23.md",
+    "title": "Utility Dashboard",
+    "route": "/dashboard/utility",
+    "phase": "3"
+  },
+  {
+    "id": "23b",
+    "spec": "docs/pages/23b.md",
+    "title": "Utility Control Consent",
+    "route": "/settings/utility-control",
+    "phase": "3"
+  },
+  {
+    "id": "24",
+    "spec": "docs/pages/24.md",
+    "title": "Multi-Property",
+    "route": "/dashboard/properties",
+    "phase": "4"
+  },
+  {
+    "id": "25",
+    "spec": "docs/pages/25.md",
+    "title": "White Label Console",
+    "route": "/admin/organizations/[id]",
+    "phase": "4"
+  },
+  {
+    "id": "25b",
+    "spec": "docs/pages/25b.md",
+    "title": "Linked Smart Devices",
+    "route": "/settings/smart-devices",
+    "phase": "2"
+  },
+  {
+    "id": "26",
+    "spec": "docs/pages/26.md",
+    "title": "Water Gas Vending",
+    "route": "/utilities",
+    "phase": "5"
+  },
+  {
+    "id": "A1",
+    "spec": "docs/pages/A1.md",
+    "title": "Usage History",
+    "route": "/history",
+    "phase": "1"
+  },
+  {
+    "id": "A2",
+    "spec": "docs/pages/A2.md",
+    "title": "Billing Payments",
+    "route": "/billing",
+    "phase": "1"
+  },
+  {
+    "id": "A3",
+    "spec": "docs/pages/A3.md",
+    "title": "Control Schedules Budgets",
+    "route": "/control",
+    "phase": "1"
+  },
+  {
+    "id": "A4",
+    "spec": "docs/pages/A4.md",
+    "title": "Alerts",
+    "route": "/alerts",
+    "phase": "1"
+  },
+  {
+    "id": "A5",
+    "spec": "docs/pages/A5.md",
+    "title": "Community",
+    "route": "/community",
+    "phase": "1"
+  },
+  {
+    "id": "A6",
+    "spec": "docs/pages/A6.md",
+    "title": "Building Setup and Rooms",
+    "route": "/dashboard/landlord/buildings/[id]/rooms",
+    "phase": "0\u21921"
+  },
+  {
+    "id": "A7",
+    "spec": "docs/pages/A7.md",
+    "title": "Meeting Mode",
+    "route": "/disputes/[id]/meeting",
+    "phase": "1"
+  },
+  {
+    "id": "A8",
+    "spec": "docs/pages/A8.md",
+    "title": "Recharge Return",
+    "route": "/payments/return",
+    "phase": "1"
+  },
+  {
+    "id": "A9",
+    "spec": "docs/pages/A9.md",
+    "title": "Account Recovery",
+    "route": "/account/recovery",
+    "phase": "0"
+  },
+  {
+    "id": "B1",
+    "spec": "docs/pages/B1.md",
+    "title": "Device Detail and Diagnostics",
+    "route": "/devices/[id]",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B2",
+    "spec": "docs/pages/B2.md",
+    "title": "Command Activity",
+    "route": "/devices/[id]/commands",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B3",
+    "spec": "docs/pages/B3.md",
+    "title": "Orders and Install Booking",
+    "route": "/orders",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B4",
+    "spec": "docs/pages/B4.md",
+    "title": "Subscription and Plan Management",
+    "route": "/settings/subscription",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B5",
+    "spec": "docs/pages/B5.md",
+    "title": "Support Case Detail",
+    "route": "/support/tickets/[id]",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B6",
+    "spec": "docs/pages/B6.md",
+    "title": "Connection Help",
+    "route": "/connection-help",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B7",
+    "spec": "docs/pages/B7.md",
+    "title": "Bank Transfer and Payment Instructions",
+    "route": "/payments/transfer/[quote_id]",
+    "phase": "1 (B8 utility view3)"
+  },
+  {
+    "id": "B8",
+    "spec": "docs/pages/B8.md",
+    "title": "Outage Incident Detail",
+    "route": "/ops/incidents/[id]",
+    "phase": "1 (B8 utility view3)"
+  }
+]

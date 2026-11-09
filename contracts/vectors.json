@@ -1,0 +1,24 @@
+{
+  "warning": "PUBLIC TEST KEY ONLY: NEVER PROVISION",
+  "test_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "payload": {
+    "kind": "relay_command",
+    "device_id": "00000000-0000-4000-8000-000000000001",
+    "key_epoch": 1,
+    "config_epoch": 1,
+    "policy_epoch": 1,
+    "command_id": "00000000-0000-4000-8000-000000000002",
+    "seq": 1,
+    "issued_at_s": 100,
+    "expires_at_s": 120,
+    "on": true,
+    "reason": "self",
+    "authorization_ref": "test"
+  },
+  "envelope": {
+    "device_id": "00000000-0000-4000-8000-000000000001",
+    "key_epoch": 1,
+    "payload_b64": "eyJhdXRob3JpemF0aW9uX3JlZiI6InRlc3QiLCJjb21tYW5kX2lkIjoiMDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAyIiwiY29uZmlnX2Vwb2NoIjoxLCJkZXZpY2VfaWQiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJleHBpcmVzX2F0X3MiOjEyMCwiaXNzdWVkX2F0X3MiOjEwMCwia2V5X2Vwb2NoIjoxLCJraW5kIjoicmVsYXlfY29tbWFuZCIsIm9uIjp0cnVlLCJwb2xpY3lfZXBvY2giOjEsInJlYXNvbiI6InNlbGYiLCJzZXEiOjF9",
+    "signature": "6d893fecbdf20b3cb7db77724893050c0039892ec99fd6c03cfd404af67fa10b"
+  }
+}
