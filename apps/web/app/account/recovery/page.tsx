@@ -1,2 +1,27 @@
+'use client'
 import PublicShell from '@/components/PublicShell'
-export default function Page(){ return <PublicShell><div className="container" style={{padding:'32px 0'}}><h1 style={{color:'var(--navy)'}}>Account Recovery</h1><p style={{color:'var(--muted)',maxWidth:720}}>Supabase session/recovery, generic confirmation, no account enumeration.</p><div style={{marginTop:16,display:'flex',gap:8,flexWrap:'wrap'}}><span className="badge badge-verified">Verified — server confirmed</span><span className="badge badge-stale">Stale — last seen 2 min ago</span><span className="badge badge-offline">Offline — 24h notice</span><span className="badge badge-unknown">Unknown — no data yet</span></div><div className="card" style={{marginTop:16}}><div style={{fontWeight:700}}>States handled</div><ul><li>Loading: skeleton placeholders with aria-busy</li><li>Empty: explains how to obtain data</li><li>Error: preserves input, offers retry</li><li>Forbidden: no cross-account disclosure</li><li>Stale/Offline: last observed time shown</li><li>Unsupported: hides control, explains capability</li></ul></div></div></PublicShell> }
+import { useState } from 'react'
+import { API_BASE } from '@/lib/api'
+export default function Page(){
+  const [email,setEmail]=useState('')
+  const [state,setState]=useState<'idle'|'loading'|'sent'>('idle')
+  async function submit(e:any){
+    e.preventDefault()
+    setState('loading')
+    await fetch(`${API_BASE}/auth/recovery`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':'rec-'+Date.now()},body:JSON.stringify({phone_or_email:email})})
+    setState('sent')
+  }
+  return <PublicShell>
+    <div className="container" style={{padding:'32px 0',maxWidth:480}}>
+      <h1 style={{color:'var(--navy)'}}>Account Recovery</h1>
+      <p style={{color:'var(--muted)'}}>Supported Supabase session/recovery — do not reveal account existence (generic confirmation even if not found).</p>
+      <form onSubmit={submit} className="card" style={{marginTop:16,display:'grid',gap:12}}>
+        <label style={{fontWeight:600}}>Phone or email<input className="input" value={email} onChange={e=>setEmail(e.target.value)} placeholder="+2348012345678 or ada@email.com" /></label>
+        {state==='loading' && <div aria-busy="true" className="skeleton" style={{height:16}} />}
+        {state==='sent' && <div style={{background:'#E6F4EA',padding:12,borderRadius:8,color:'var(--green)'}}>If an account exists, a recovery link has been sent. Check inbox/SMS.</div>}
+        {state!=='sent' && <button type="submit" className="btn btn-primary" disabled={state==='loading'}>{state==='loading'?'Sending…':'Send recovery link'}</button>}
+        <a href="/login" style={{textAlign:'center',fontWeight:600}}>Back to log in</a>
+      </form>
+    </div>
+  </PublicShell>
+}

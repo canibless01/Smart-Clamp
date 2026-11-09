@@ -1,2 +1,28 @@
+'use client'
 import AppShell from '@/components/AppShell'
-export default function Page(){ return <AppShell role="tenant"><div style={{marginBottom:16}}><h1 style={{color:'var(--navy)',margin:0}}>Water & Gas Vending</h1><p style={{color:'var(--muted)'}}>Utility-aware accounting; no borrowed electricity relay assumptions.</p></div><div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:16}}><span className="badge badge-verified">Verified</span><span className="badge badge-stale">Stale</span><span className="badge badge-offline">Offline</span><span className="badge badge-unknown">Unknown</span></div><div className="grid-12"><div className="card" style={{gridColumn:'span 6'}}><div className="skeleton" style={{height:16,width:'70%'}}/><div className="skeleton" style={{height:12,width:'90%',marginTop:8}}/><div style={{marginTop:12,color:'var(--muted)',fontSize:13}}>Loading — dimension-stable placeholders, no layout shift.</div></div><div className="card" style={{gridColumn:'span 6'}}><div style={{fontWeight:700}}>Empty state</div><p style={{color:'var(--muted)'}}>Waiting for first reading. Add device or recharge to see data.</p><button className="btn btn-primary">Action</button></div><div className="card" style={{gridColumn:'span 12'}}><div style={{fontWeight:700}}>Error · Forbidden · Stale · Offline</div><p style={{color:'var(--muted)'}}>All failures preserve input, show safe retry, and never reveal another account’s data. Offline banner shows last synced time. Stale badge shows observed_at and quality.</p><div className="error-panel">Example error: Provider unavailable. <button className="btn btn-secondary">Retry</button></div></div></div></AppShell> }
+export default function Page(){
+  return <AppShell role="tenant">
+    <h1 style={{color:'var(--navy)',margin:0}}>Water & Gas Vending</h1>
+    <p style={{color:'var(--muted)'}}>Utility-aware accounting — no borrowed electricity relay/sensor logic for water/gas. Phase 5 — separate from electricity pilot.</p>
+    <div className="card" style={{marginTop:16}}>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <span className="badge badge-unknown">Phase 5 — not yet live</span>
+        <span className="badge badge-stale">Requires utility-aware accounting</span>
+      </div>
+      <div className="grid-12" style={{marginTop:16}}>
+        <div className="card" style={{gridColumn:'span 6',background:'var(--canvas)'}}>
+          <div style={{fontWeight:700}}>Water vending</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Prepaid water meter vending via existing wallet patterns. No relay — meter valve is utility-controlled.</div>
+          <button className="btn btn-secondary" style={{marginTop:8}} disabled>Coming soon</button>
+        </div>
+        <div className="card" style={{gridColumn:'span 6',background:'var(--canvas)'}}>
+          <div style={{fontWeight:700}}>Gas vending</div>
+          <div style={{fontSize:13,color:'var(--muted)'}}>Separate accounting, safety interlocks. Never apply electricity CT/relay assumptions.</div>
+          <button className="btn btn-secondary" style={{marginTop:8}} disabled>Coming soon</button>
+        </div>
+      </div>
+      <div style={{fontSize:12,color:'var(--muted)',marginTop:12}}>All utility types use Quote → payment → vending (distinct stages). Water/gas never reuses electricity relay drivers.</div>
+      <a href="/billing" className="btn btn-primary" style={{marginTop:12}}>Back to electricity billing</a>
+    </div>
+  </AppShell>
+}
