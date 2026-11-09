@@ -43,14 +43,5 @@ def register_all(app):
     from .ingest import bp as ingest_bp
     app.register_blueprint(ingest_bp)
 
-    # Generic fallback for unimplemented OpenAPI ops — returns 200 with Accepted so contract validator sees coverage
-    @app.before_request
-    def idempotency_check():
-        # allow Idempotency-Key header propagation
-        g.request_id = str(uuid.uuid4())
-        g.body_hash = hashlib.sha256(request.get_data() or b'').hexdigest()
-
-    @app.after_request
-    def add_request_id(resp):
-        resp.headers['X-Request-Id'] = g.get('request_id', '')
-        return resp
+    # NOTE: before_request / after_request for request_id are now in app/__init__.py
+    # to avoid duplicate handlers. Do not register again here.

@@ -1,20 +1,46 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '/api/v1'
+/**
+ * API base handling:
+ * - In browser: NEXT_PUBLIC_API_BASE (e.g. http://localhost:5000/api/v1 or /api/v1 for same-origin proxy)
+ * - On server (SSR): same, but fallback to http://localhost:5000/api/v1 for local dev
+ * - In production with same-origin reverse proxy, set NEXT_PUBLIC_API_BASE=/api/v1 and NEXT_PUBLIC_API_PROXY_TARGET
+ */
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  (typeof window === 'undefined'
+    ? process.env.API_PROXY_TARGET
+      ? `${process.env.API_PROXY_TARGET}/api/v1`
+      : 'http://localhost:5000/api/v1'
+    : '/api/v1')
 
 export type ApiError = { code: string; message: string; request_id: string; retry_after_seconds?: number }
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`
+  const token = typeof window !== 'undefined' ? localStorage.getItem('smartclamp_token') : null
+  const headers: Record<string,string> = {
+    'Content-Type': 'application/json',
+    ...(init.headers as Record<string,string> || {}),
+  }
+  if (token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(url, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init.headers || {}) },
-    cache: 'no-store'
+    headers,
+    cache: 'no-store',
   })
   if (!res.ok) {
     let body: any = {}
     try { body = await res.json() } catch {}
-    throw Object.assign(new Error(body.message || `API ${res.status}`), { status: res.status, body })
+    const err: any = new Error(body.message || `API ${res.status}`)
+    err.status = res.status
+    err.body = body
+    err.request_id = res.headers.get('X-Request-Id') || body.request_id
+    throw err
   }
   if (res.status === 204) return null
-  return res.json()
+  // Some endpoints return empty 202 with JSON
+  const text = await res.text()
+  if (!text) return null
+  try { return JSON.parse(text) } catch { return text }
 }
 
 export function formatNaira(kobo: number) {
@@ -27,4 +53,25 @@ export const STATES = {
   offline: { label: 'Offline', class: 'badge-offline' },
   unknown: { label: 'Unknown', class: 'badge-unknown' },
   verified: { label: 'Verified', class: 'badge-verified' }
+}
+
+// Auth helpers
+export function getToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('smartclamp_token')
+}
+export function getRole(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem('smartclamp_role')
+}
+export function logout() {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem('smartclamp_token')
+  localStorage.removeItem('smartclamp_role')
+  location.href = '/login'
+}
+export function requireToken(): string {
+  const t = getToken()
+  if (!t) throw new Error('Not authenticated')
+  return t
 }

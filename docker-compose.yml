@@ -1,0 +1,64 @@
+version: "3.9"
+services:
+  api:
+    build: ./apps/api
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-not-for-prod-change-me}
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    command: gunicorn -b 0.0.0.0:5000 "app:create_app()" --workers 2 --timeout 60
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:5000/api/v1
+      API_PROXY_TARGET: http://api:5000
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build: ./apps/api
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      API_BASE: http://api:5000/api/v1
+    command: python /app/services/worker/worker.py
+    restart: unless-stopped
+
+volumes:
+  pgdata:
