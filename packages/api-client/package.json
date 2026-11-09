@@ -1,0 +1,10 @@
+{
+  "name": "@smartclamp/api-client",
+  "version": "2.0.0",
+  "description": "Generated OpenAPI client for SmartClamp canonical API (contracts/openapi.yaml)",
+  "main": "index.ts",
+  "scripts": {
+    "generate": "openapi-generator-cli generate -i ../../contracts/openapi.yaml -g typescript-fetch -o ./src && npm run lint",
+    "lint": "echo 'Generated client — run typecheck'"
+  }
+}

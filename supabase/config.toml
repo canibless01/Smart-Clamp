@@ -1,0 +1,54 @@
+# Supabase local config for SmartClamp
+[api]
+enabled = true
+port = 54321
+schemas = ["public","private","auth","storage"]
+extra_search_path = ["public","extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+enable_confirmations = false
+enable_manual_linking = true
+
+[auth.external.google]
+enabled = false
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+# private buckets: evidence, reports, exports, avatars — require signed URLs 15 min, no public ACL
+[[storage.buckets]]
+id = "evidence"
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["image/jpeg","image/png","application/pdf"]
+
+[[storage.buckets]]
+id = "reports"
+public = false
+file_size_limit = "10MiB"
+
+[[storage.buckets]]
+id = "exports"
+public = false
+
+[[storage.buckets]]
+id = "avatars"
+public = false
+
+[realtime]
+enabled = true
+# Only scoped subscriptions; no broad telemetry access
+max_channels = 100
+
+[invalidation]
+enabled = true
