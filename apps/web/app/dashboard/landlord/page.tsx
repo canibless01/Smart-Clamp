@@ -1,41 +1,125 @@
-'use client'
-import AppShell from '@/components/AppShell'
-import { useEffect, useState } from 'react'
-import { API_BASE } from '@/lib/api'
-
-export default function Page(){
-  const [buildings,setBuildings]=useState<any[]>([])
-  const [loading,setLoading]=useState(true)
-  useEffect(()=>{
-    const token=localStorage.getItem('smartclamp_token')
-    if (!token){ setLoading(false); return }
-    fetch(`${API_BASE}/buildings`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json()).then(d=>setBuildings(d.items||[])).finally(()=>setLoading(false))
-  },[])
-  return <AppShell role="landlord">
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-      <h1 style={{color:'var(--navy)',margin:0}}>Landlord Dashboard</h1>
-      <a href="/dashboard/landlord/buildings/new" className="btn btn-primary">Create building</a>
-    </div>
-    <p style={{color:'var(--muted)'}}>Owned building scope enforced; transfer preserves history and revokes old access; bulk maintenance uses step-up.</p>
-    {loading ? <div aria-busy="true" className="skeleton" style={{height:120}} /> :
-      buildings.length===0 ? <div className="empty">No buildings yet. Create one to add rooms and invite tenants. <a href="/dashboard/landlord/buildings/new" className="btn btn-primary">Create building</a></div> :
-      <div className="grid-12" style={{marginTop:16}}>
-        {buildings.map((b:any)=><div key={b.building_id||b.id} className="card" style={{gridColumn:'span 6'}}>
-          <div style={{fontWeight:700}}>{b.name}</div>
-          <div style={{color:'var(--muted)',fontSize:13}}>{b.address} · {b.meter_type} · {b.region}</div>
-          <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-            <a href={`/dashboard/landlord/buildings/${b.building_id||b.id}/rooms`} className="btn btn-secondary">Manage rooms</a>
-            <a href={`/billing`} className="btn btn-secondary">Accounting</a>
-            <button className="btn btn-secondary">Bulk maintenance</button>
-          </div>
-          <div style={{fontSize:12,color:'var(--red)',marginTop:8}}>Landlords cannot use power control to enforce rent debts.</div>
-        </div>)}
-      </div>
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import AppShell from "@/components/AppShell";
+import Icon from "@/components/Icon";
+import { apiFetch } from "@/lib/api";
+export default function Page() {
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [authenticated, setAuthenticated] = useState(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    if (!localStorage.getItem("smartclamp_token")) {
+      setLoading(false);
+      return;
     }
-    <div className="grid-12" style={{marginTop:16}}>
-      <div className="card" style={{gridColumn:'span 4'}}><div style={{fontWeight:700}}>Rooms</div><div className="skeleton" style={{height:16,marginTop:8}} /><div style={{fontSize:13,color:'var(--muted)'}}>Room grid with occupancy status, invite, transfer.</div></div>
-      <div className="card" style={{gridColumn:'span 4'}}><div style={{fontWeight:700}}>Collected / Owed</div><div style={{fontSize:24,fontWeight:800}}>₦120,000</div><div style={{color:'var(--muted)',fontSize:13}}>Revenue from finance inputs, not wallet liabilities.</div></div>
-      <div className="card" style={{gridColumn:'span 4'}}><div style={{fontWeight:700}}>Flags</div><div style={{fontSize:24,fontWeight:800}}>0 active</div><a href="/alerts">Inspect →</a></div>
-    </div>
-  </AppShell>
+    setAuthenticated(true);
+    try {
+      const d = await apiFetch("/buildings");
+      setBuildings(d.items || []);
+    } catch {
+      setError(
+        "We couldn’t load your buildings. Check your connection and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  return (
+    <AppShell role="landlord">
+      <div className="overview-heading">
+        <div>
+          <span className="eyebrow">THE BIGGER PICTURE</span>
+          <h1>Your buildings, in focus.</h1>
+          <p>A little clarity for every room.</p>
+        </div>
+        {authenticated && (
+          <a
+            href="/dashboard/landlord/buildings/new"
+            className="btn btn-primary"
+          >
+            Add a building <Icon name="arrow" size={16} />
+          </a>
+        )}
+      </div>
+      {error && (
+        <div className="error-panel" role="alert">
+          {error}
+          <button className="btn btn-secondary" onClick={() => void load()}>
+            Try again
+          </button>
+        </div>
+      )}
+      {loading ? (
+        <div
+          className="skeleton"
+          aria-label="Loading buildings"
+          aria-busy="true"
+          style={{ height: 220 }}
+        />
+      ) : !authenticated ? (
+        <div className="workspace-empty">
+          <Icon name="building" size={38} />
+          <h2>A home for your buildings.</h2>
+          <p>Log in to manage your properties and their rooms.</p>
+          <a href="/login" className="btn btn-primary">
+            Log in <Icon name="arrow" size={16} />
+          </a>
+        </div>
+      ) : !error && buildings.length === 0 ? (
+        <div className="workspace-empty">
+          <Icon name="building" size={40} />
+          <h2>Make room for a clearer picture.</h2>
+          <p>
+            Add your first building, then create rooms and invite your
+            residents.
+          </p>
+          <a
+            href="/dashboard/landlord/buildings/new"
+            className="btn btn-primary"
+          >
+            Add your first building
+            <Icon name="arrow" size={16} />
+          </a>
+        </div>
+      ) : (
+        <div className="grid-12">
+          {buildings.map((b) => (
+            <article
+              key={b.building_id || b.id}
+              className="card building-card"
+              style={{ gridColumn: "span 6" }}
+            >
+              <span className="outline-icon">
+                <Icon name="building" />
+              </span>
+              <h2>{b.name}</h2>
+              <p>{b.address}</p>
+              <span className="badge badge-unknown">
+                {b.meter_type === "with_meter"
+                  ? "Central meter"
+                  : "Meter setup to confirm"}
+              </span>
+              <div className="building-actions">
+                <a
+                  href={`/dashboard/landlord/buildings/${encodeURIComponent(b.building_id || b.id)}/rooms`}
+                  className="btn btn-primary"
+                >
+                  Manage rooms <Icon name="arrow" size={16} />
+                </a>
+                <a href="/billing" className="text-link">
+                  Billing
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </AppShell>
+  );
 }

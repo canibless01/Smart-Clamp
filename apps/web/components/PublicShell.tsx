@@ -1,94 +1,203 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-
-export default function PublicShell({ children }: { children: React.ReactNode }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [solid, setSolid] = useState(false)
+"use client";
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Icon, { Brand } from "./Icon";
+const links = [
+  ["How it works", "/how-it-works"],
+  ["For your home", "/for-homeowners"],
+  ["For your building", "/for-landlords"],
+  ["Plans", "/pricing"],
+];
+export default function PublicShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const path = usePathname();
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  useEffect(() => {
-    if (!menuOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [menuOpen])
-
+    if (!open) return;
+    const old = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    menu.current?.querySelector<HTMLElement>("a")?.focus();
+    function key(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggle.current?.focus();
+      }
+      if (e.key === "Tab") {
+        const controls =
+          menu.current?.querySelectorAll<HTMLElement>("a,button");
+        if (!controls?.length) return;
+        const first = controls[0],
+          last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+    window.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = old;
+      window.removeEventListener("keydown", key);
+    };
+  }, [open]);
   return (
-    <>
-      <header className={`header ${solid ? 'solid' : ''}`} role="banner">
-        <div className="container" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',gap:16}}>
-          <Link href="/" aria-label="SmartClamp home" style={{fontWeight:800,fontSize:22,color:'var(--navy)'}}>SmartClamp</Link>
-          <nav aria-label="Primary" className="hide-mobile" style={{display:'flex',gap:8}}>
-            <Link className="nav-link" href="/how-it-works">How It Works</Link>
-            <Link className="nav-link" href="/for-landlords">For Landlords</Link>
-            <Link className="nav-link" href="/for-homeowners">For Homeowners</Link>
-            <Link className="nav-link" href="/pricing">Pricing</Link>
+    <div className="public-site">
+      <header className="site-header">
+        <div className="site-nav container">
+          <Link href="/" aria-label="SmartClamp home">
+            <Brand />
+          </Link>
+          <nav className="desktop-links" aria-label="Main navigation">
+            {links.map(([title, url]) => (
+              <Link
+                href={url}
+                key={url}
+                aria-current={path === url ? "page" : undefined}
+              >
+                {title}
+              </Link>
+            ))}
           </nav>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <Link href="/#meter" className="btn btn-secondary hide-mobile">Validate Your Meter</Link>
-            <Link href="/login" className="btn btn-secondary">Log In</Link>
-            <Link href="/signup" className="btn btn-primary">Sign Up</Link>
-            <button aria-label="Menu" aria-expanded={menuOpen} onClick={()=>setMenuOpen(!menuOpen)} className="btn btn-secondary show-mobile" style={{display:'none'}}>☰</button>
+          <div className="nav-actions">
+            <Link href="/login" className="login-link">
+              Log in
+            </Link>
+            <Link href="/signup" className="btn btn-primary nav-cta">
+              Get started <Icon name="arrow" size={16} />
+            </Link>
+            <button
+              ref={toggle}
+              className="menu-toggle icon-button"
+              aria-label={open ? "Close navigation" : "Open navigation"}
+              aria-expanded={open}
+              aria-controls="site-menu"
+              onClick={() => setOpen(!open)}
+            >
+              <Icon name={open ? "close" : "menu"} />
+            </button>
           </div>
         </div>
-        {menuOpen && (
-          <div className="mobile-nav" role="dialog" aria-modal="true" aria-label="Navigation menu">
-            <button onClick={()=>setMenuOpen(false)} className="btn btn-secondary" style={{alignSelf:'flex-end'}}>Close ✕</button>
-            <Link className="nav-link" href="/how-it-works" onClick={()=>setMenuOpen(false)}>How It Works</Link>
-            <Link className="nav-link" href="/for-landlords" onClick={()=>setMenuOpen(false)}>For Landlords</Link>
-            <Link className="nav-link" href="/for-homeowners" onClick={()=>setMenuOpen(false)}>For Homeowners</Link>
-            <Link className="nav-link" href="/pricing" onClick={()=>setMenuOpen(false)}>Pricing</Link>
-            <Link className="nav-link" href="/about" onClick={()=>setMenuOpen(false)}>About</Link>
-            <Link className="nav-link" href="/support" onClick={()=>setMenuOpen(false)}>Contact Support</Link>
-            <Link href="/#meter" onClick={()=>setMenuOpen(false)} className="btn btn-primary">Validate Your Meter</Link>
-          </div>
-        )}
       </header>
-      <main id="main">{children}</main>
-      <footer style={{borderTop:'1px solid var(--border)',padding:'32px 0',marginTop:48,background:'var(--surface)'}}>
-        <div className="container">
-          <div className="grid-12">
-            <div style={{gridColumn:'span 6'}}>
-              <strong style={{color:'var(--navy)'}}>SmartClamp</strong>
-              <p style={{color:'var(--muted)',maxWidth:480}}>SmartClamp provides sub-metering and verification technology. It does not generate, resell, or distribute electricity, and does not replace your utility meter.</p>
-            </div>
-            <div style={{gridColumn:'span 2'}}>
-              <div style={{fontWeight:700,marginBottom:12}}>Product</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <Link href="/how-it-works">How It Works</Link>
-                <Link href="/for-landlords">For Landlords</Link>
-                <Link href="/for-homeowners">For Homeowners</Link>
-                <Link href="/smart-meter">Already Have a Smart Meter</Link>
-                <Link href="/pricing">Pricing</Link>
-              </div>
-            </div>
-            <div style={{gridColumn:'span 2'}}>
-              <div style={{fontWeight:700,marginBottom:12}}>Support</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <Link href="/support">Contact Support</Link>
-                <Link href="/faqs">FAQs</Link>
-                <Link href="/connection-help">Connection Help</Link>
-                <Link href="/terms">Terms</Link>
-                <Link href="/privacy">Privacy</Link>
-              </div>
-            </div>
-            <div style={{gridColumn:'span 2'}}>
-              <div style={{fontWeight:700,marginBottom:12}}>Company</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <Link href="/about">About</Link>
-                <Link href="/install">Install</Link>
-                <Link href="/ir-reader/setup">IR-Reader</Link>
-              </div>
-            </div>
+      {open && (
+        <div
+          ref={menu}
+          className="site-mobile-menu"
+          id="site-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+        >
+          <div className="mobile-menu-top">
+            <Brand />
+            <button
+              className="icon-button"
+              aria-label="Close navigation"
+              onClick={() => {
+                setOpen(false);
+                toggle.current?.focus();
+              }}
+            >
+              <Icon name="close" />
+            </button>
           </div>
-          <div style={{marginTop:24,paddingTop:16,borderTop:'1px solid var(--border)',color:'var(--muted)',fontSize:14}}>© 2026 SmartClamp. Piloting in the FUTA area — verified results coming soon. Legal wording pending professional review.</div>
+          <nav>
+            {[
+              ...links,
+              ["About SmartClamp", "/about"],
+              ["Help & support", "/support"],
+            ].map(([title, url]) => (
+              <Link key={url} href={url} onClick={() => setOpen(false)}>
+                {title}
+                <Icon name="arrow" />
+              </Link>
+            ))}
+          </nav>
+          <Link
+            href="/signup"
+            onClick={() => setOpen(false)}
+            className="btn btn-primary"
+          >
+            Make sense of your power <Icon name="arrow" />
+          </Link>
+        </div>
+      )}
+      <main id="main" className="public-main">
+        {children}
+      </main>
+      <footer className="site-footer">
+        <div className="container">
+          <div className="footer-main">
+            <div className="footer-intro">
+              <Link href="/" aria-label="SmartClamp home">
+                <Brand />
+              </Link>
+              <p>
+                A clearer picture of your power.
+                <br />A little more peace of mind.
+              </p>
+              <span className="footer-location">
+                <span className="status-dot" /> Built for homes in Nigeria.
+              </span>
+            </div>
+            {[
+              [
+                "Explore",
+                [
+                  ["How it works", "/how-it-works"],
+                  ["For homeowners", "/for-homeowners"],
+                  ["For landlords", "/for-landlords"],
+                  ["Have a smart meter?", "/smart-meter"],
+                  ["Plans", "/pricing"],
+                ],
+              ],
+              [
+                "We’re here to help",
+                [
+                  ["Support", "/support"],
+                  ["Common questions", "/faqs"],
+                  ["Connection help", "/connection-help"],
+                  ["Installation", "/install"],
+                ],
+              ],
+              [
+                "SmartClamp",
+                [
+                  ["Our story", "/about"],
+                  ["Privacy", "/privacy"],
+                  ["Terms of service", "/terms"],
+                ],
+              ],
+            ].map(([title, items]) => (
+              <div className="footer-links" key={title as string}>
+                <h3>{title as string}</h3>
+                {(items as string[][]).map(([t, url]) => (
+                  <Link key={url} href={url}>
+                    {t}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="footer-bottom">
+            <span>© {new Date().getFullYear()} SmartClamp</span>
+            <p>
+              SmartClamp provides sub-metering and verification technology. It
+              does not generate, resell or distribute electricity, or replace
+              your utility meter.
+            </p>
+            <span>Measure. Verify. Manage.</span>
+          </div>
         </div>
       </footer>
-      <style>{`@media(max-width:599px){.hide-mobile{display:none!important}} @media(min-width:600px){.show-mobile{display:none!important}}`}</style>
-    </>
-  )
+    </div>
+  );
 }

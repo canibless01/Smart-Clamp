@@ -1,30 +1,75 @@
-import PublicShell from '@/components/PublicShell'
-export default function Page(){
-  return <PublicShell>
-    <div className="container" style={{padding:'32px 0'}}>
-      <h1 style={{color:'var(--navy)'}}>How It Works</h1>
-      <p style={{color:'var(--muted)',maxWidth:720}}>Measurement → transport → verification → optional control. With/without-meter explanations and installation boundaries.</p>
-      <div className="grid-12" style={{marginTop:24}}>
-        <div className="card" style={{gridColumn:'span 6'}}>
-          <h3>With Meter — Building + Rooms</h3>
-          <p style={{color:'var(--muted)'}}>Building Hub (RS485) and Pole Gateway (ESP-NOW) upload independently; cloud correlates. Central-meter vending and internal room accounting reconcile separately.</p>
-          <ul><li>House Full per room → Building Hub → TLS ingest</li><li>Pole Device → Pole Gateway → TLS ingest</li><li>Durable ACK authorizes deletion</li></ul>
-        </div>
-        <div className="card" style={{gridColumn:'span 6'}}>
-          <h3>Without Meter — Allocation</h3>
-          <p style={{color:'var(--muted)'}}>Provisional price = latest bill / matched-period building kWh + disclosed margin. Final = room kWh / building kWh × bill. Zero denominator blocks auto-allocation.</p>
-          <div className="error-panel">Settlement cadence unresolved — this model is disabled until business sign-off. Do not launch.</div>
-        </div>
-        <div className="card" style={{gridColumn:'span 6'}}>
-          <h3>Verification</h3>
-          <p>Transformer vs SUM(downstream poles) 10%, pole vs rooms+common 8%, clamp vs meter 5%. 95% coverage, matched 5-min UTC windows, 3 consecutive eligible windows → suspected_mismatch. No fabricated verified badge.</p>
-        </div>
-        <div className="card" style={{gridColumn:'span 6'}}>
-          <h3>Installation Safety</h3>
-          <p style={{color:'var(--muted)'}}>Clip-on CT alone is safe; mains voltage/relay work requires qualified installer, isolation and enclosure. No claim live work is safe without isolation.</p>
-          <a href="/install" className="btn btn-primary">Request install</a>
+import PublicShell from "@/components/PublicShell";
+import SystemMap from "@/components/SystemMap";
+import Icon from "@/components/Icon";
+import Link from "next/link";
+export default function Page() {
+  return (
+    <PublicShell>
+      <div className="container marketing-page">
+        <header className="marketing-heading">
+          <span className="eyebrow">THE BIGGER PICTURE</span>
+          <h1>
+            From your wire.
+            <br />
+            To your everyday.
+          </h1>
+          <p>
+            A small device measures. A connected platform makes sense of it.
+            <br />
+            You get a clearer picture of what’s happening at home.
+          </p>
+        </header>
+        <SystemMap />
+        <section className="marketing-two">
+          <div>
+            <span className="eyebrow">BUILT AROUND YOUR SETUP</span>
+            <h2>
+              One home isn’t
+              <br />
+              every home.
+            </h2>
+            <p>
+              A single home, a room in a shared building, or an existing smart
+              meter—each needs a slightly different connection.
+            </p>
+            <Link href="/#for-you" className="btn btn-primary">
+              Find your setup <Icon name="arrow" size={16} />
+            </Link>
+          </div>
+          <div className="simple-feature-list">
+            {[
+              [
+                "Your home",
+                "A pole device can measure whole-home usage. Supported relay hardware adds eligible control.",
+              ],
+              [
+                "A shared building",
+                "Room devices measure individual consumption and connect through a building hub.",
+              ],
+              [
+                "An existing meter",
+                "Start with free account validation. Compatible optical readers can add meter readings.",
+              ],
+            ].map(([t, d]) => (
+              <div key={t}>
+                <h3>{t}</h3>
+                <p>{d}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+        <div className="quiet-note">
+          <Icon name="shield" />
+          <p>
+            Electrical installation needs qualified professionals.
+            Compatibility, metering accuracy and control capabilities must be
+            confirmed for your specific setup.
+          </p>
+          <Link href="/install" className="text-link">
+            Installation <Icon name="arrow" size={15} />
+          </Link>
         </div>
       </div>
-    </div>
-  </PublicShell>
+    </PublicShell>
+  );
 }

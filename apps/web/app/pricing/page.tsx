@@ -1,32 +1,140 @@
-import PublicShell from '@/components/PublicShell'
-export default function Page(){
-  const tiers=[
-    {name:'Free',price:'₦0',desc:'Anonymous validation only',features:['Meter validation (masked)','Public device view','No live data'],cta:'Check meter',href:'/#meter'},
-    {name:'Basic',price:'Pricing being finalized',desc:'For tenants & homeowners',features:['Live usage & history','Alerts & community','Device verification','Monthly report']},
-    {name:'Basic Pro',price:'Pricing being finalized',desc:'Analytics',features:['Bill forecast','Load signatures','Power factor','Peer benchmark','Hash-chained evidence','SMS/USSD query'],highlight:true},
-    {name:'Pro',price:'Pricing being finalized',desc:'Control where hardware supports it',features:['All Pro analytics','Eligible relay control','Schedules & budgets','Bulk maintenance (landlord)'],highlight:true},
-  ]
-  return <PublicShell>
-    <div className="container" style={{padding:'32px 0'}}>
-      <h1 style={{color:'var(--navy)',textAlign:'center'}}>Pricing — electricity credit is separate from subscription</h1>
-      <p style={{textAlign:'center',color:'var(--muted)',maxWidth:720,margin:'12px auto'}}>Free validation ₦0. Platform subscription is recurring; electricity credit is pay-as-you-go; hardware and install are separate. Unapproved paid prices read “Pricing being finalized”, not fabricated naira figures.</p>
-      <div className="grid-12" style={{marginTop:32}}>
-        {tiers.map(t=>(
-          <div key={t.name} className="card" style={{gridColumn:'span 3',border: t.highlight?'2px solid var(--amber)':'1px solid var(--border)'}}>
-            <div style={{fontWeight:800,color:'var(--navy)'}}>{t.name}</div>
-            <div style={{fontSize:20,fontWeight:700,margin:'8px 0'}}>{t.price}</div>
-            <div style={{color:'var(--muted)',fontSize:13}}>{t.desc}</div>
-            <ul style={{paddingLeft:18,marginTop:12}}>{t.features.map(f=><li key={f}>{f}</li>)}</ul>
-            <a href={t.href||'/signup'} className={`btn ${t.highlight?'btn-amber':'btn-primary'}`} style={{marginTop:16,width:'100%'}}>{t.cta||'Get started'}</a>
+import PublicShell from "@/components/PublicShell";
+import Icon from "@/components/Icon";
+import Link from "next/link";
+const plans = [
+  {
+    name: "Free",
+    label: "A simple first step.",
+    price: "₦0",
+    detail: "For meter validation",
+    features: [
+      "Check a meter account",
+      "No signup needed",
+      "Explore your options",
+    ],
+    link: "/#meter",
+    cta: "Check your meter",
+  },
+  {
+    name: "Basic",
+    label: "Get a clearer picture.",
+    price: "Coming to the pilot",
+    detail: "Pricing being finalized",
+    features: [
+      "Usage monitoring & history",
+      "Alerts and energy records",
+      "Your home at a glance",
+    ],
+    link: "/signup",
+    cta: "Start with the basics",
+  },
+  {
+    name: "Basic Pro",
+    label: "Go a little deeper.",
+    price: "Coming to the pilot",
+    detail: "Pricing being finalized",
+    features: [
+      "Everything in Basic",
+      "Supported forecasts & insights",
+      "Deeper reports and comparisons",
+    ],
+    link: "/signup",
+    cta: "Explore more insight",
+  },
+  {
+    name: "Pro",
+    label: "Clarity meets control.",
+    price: "Coming to the pilot",
+    detail: "Pricing being finalized",
+    features: [
+      "Everything in Basic Pro",
+      "Eligible relay control",
+      "Supported schedules & budgets",
+    ],
+    link: "/signup",
+    cta: "Explore Pro",
+  },
+];
+export default function Page() {
+  return (
+    <PublicShell>
+      <div className="container marketing-page">
+        <header className="marketing-heading center">
+          <span className="eyebrow">FIND YOUR LEVEL OF CLARITY</span>
+          <h1>
+            A plan that feels
+            <br />
+            at home with you.
+          </h1>
+          <p>
+            Start with what you need. Add more insight or eligible control as
+            your setup grows.
+          </p>
+        </header>
+        <div className="plan-grid">
+          {plans.map((p, i) => (
+            <article
+              key={p.name}
+              className={`plan-card ${i === 2 ? "featured" : ""}`}
+            >
+              <span className="eyebrow">{p.name}</span>
+              <h2>{p.label}</h2>
+              <div className="plan-price">
+                {p.price}
+                <small>{p.detail}</small>
+              </div>
+              <ul>
+                {p.features.map((f) => (
+                  <li key={f}>
+                    <Icon name="check" size={15} />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={p.link}
+                className={`btn ${i === 2 ? "btn-primary" : "btn-secondary"}`}
+              >
+                {p.cta}
+                <Icon name="arrow" size={14} />
+              </Link>
+            </article>
+          ))}
+        </div>
+        <div className="plan-note">
+          <Icon name="wallet" />
+          <p>
+            Your platform plan, electricity credit, hardware and installation
+            are separate. Paid pricing will be confirmed before purchase. Pro
+            control requires compatible, commissioned hardware.
+          </p>
+        </div>
+        <section className="marketing-two">
+          <div>
+            <span className="eyebrow">SHARING A BUILDING?</span>
+            <h2>
+              Let’s find the
+              <br />
+              right fit, together.
+            </h2>
+            <p>
+              Room-level measurement and building-wide visibility deserve a
+              setup that fits your property.
+            </p>
           </div>
-        ))}
+          <div className="building-enquiry">
+            <Icon name="building" size={40} />
+            <h3>A clearer picture for every room.</h3>
+            <p>
+              Tell our team about your building, existing meter and the number
+              of rooms you’d like to connect.
+            </p>
+            <Link href="/support" className="btn btn-primary">
+              Talk to the team <Icon name="arrow" size={16} />
+            </Link>
+          </div>
+        </section>
       </div>
-      <div className="card" style={{marginTop:24}}>
-        <h3>Shared housing? Talk to us.</h3>
-        <p style={{color:'var(--muted)'}}>Building pricing uses per-room allocation and central-meter vending. No-meter model pending business sign-off — provisional unit price uses latest bill / matched building kWh + disclosed margin; final allocation room kWh / building kWh × bill.</p>
-        <a href="/support" className="btn btn-secondary">Contact sales</a>
-      </div>
-      <div style={{marginTop:24,fontSize:13,color:'var(--muted)'}}>Source disclaimer: Future pricing is pending procurement. Do not publish final prices, untested accuracy, install-time guarantees, fabricated testimonials, universal meter compatibility, or certification claims.</div>
-    </div>
-  </PublicShell>
+    </PublicShell>
+  );
 }

@@ -1,72 +1,154 @@
-'use client'
-import { useState } from 'react'
-import { API_BASE } from '@/lib/api'
-
-type State = 'idle'|'validating'|'valid'|'not_found'|'invalid_input'|'provider_unavailable'|'rate_limited'
-
+"use client";
+import { useState, useEffect, useRef, FormEvent } from "react";
+import { API_BASE } from "@/lib/api";
+import Icon from "./Icon";
+type State = "idle" | "loading" | "valid" | "error";
 export default function MeterLookup() {
-  const [meter, setMeter] = useState('')
-  const [state, setState] = useState<State>('idle')
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState<string>('')
-
-  async function check() {
-    const trimmed = meter.trim()
-    if (!/^[0-9]{6,20}$/.test(trimmed)) {
-      setState('invalid_input')
-      setError('Enter 6–20 digits. Leading zeros are preserved.')
-      return
+  const [meter, setMeter] = useState("");
+  const [state, setState] = useState<State>("idle");
+  const [message, setMessage] = useState("");
+  const [result, setResult] = useState<any>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => pending.current?.abort(), []);
+  useEffect(() => {
+    if (!cooldown) return;
+    const id = setTimeout(() => setCooldown((v) => v - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+  async function check(e: FormEvent) {
+    e.preventDefault();
+    if (state === "loading" || cooldown) return;
+    if (!/^[0-9]{6,20}$/.test(meter.trim())) {
+      setMessage("Enter your meter’s 6–20 digit number.");
+      setState("error");
+      return;
     }
-    setState('validating')
-    setError('')
+    setState("loading");
+    setMessage("");
+    setResult(null);
+    const controller = new AbortController();
+    pending.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch(`${API_BASE}/meters/validate`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ meter_number: trimmed, utility_type: 'electricity' })
-      })
-      if (res.status===429) { setState('rate_limited'); setError('Too many checks. Please wait 60 seconds.'); return }
-      if (res.status===503) { setState('provider_unavailable'); setError('Provider temporarily unavailable. Try again.'); return }
-      if (!res.ok) { const j=await res.json().catch(()=>({})); setState('not_found'); setError(j.message||'Meter not found. Check the number.'); return }
-      const data = await res.json()
-      if (!data.valid) { setState('not_found'); setError('Meter not found.'); return }
-      setResult(data)
-      setState('valid')
-    } catch (e:any) {
-      setState('provider_unavailable')
-      setError('Cannot reach SmartClamp. Check your connection and try again.')
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meter_number: meter.trim(),
+          utility_type: "electricity",
+        }),
+        signal: controller.signal,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        const retry = Number(res.headers.get("Retry-After"));
+        setCooldown(
+          Number.isFinite(retry) && retry > 0 ? Math.min(retry, 3600) : 60,
+        );
+        throw new Error(
+          "A few too many checks. Please wait before trying again.",
+        );
+      }
+      if (res.status === 503)
+        throw new Error(
+          "The meter provider is unavailable right now. Please try again shortly.",
+        );
+      if (!res.ok)
+        throw new Error(
+          data.message || "We couldn’t complete the lookup. Please try again.",
+        );
+      if (!data.valid)
+        throw new Error(
+          "We couldn’t find that meter. Check the number and try again.",
+        );
+      setResult(data);
+      setState("valid");
+    } catch (err) {
+      setState("error");
+      setMessage(
+        controller.signal.aborted
+          ? "The lookup took longer than expected. You can try again."
+          : err instanceof Error
+            ? err.message
+            : "We couldn’t connect. Check your internet and try again.",
+      );
+    } finally {
+      clearTimeout(timeout);
+      pending.current = null;
     }
   }
-
   return (
-    <div className="card" style={{maxWidth:640}}>
-      <label htmlFor="meter" style={{fontWeight:700,display:'block',marginBottom:8}}>Enter your meter number</label>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <input id="meter" className="input" value={meter} onChange={e=>setMeter(e.target.value)} placeholder="e.g. 04217839011" inputMode="numeric" pattern="[0-9]*" aria-describedby="meter-help" style={{flex:1,minWidth:200}} />
-        <button onClick={check} disabled={state==='validating'} className="btn btn-primary" style={{minWidth:140}}>{state==='validating'?'Checking…':'Check meter'}</button>
-      </div>
-      <div id="meter-help" style={{fontSize:13,color:'var(--muted)',marginTop:8}}>We keep leading zeros. No signup required for validation.</div>
-
-      {state==='invalid_input' && <div role="alert" className="error-panel" style={{marginTop:12}}>{error}</div>}
-      {state==='rate_limited' && <div role="alert" className="error-panel" style={{marginTop:12}}>{error} <button onClick={check} className="btn btn-secondary" style={{marginLeft:8}}>Retry</button></div>}
-      {state==='provider_unavailable' && <div role="alert" className="error-panel" style={{marginTop:12}}>{error} <button onClick={check} className="btn btn-secondary" style={{marginLeft:8}}>Retry</button></div>}
-      {state==='not_found' && <div role="alert" className="error-panel" style={{marginTop:12}}>{error}</div>}
-      {state==='valid' && result && (
-        <div style={{marginTop:16,padding:16,background:'#E6F4EA',border:'1px solid #A7D8B9',borderRadius:12}}>
-          <div style={{fontWeight:700,color:'var(--green)'}}>✓ Valid account</div>
-          <div style={{marginTop:8,fontSize:14}}>
-            {result.customer_name && <div>Customer: {result.customer_name}</div>}
-            {result.address && <div>Address: {result.address}</div>}
-            {result.disco_name && <div>DisCo: {result.disco_name}</div>}
-          </div>
-          <p style={{marginTop:12,fontSize:13,color:'var(--muted)'}}>Validation confirms this account. Live balance and history require a supported connection.</p>
-          <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-            <a href="/ir-reader/setup" className="btn btn-secondary">Explore IR-Reader</a>
-            <a href="/signup" className="btn btn-primary">Save with an account</a>
-          </div>
+    <div className="meter-lookup">
+      <h3>Your first bit of clarity.</h3>
+      <form onSubmit={check} noValidate aria-label="Check your meter">
+        <label htmlFor="meter-number">Meter number</label>
+        <div className="meter-form-row">
+          <input
+            id="meter-number"
+            className="input"
+            value={meter}
+            onChange={(e) => {
+              setMeter(e.target.value);
+              if (state !== "loading") {
+                setState("idle");
+                setMessage("");
+                setResult(null);
+              }
+            }}
+            placeholder="e.g. 04217839011"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={20}
+            aria-describedby="meter-help meter-feedback"
+            aria-invalid={state === "error"}
+            disabled={state === "loading"}
+          />
+          <button
+            type="submit"
+            disabled={state === "loading" || cooldown > 0}
+            className="btn btn-primary"
+          >
+            {state === "loading"
+              ? "Checking…"
+              : cooldown
+                ? `Wait ${cooldown}s`
+                : "Check meter"}
+            <Icon name="arrow" size={15} />
+          </button>
         </div>
-      )}
-      {state==='validating' && <div aria-busy="true" style={{marginTop:12}}><div className="skeleton" style={{height:20,width:'60%'}} /></div>}
+        <p id="meter-help" className="meter-help">
+          No account needed. Leading zeros stay exactly as entered.
+        </p>
+        <div id="meter-feedback" aria-live="polite" aria-atomic="true">
+          {state === "error" && (
+            <p className="meter-error" role="alert">
+              {message}
+            </p>
+          )}
+          {state === "loading" && (
+            <p className="meter-help" aria-busy="true">
+              Connecting to your meter provider…
+            </p>
+          )}
+          {state === "valid" && result && (
+            <div className="meter-result">
+              <strong>
+                <Icon name="check" size={16} /> Account found
+              </strong>
+              {result.customer_name && <p>{result.customer_name}</p>}
+              {result.disco_name && <p>{result.disco_name}</p>}
+              <p>
+                This confirms the meter account. Live usage needs a supported
+                connection.
+              </p>
+              <a href="/ir-reader/setup" className="btn btn-secondary">
+                Explore a reader <Icon name="arrow" size={14} />
+              </a>
+            </div>
+          )}
+        </div>
+      </form>
     </div>
-  )
+  );
 }

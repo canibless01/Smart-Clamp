@@ -1,40 +1,203 @@
-'use client'
-import PublicShell from '@/components/PublicShell'
-import { useState } from 'react'
-export default function Page(){
-  const [cat,setCat]=useState('device')
-  return <PublicShell>
-    <div className="container" style={{padding:'32px 0'}}>
-      <h1 style={{color:'var(--navy)'}}>Contact Support</h1>
-      <div className="grid-12" style={{marginTop:16}}>
-        <div className="card" style={{gridColumn:'span 8'}}>
-          <h3>Open a Ticket</h3>
-          <p style={{color:'var(--muted)'}}>Scoped to owner/reporter/assigned actor/status/SLA. Append-only conversation, private attachments (signed URL 15 min, MIME/size/malware scan).</p>
-          <div style={{display:'grid',gap:12,marginTop:12}}>
-            <select value={cat} onChange={e=>setCat(e.target.value)} className="input"><option value="device">Device</option><option value="payment">Payment</option><option value="billing">Billing</option><option value="installation">Installation</option><option value="account">Account</option><option value="other">Other</option></select>
-            <input className="input" placeholder="Subject — max 200 chars" />
-            <textarea className="input" placeholder="Message — max 4000 chars" rows={4} />
-            <div style={{border:'1px dashed var(--border)',borderRadius:12,padding:16,textAlign:'center'}}>
-              <div style={{fontWeight:600}}>Drop evidence (photo/pdf) — max 10 MiB each</div>
-              <div style={{fontSize:12,color:'var(--muted)'}}>Accepted: image/jpeg, image/png, application/pdf · SHA256 verified · Quarantined until scan</div>
-              <button className="btn btn-secondary" style={{marginTop:8}}>Attach file</button>
+"use client";
+import { useState, useRef, FormEvent } from "react";
+import PublicShell from "@/components/PublicShell";
+import Icon from "@/components/Icon";
+import { apiFetch } from "@/lib/api";
+export default function Page() {
+  const [form, setForm] = useState({
+    category: "device",
+    subject: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [reference, setReference] = useState("");
+  const key = useRef("");
+  const body = useRef("");
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (loading) return;
+    if (!form.subject.trim() || !form.message.trim()) {
+      setError("Add a subject and a little detail so we can help.");
+      return;
+    }
+    if (!localStorage.getItem("smartclamp_token")) {
+      setError(
+        "Please log in before opening a private support request. Your message is still here.",
+      );
+      return;
+    }
+    const payload = JSON.stringify(form);
+    if (payload !== body.current) {
+      key.current = crypto.randomUUID();
+      body.current = payload;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const d = await apiFetch("/support/tickets", {
+        method: "POST",
+        headers: { "Idempotency-Key": key.current },
+        body: payload,
+      });
+      if (!d?.id)
+        throw new Error(
+          "We didn’t receive a request reference. Please try again.",
+        );
+      setReference(d.id);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "We couldn’t send your request. Your message is still here.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <PublicShell>
+      <div className="container marketing-page">
+        <header className="marketing-heading">
+          <span className="eyebrow">A LITTLE HELP GOES A LONG WAY</span>
+          <h1>
+            Let’s make
+            <br />
+            things clearer.
+          </h1>
+          <p>
+            Something on your mind? Tell us what’s happening.
+            <br />
+            Please don’t include passwords or payment card details.
+          </p>
+        </header>
+        <div className="support-layout">
+          {reference ? (
+            <div className="workspace-empty" role="status">
+              <Icon name="check" size={38} />
+              <h2>Request acknowledged.</h2>
+              <p>The platform returned your reference:</p>
+              <code className="support-reference">{reference}</code>
+              <a
+                href={`/support/tickets/${encodeURIComponent(reference)}`}
+                className="btn btn-primary"
+              >
+                View request <Icon name="arrow" size={16} />
+              </a>
             </div>
-            <button className="btn btn-primary">Create ticket</button>
-          </div>
-          <div style={{fontSize:12,color:'var(--muted)',marginTop:12}}>SLA proposed: electrical hazard → immediate local-service instruction; critical alert ack 15 min staffed; payment failure 1 business day; general 2 business days. No 24/7 claim without staffing.</div>
-        </div>
-        <div className="card" style={{gridColumn:'span 4'}}>
-          <h3>Help Center</h3>
-          <div style={{display:'grid',gap:8,marginTop:8}}>
-            <a href="/connection-help" className="btn btn-secondary">Connection help</a>
-            <a href="/faqs" className="btn btn-secondary">FAQs</a>
-            <a href="/devices/demo-id" className="btn btn-secondary">Device diagnostics</a>
-            <a href="/support/tickets/demo-id" className="btn btn-secondary">My tickets</a>
-          </div>
-          <h4 style={{marginTop:16}}>Contact Channels</h4>
-          <div style={{fontSize:13,color:'var(--muted)'}}>Only confirmed channels published — no invented contacts.<br/>📧 support@smartclamp.ng<br/>📞 +234 801 234 5678<br/>💬 WhatsApp: +234 809 876 5432</div>
+          ) : (
+            <form className="card setup-form" onSubmit={submit}>
+              <div>
+                <label htmlFor="support-category">What can we help with?</label>
+                <select
+                  id="support-category"
+                  className="input"
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                >
+                  {[
+                    "device",
+                    "payment",
+                    "billing",
+                    "installation",
+                    "account",
+                    "other",
+                  ].map((c) => (
+                    <option key={c} value={c}>
+                      {c.charAt(0).toUpperCase() + c.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="support-subject">A short summary</label>
+                <input
+                  id="support-subject"
+                  className="input"
+                  value={form.subject}
+                  onChange={(e) =>
+                    setForm({ ...form, subject: e.target.value })
+                  }
+                  maxLength={200}
+                  placeholder="What’s happening?"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="support-message">Tell us a little more</label>
+                <textarea
+                  id="support-message"
+                  className="input"
+                  value={form.message}
+                  onChange={(e) =>
+                    setForm({ ...form, message: e.target.value })
+                  }
+                  maxLength={4000}
+                  rows={5}
+                  placeholder="Describe the issue and when you noticed it."
+                  required
+                />
+              </div>
+              {error && (
+                <div className="error-panel" role="alert">
+                  {error} {!localStorageSafe() && <a href="/login">Log in →</a>}
+                </div>
+              )}
+              <button
+                className="btn btn-primary"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Sending your request…" : "Send request"}
+                <Icon name="arrow" size={16} />
+              </button>
+              <p className="auth-fineprint">
+                Private support requests need an account. File attachments
+                aren’t available in this form yet.
+              </p>
+            </form>
+          )}
+          <aside className="simple-feature-list">
+            <div>
+              <Icon name="help" />
+              <h3>A quick answer might be here.</h3>
+              <p>
+                Common questions about meters, your setup and getting started.
+              </p>
+              <a href="/faqs" className="text-link">
+                Explore FAQs <Icon name="arrow" size={15} />
+              </a>
+            </div>
+            <div>
+              <Icon name="plug" />
+              <h3>Having connection trouble?</h3>
+              <p>
+                Your browser, device connection and electricity supply can each
+                behave differently.
+              </p>
+              <a href="/connection-help" className="text-link">
+                Connection help <Icon name="arrow" size={15} />
+              </a>
+            </div>
+            <div>
+              <Icon name="shield" />
+              <h3>Electrical safety comes first.</h3>
+              <p>
+                If you notice burning smells, sparking or an immediate
+                electrical hazard, contact qualified local electrical
+                assistance. This form isn’t an emergency service.
+              </p>
+            </div>
+          </aside>
         </div>
       </div>
-    </div>
-  </PublicShell>
+    </PublicShell>
+  );
+}
+function localStorageSafe() {
+  return (
+    typeof window !== "undefined" && !!localStorage.getItem("smartclamp_token")
+  );
 }

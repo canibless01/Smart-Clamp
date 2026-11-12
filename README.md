@@ -2,7 +2,7 @@
 
 **Integrated product — from device reading → authenticated ingestion → durable storage → processing → authorized dashboard, and quote → verified payment → vending → room credit → eligible command → device feedback.**
 
-This repository was a documented ecosystem with firmware reference; it now contains a working, integrated implementation. See `ARCHITECTURE-OVERVIEW.md` for vertical slices.
+This repository contains the ecosystem specification, an application scaffold, and a UI revamp. The inspected application still includes hard-coded API responses, in-memory state and simulated controls; it is not a verified production implementation. See [UI revamp and implementation findings](docs/UI-REVAMP.md) before deploying. `ARCHITECTURE-OVERVIEW.md` describes the intended slices, not independent proof that all loops work.
 
 ## Start here
 
@@ -15,7 +15,7 @@ This repository was a documented ecosystem with firmware reference; it now conta
 - [API](contracts/openapi.yaml) (128 ops, canonical) + [Device protocol](contracts/device-protocol.md)
 - [Firmware](firmware/README.md) — 6 profiles, shared policy/runtime/crypto, bench-only entrypoint
 
-## Quick start — fully functional after env + sql
+## Local development setup
 
 ### 0. Prerequisites
 - Node 20+, Python 3.11+, Docker (for Postgres/Supabase), C++17 + OpenSSL for `verify.sh` crypto gate
