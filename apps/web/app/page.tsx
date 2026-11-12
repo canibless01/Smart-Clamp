@@ -3,6 +3,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import PublicShell from "@/components/PublicShell";
+import ProductCarousel from "@/components/ProductCarousel";
 import MeterLookup from "@/components/MeterLookup";
 import Icon, { IconName } from "@/components/Icon";
 import EnergyExperience, {
@@ -264,10 +265,10 @@ export default function HomePage() {
                 <span className="mini-icon">
                   <Icon name="bolt" size={15} />
                 </span>{" "}
-                A clearer picture<span>PREVIEW</span>
+                Follow the energy<span>CONCEPT</span>
               </div>
               <div className="insight-power">
-                1.24 <span>kW</span>
+                Home <span>↔ cloud</span>
                 <span className="insight-status">
                   <span className="status-dot" />
                   Home energy
@@ -281,7 +282,7 @@ export default function HomePage() {
               </div>
             </div>
             <span className="scene-illustration-label">
-              Concept home · illustrative readings
+              Concept home · decorative energy flow
             </span>
           </div>
         </section>
@@ -314,7 +315,7 @@ export default function HomePage() {
             <p>
               Electricity shouldn’t be a mystery.
               <br />
-              Explore a home’s energy in real time—
+              Explore an appliance’s energy estimate—
               <br />
               and see how the small things add up.
             </p>
@@ -330,17 +331,17 @@ export default function HomePage() {
                 in a new light.
               </h3>
               <p>
-                Turn an appliance on. Watch your usage change. That’s the kind
-                of clarity we’re building.
+                Enter the power on an appliance label and the hours you use it.
+                See how they translate into energy.
               </p>
               <div className="demo-story-rule" />
               <span className="small-label">GO AHEAD. TRY IT.</span>
               <div className="demo-callout">
                 <Icon name="arrow" size={24} />
                 <span>
-                  Tap the appliances
+                  Enter your numbers
                   <br />
-                  to see their impact.
+                  to see the estimate.
                 </span>
               </div>
               <Link href="/how-it-works" className="text-link">
@@ -613,6 +614,9 @@ export default function HomePage() {
             Built for Nigeria. Starting with a thoughtful pilot.
           </span>
         </section>
+      </div>
+      <div id="devices">
+        <ProductCarousel />
       </div>
     </PublicShell>
   );

@@ -55,122 +55,73 @@ export function EnergySparkline({
   );
 }
 export default function EnergyExperience() {
-  const [selected, setSelected] = useState([true, true, true, false]);
-  const [on, setOn] = useState(true);
-  const [range, setRange] = useState("Today");
-  const watts = on
-    ? appliances.reduce((sum, a, i) => sum + (selected[i] ? a.watts : 0), 0)
-    : 0;
-  const hours = range === "Today" ? 4 : range === "Week" ? 28 : 120;
-  const kwh = (watts * hours) / 1000;
+  const [watts, setWatts] = useState(""),
+    [hours, setHours] = useState("");
+  const valid =
+    watts !== "" &&
+    hours !== "" &&
+    Number.isFinite(Number(watts)) &&
+    Number.isFinite(Number(hours)) &&
+    Number(watts) >= 0 &&
+    Number(hours) >= 0 &&
+    Number(hours) <= 24;
+  const energy = valid ? (Number(watts) * Number(hours)) / 1000 : null;
   return (
     <div className="energy-experience">
       <div className="experience-top">
-        <div>
-          <span className="eyebrow">YOUR HOME, AT A GLANCE</span>
-          <div className="experience-location">
-            <Icon name="home" size={18} />
-            My home<span className="demo-label">Interactive preview</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label="Simulated home power"
-          className={`power-switch ${on ? "is-on" : ""}`}
-          onClick={() => setOn(!on)}
-        >
-          <span />
-        </button>
+        <span className="eyebrow">YOUR NUMBERS. A CLEARER ESTIMATE.</span>
+        <Icon name="bolt" />
+      </div>
+      <h3>What could an appliance use?</h3>
+      <p>
+        Enter its rated power and daily running time. This calculator uses your
+        inputs; it is not a live device reading.
+      </p>
+      <div className="resource-form">
+        <label>
+          Appliance power (watts)
+          <input
+            className="input"
+            type="number"
+            min="0"
+            inputMode="decimal"
+            value={watts}
+            onChange={(e) => setWatts(e.target.value)}
+          />
+        </label>
+        <label>
+          Hours used per day
+          <input
+            className="input"
+            type="number"
+            min="0"
+            max="24"
+            step="0.1"
+            inputMode="decimal"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+          />
+        </label>
       </div>
       <div className="experience-metrics">
         <div>
-          <span>Power right now</span>
+          <span>Estimated daily energy</span>
           <strong aria-live="polite">
-            {(watts / 1000).toFixed(2)}
-            <small>kW</small>
+            {energy === null ? "—" : energy.toFixed(2)}
+            <small>kWh</small>
           </strong>
         </div>
-        <div className="experience-state">
-          <span className={`status-dot ${on ? "" : "off"}`} />
-          {on ? "Power is on" : "Power is off"}
-          <span>Simulated home</span>
-        </div>
       </div>
-      <div className="experience-chart">
-        <div className="chart-scale">
-          <span>3.0 kW</span>
-          <span>1.5 kW</span>
-          <span>0.0 kW</span>
-        </div>
-        <div className="chart-plot">
-          <div className="chart-guides" />
-          <EnergySparkline
-            active={on && watts > 0}
-            intensity={Math.max(0.1, watts / 2740)}
-          />
-          <div className="chart-hours">
-            <span>06:00</span>
-            <span>10:00</span>
-            <span>14:00</span>
-            <span>18:00</span>
-          </div>
-        </div>
-      </div>
-      <div className="appliance-heading">
-        <span>What’s switched on?</span>
-        <span>Tap to explore</span>
-      </div>
-      <div className="appliance-controls">
-        {appliances.map((a, i) => (
-          <button
-            key={a.name}
-            type="button"
-            aria-pressed={selected[i]}
-            className={selected[i] ? "selected" : ""}
-            onClick={() =>
-              setSelected((prev) => prev.map((s, j) => (j === i ? !s : s)))
-            }
-          >
-            <span className="appliance-icon">
-              <Icon name={a.icon} />
-            </span>
-            <span>
-              {a.name}
-              <small>{a.watts.toLocaleString()} W</small>
-            </span>
-            <span className="appliance-dot" />
-          </button>
-        ))}
-      </div>
-      <div className="experience-bottom">
-        <div
-          className="period-tabs"
-          role="group"
-          aria-label="Energy estimate period"
-        >
-          {["Today", "Week", "Month"].map((r) => (
-            <button
-              key={r}
-              className={range === r ? "active" : ""}
-              onClick={() => setRange(r)}
-              aria-pressed={range === r}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
+      {energy !== null && (
         <div className="energy-estimate">
-          <span>Illustrative energy*</span>
-          <strong aria-live="polite">
-            {kwh.toFixed(2)} <small>kWh</small>
-          </strong>
+          <span>At the same daily use, over 7 days</span>
+          <strong>{(energy * 7).toFixed(2)} kWh</strong>
         </div>
-      </div>
+      )}
       <p className="demo-disclaimer">
-        *Simulated readings, using {hours} running hours. Try the controls; no
-        real device or bill is affected.
+        Watts × hours ÷ 1,000 = kWh. Rated power can differ from actual
+        consumption. SmartClamp measurements are needed to see what your
+        appliance actually used.
       </p>
     </div>
   );

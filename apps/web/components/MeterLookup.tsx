@@ -4,6 +4,19 @@ import { API_BASE } from "@/lib/api";
 import Icon from "./Icon";
 type State = "idle" | "loading" | "valid" | "error";
 export default function MeterLookup() {
+  const [services, setServices] = useState<{ id: string; name: string }[]>([]);
+  const [service, setService] = useState("");
+  useEffect(() => {
+    const c = new AbortController();
+    fetch(`${API_BASE}/public/electricity-providers`, { signal: c.signal })
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((d) => {
+        setServices(d.items || []);
+        if (d.items?.length === 1) setService(d.items[0].id);
+      })
+      .catch(() => {});
+    return () => c.abort();
+  }, []);
   const [meter, setMeter] = useState("");
   const [state, setState] = useState<State>("idle");
   const [message, setMessage] = useState("");
@@ -37,6 +50,7 @@ export default function MeterLookup() {
         body: JSON.stringify({
           meter_number: meter.trim(),
           utility_type: "electricity",
+          ...(service ? { service_id: service } : {}),
         }),
         signal: controller.signal,
       });
@@ -82,6 +96,29 @@ export default function MeterLookup() {
     <div className="meter-lookup">
       <h3>Your first bit of clarity.</h3>
       <form onSubmit={check} noValidate aria-label="Check your meter">
+        {services.length > 1 && (
+          <label htmlFor="electricity-provider">
+            Electricity provider
+            <select
+              className="input"
+              id="electricity-provider"
+              value={service}
+              disabled={state === "loading"}
+              onChange={(e) => {
+                setService(e.target.value);
+                setResult(null);
+                setState("idle");
+              }}
+            >
+              <option value="">Choose your provider</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label htmlFor="meter-number">Meter number</label>
         <div className="meter-form-row">
           <input
@@ -106,7 +143,11 @@ export default function MeterLookup() {
           />
           <button
             type="submit"
-            disabled={state === "loading" || cooldown > 0}
+            disabled={
+              state === "loading" ||
+              cooldown > 0 ||
+              (services.length > 1 && !service)
+            }
             className="btn btn-primary"
           >
             {state === "loading"
@@ -118,7 +159,9 @@ export default function MeterLookup() {
           </button>
         </div>
         <p id="meter-help" className="meter-help">
-          No account needed. Leading zeros stay exactly as entered.
+          No account needed. This validates the meter account; it does not
+          reveal a live balance, usage history or your full address. Leading
+          zeros stay exactly as entered.
         </p>
         <div id="meter-feedback" aria-live="polite" aria-atomic="true">
           {state === "error" && (

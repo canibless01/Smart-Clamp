@@ -52,6 +52,12 @@ export default function AppShell({
   role?: string;
 }) {
   const path = usePathname();
+  const [trustedRole, setTrustedRole] = useState<string | null>(null);
+  useEffect(() => {
+    // APIs independently enforce permissions.
+    setTrustedRole(localStorage.getItem("smartclamp_role"));
+  }, []);
+  role = trustedRole || role;
   const [online, setOnline] = useState(true);
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);

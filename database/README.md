@@ -28,41 +28,14 @@ Migrations live in `migrations/` and are applied in lexical order. Each file is 
 - All tables have RLS + grants; anonymous only sees minimal `public` projection via API, not broad table grant.
 - Timescale: plain Postgres partitioning first; hypertable requires composite PK fixes — do not claim Timescale until hosted extension + volume justify it.
 
-## Running migrations
+## Applying the current schema
 
-```bash
-# Local Supabase (requires Docker):
-supabase start
-supabase db reset  # applies migrations in order, runs drift check
+Use `python tools/migrate.py` from the repository root with `DATABASE_URL` set securely. It applies files in lexical order, records checksums in `schema_migrations`, and uses an advisory lock. Hosted Supabase supplies `auth.users` and Auth helpers. The isolated QA service creates equivalent test prerequisites with actual GoTrue.
 
-# Direct Postgres:
-psql $DATABASE_URL -f migrations/001_*.sql
-# ... in order
+Files 009–014 add the live runtime, enforced ledger balance/immutability, accounting watermarks, single-use claims, utility scopes and source-time signal state and measured usage intervals. They supersede prototype broad table policies with a deny-by-default direct browser baseline. The Flask API enforces actual per-query ownership and membership scopes; no unrestricted browser telemetry publication is enabled.
 
-# Verify:
-psql $DATABASE_URL -c "\d buildings"
-# Schema dump comparison:
-supabase db dump -f dump.sql && diff dump.sql supabase/migrations/dump.sql
-```
+007 and 008 contain pre-release repairs. If a previous prototype database already applied different versions, review the upgrade before use. Do not erase customer data, modify stored migration checksums or silently replay a changed migration.
 
-## Auth / Storage / Realtime settings (versioned)
+No business sample customers, stock, plan prices or fake operational figures should be seeded. Real approved tariffs, payment destinations, factory identities and organization scopes are setup data with operational approval requirements. SQL alone does not qualify sensors or activate merchant integrations.
 
-- **Auth**: `supabase/config.toml` — enable signup, manual linking, site_url `http://localhost:3000`, JWT expiry 3600.
-- **Storage**: private buckets `evidence, reports, exports, avatars` — no public ACL, signed URLs 15 min, MIME/size validation, malware scan before usable attachment.
-- **Realtime**: scoped publication per `ACCESS-MATRIX`; no broad telemetry subscription. Clients invalidate/refetch on version gap.
-- **RLS tests**: see `apps/api/tests/test_rls.py` (cross-role/tenant, old-occupancy, viewer-revoke, anon secrets).
-
-## Acceptance
-
-- clean reset ✅ (tested via `supabase db reset` in CI)
-- upgrade from prior revision ✅
-- concurrent duplicate webhook credits once (unique provider+reference + row lock)
-- concurrent wallet debits cannot overspend (ledger_version + check constraint + `SELECT FOR UPDATE`)
-- owner A cannot SELECT B's rows; former tenant cannot read new occupancy; revoked viewer loses Realtime/REST; anon cannot read secrets
-- schema drift CI fails on undocumented dashboard DDL
-
-## Backups
-
-- `supabase db dump` after each migration; store Git SHA + migration version.
-- Rehearse restore: `supabase db reset && psql dump.sql`
-- No paid pilot until all pass. Preserve migration checksums and deployment version.
+See [launch readiness](../docs/LAUNCH-READINESS.md) and [runtime API](../docs/API-RUNTIME.md) for exact deployment and integration-test commands.

@@ -1,147 +1,68 @@
 # SmartClamp — Electricity you can verify
 
-**Integrated product — from device reading → authenticated ingestion → durable storage → processing → authorized dashboard, and quote → verified payment → vending → room credit → eligible command → device feedback.**
+A Next.js website, PostgreSQL-backed Flask API, durable worker and six ESP32 reference profiles. The core software journeys have been exercised with real local authentication/database services. Merchant services were contract-tested with local test fixtures. Firmware remains bench software, and the whole ecosystem is **not launch-ready**.
 
-This repository contains the ecosystem specification, an application scaffold, and a UI revamp. The inspected application still includes hard-coded API responses, in-memory state and simulated controls; it is not a verified production implementation. See [UI revamp and implementation findings](docs/UI-REVAMP.md) before deploying. `ARCHITECTURE-OVERVIEW.md` describes the intended slices, not independent proof that all loops work.
+For a fresh assistant session, copy [the continuation prompt](docs/NEXT-CHAT-PROMPT.md). Start with [launch readiness](docs/LAUNCH-READINESS.md). It lists tested journeys, unfinished capabilities, external dependencies and owner-supplied launch content. Nothing described as planned becomes implemented merely by setting an environment variable.
 
-## Start here
+## Builder reading order
 
-- [Implementation contract](docs/IMPLEMENTATION-CONTRACT.md) — normative precedence, gap closures, loop catalog
-- [Builder handoff](docs/BUILDER-HANDOFF.md) — sequence and definition of done
-- [Product](docs/PRODUCT.md) — mission, operating models, roles, phases
-- [Architecture](docs/ARCHITECTURE.md) and `ARCHITECTURE-OVERVIEW.md` — deployment units and proven slices
-- [Page inventory](docs/pages/INDEX.md) — 48 specifications, `contracts/routes.json` is the machine-readable registry
-- [Landing sequence](docs/pages/LANDING-SEQUENCE.md) + [Design system](docs/DESIGN.md)
-- [API](contracts/openapi.yaml) (128 ops, canonical) + [Device protocol](contracts/device-protocol.md)
-- [Firmware](firmware/README.md) — 6 profiles, shared policy/runtime/crypto, bench-only entrypoint
+1. [Launch readiness and remaining work](docs/LAUNCH-READINESS.md).
+2. [Implemented API behavior](docs/API-RUNTIME.md), [runtime OpenAPI](contracts/runtime-openapi.yaml) and [registered routes](contracts/runtime-routes.json).
+3. [Implementation contract](docs/IMPLEMENTATION-CONTRACT.md), [product](docs/PRODUCT.md) and [source reconciliation](docs/DECISIONS.md).
+4. [Architecture](docs/ARCHITECTURE.md), [current UI direction](docs/UI-REVAMP.md) and [original page specifications](docs/pages/INDEX.md).
+5. [Database/migrations](database/README.md) and [device protocol](contracts/device-protocol.md).
+6. [Firmware limits](firmware/README.md) and [hardware configuration](firmware/HARDWARE-CONFIG.md).
 
-## Local development setup
+The original 128-operation [product OpenAPI](contracts/openapi.yaml) and 48 page specifications describe the desired scope. The runtime manifest describes actual registered handlers, including explicit unavailable integrations. Additional implemented routes include account device linking, resident invitations, device catalogue and detailed plan pages. Read the current runtime documents before following older aspirational examples.
 
-### 0. Prerequisites
-- Node 20+, Python 3.11+, Docker (for Postgres/Supabase), C++17 + OpenSSL for `verify.sh` crypto gate
-- Copy env templates: `cp .env.example .env` then fill values; also `cp apps/api/.env.example apps/api/.env` and `cp apps/web/.env.example apps/web/.env.local`
+## Development
 
-### 1. Environment variables
-All env vars are documented in `.env.example` at root, `apps/api/.env.example`, `apps/web/.env.example`.
+Use Node 20+, Python 3.11+, Docker for isolated integration checks, and C++17/OpenSSL for firmware policy tests. Do not use real customer data for QA.
 
-| Variable | Where | Required | Default / Example |
-|---|---|---|---|
-| `DATABASE_URL` | api, worker | For persistence | `sqlite:///smartclamp.db` (demo) or `postgresql://postgres:postgres@localhost:5432/postgres` (docker) or Supabase pooler URL |
-| `JWT_SECRET` | api | Yes in prod | `dev-secret-not-for-prod` fallback warns in logs |
-| `CORS_ORIGINS` | api | — | `http://localhost:3000,http://127.0.0.1:3000` |
-| `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` | api, web | For Supabase Auth/Storage/Realtime | `http://localhost:54321` when using `supabase start` |
-| `PAYSTACK_SECRET_KEY` | api | For real payments | `sk_test_xxx` — sandbox adapter used if missing |
-| `NEXT_PUBLIC_API_BASE` | web | — | `/api/v1` (same-origin proxy) or `http://localhost:5000/api/v1` (direct) |
-| `API_PROXY_TARGET` | web (server) | For rewrites | `http://localhost:5000` or `http://api:5000` in docker |
-
-**Never commit `.env` with real secrets.** The repo `.gitignore` excludes `.env` and `.env.local`. Generate `JWT_SECRET` with `openssl rand -hex 32`.
-
-### 2. Database — versioned migrations, RLS, private Storage, Realtime
-
-```bash
-# Option A: Local Supabase (requires Docker) — recommended
-supabase start          # starts Postgres + Auth + Storage + Realtime on 54321/54322
-supabase db reset       # apply 001→008 in order, drift check
-
-# Option B: Plain Postgres / Docker compose
-docker-compose up -d db
-psql $DATABASE_URL -f database/migrations/001_extensions_enums_identity.sql
-psql $DATABASE_URL -f database/migrations/002_buildings_rooms_devices.sql
-psql $DATABASE_URL -f database/migrations/003_telemetry_inbox.sql
-psql $DATABASE_URL -f database/migrations/004_wallets_ledger.sql
-psql $DATABASE_URL -f database/migrations/005_commands_outbox.sql
-psql $DATABASE_URL -f database/migrations/006_disputes_evidence_reports.sql
-psql $DATABASE_URL -f database/migrations/007_policies_rls.sql
-psql $DATABASE_URL -f database/migrations/008_consent_subscriptions_ops.sql
-# Verify:
-psql $DATABASE_URL -c "\d buildings" -c "\d devices" -c "\d wallets"
-
-# Option C: No DB — API falls back to in-memory stores (demo). You can still sign up/log in,
-# create buildings (in-memory), ingest device events (deduped), and test quote→payment→vending flows.
-# Health endpoint reports mode: curl http://localhost:5000/api/v1/health
+```sh
+python -m venv .venv
+. .venv/bin/activate
+pip install -r apps/api/requirements.txt
+python tools/qa_services.py start --config /tmp/smartclamp-qa.json
+SMARTCLAMP_QA_CONFIG=/tmp/smartclamp-qa.json python -m unittest discover -s apps/api/tests -v
 ```
 
-Migrations are immutable after deployment; corrections are new migrations. See `database/README.md`.
+This creates actual disposable PostgreSQL/GoTrue services with **test-only phone auto-confirm**. Config and generated credentials stay in a mode-600 local file. Provider fixtures exist only in tests. No fake authentication or financial success fallback is in the runtime application.
 
-### 3. API — 128 operations, device HMAC, idempotent payments, OFF-reason resolver
+For a real browser integration run, export `SMARTCLAMP_QA_CONFIG` and start `python tools/browser_qa.py --fixture /tmp/smartclamp-browser.json`; this creates isolated users/device credentials and runs the local API. In another terminal:
 
-```bash
-cd apps/api
-pip install -r requirements.txt
-# Env already loaded from .env via python-dotenv; or export DATABASE_URL=... JWT_SECRET=...
-python -m unittest discover -s tests -v      # 6 core tests: meter validate, auth, scope, ingest dedup, idempotency, payment states
-python app.py                                 # http://localhost:5000 (auto-creates tables if DB connected, else in-memory)
-# Production:
-gunicorn -b 0.0.0.0:5000 "app:create_app()" --workers 2 --timeout 60
-```
-
-Health: `curl http://localhost:5000/api/v1/health` — returns `database: connected` or `in-memory` hint.
-
-### 4. Web — 48 routes, responsive, accessible
-
-```bash
+```sh
 cd apps/web
-npm install
-npm run dev    # http://localhost:3000 (proxies /api/v1/* to API via next.config.js rewrites)
-npm run build  # production build, verifies all 48 routes static/dynamic
-npm start      # serve production build
+npm ci
+npm run dev
 ```
 
-- Auth token stored in `localStorage.smartclamp_token`; role in `smartclamp_role`. Protected routes redirect to `/login` if missing.
-- API base resolves: browser uses `NEXT_PUBLIC_API_BASE`; server SSR uses `API_PROXY_TARGET/api/v1`.
-- All buttons/forms are wired: no dummy dead-ends. Offline banners, skeletons, empty/error/forbidden/stale states per `WEB-STATE-MACHINES.md`.
+Then run `SMARTCLAMP_BROWSER_FIXTURE=/tmp/smartclamp-browser.json UI_BASE_URL=http://127.0.0.1:3000 npm run test:ui` from `apps/web`. Regenerate the fixture before repeating the one-use invitation/claim scenario. Without the fixture, browser integration is explicitly skipped; UI-only tests can still run.
 
-### 5. Worker — outbox SKIP LOCKED, idempotent side effects
+Production provider credentials are not supplied by this local runner. The QA auth autoconfirm setting must never be copied to a public service.
 
-```bash
-pip install -r services/worker/requirements.txt
-python services/worker/worker.py   # polls Postgres outbox or API debug endpoint
-# With DATABASE_URL=postgres, worker uses SELECT ... FOR UPDATE SKIP LOCKED
-# Without, it polls API and logs — still demonstrates idempotent processing
+## Deployment
+
+Use [server environment template](apps/api/.env.example) and [web template](apps/web/.env.example). Fill settings securely; do not commit credentials. Missing PostgreSQL/provider settings produce an unavailable service. There is no SQLite, global device-key or fake bank/payment fallback.
+
+1. Configure Supabase phone authentication and actual PostgreSQL access.
+2. Run `python tools/migrate.py` with `DATABASE_URL` in the process environment. Ordered migrations are checksum-tracked. Review pre-release 007/008 corrections before upgrading an earlier prototype database; never reset production to bypass a checksum conflict.
+3. Deploy API: from `apps/api`, run `gunicorn -b 0.0.0.0:5000 'app:create_app()' --workers 2 --timeout 60`.
+4. Deploy worker separately from repository root: `python services/worker/worker.py`. It uses the same database/provider configuration.
+5. Deploy web with Vercel **Root Directory `apps/web`**, Next.js preset, `npm ci`, `npm run build`. Configure `API_PROXY_TARGET` to the HTTPS API origin and `NEXT_PUBLIC_API_BASE=/api/v1`. Set `SITE_URL` after the public domain is confirmed.
+6. Register approved providers/tariffs/fees, staff scopes, factory identities and commissioning evidence. Complete live merchant and physical hardware acceptance gates from the readiness document before taking payments or enabling actuation.
+
+`docker compose` is an alternative application deployment against an already configured Supabase database/auth service. It does not create a pretend replacement for Supabase. Use the migration profile first; see [launch readiness](docs/LAUNCH-READINESS.md).
+
+## Verification
+
+```sh
+bash tools/verify.sh
+python -m unittest discover -s apps/api/tests -v
+cd apps/web
+npm run typecheck
+npm run build
+npm run test:ui
 ```
 
-### 6. One-command Docker (optional)
-
-```bash
-cp .env.example .env   # fill JWT_SECRET etc
-docker-compose up --build   # api:5000, web:3000, db:5432, worker
-docker-compose down -v
-```
-
-### 7. Verify everything
-
-```bash
-python3 tools/check_foundation.py
-bash tools/verify.sh  # OpenAPI 128 ops, protocol 5 vectors, firmware core/runtime/crypto
-cd apps/api && python -m unittest discover -s tests -v
-cd apps/web && npm run build
-curl http://localhost:5000/api/v1/meters/validate -H "Content-Type: application/json" -d '{"meter_number":"04217839011"}'
-curl http://localhost:5000/api/v1/health
-```
-
-## Deployment units
-
-`apps/web` (Next.js) → `apps/api` (Flask) → `services/worker` + Postgres/Supabase (Auth/Realtime/Storage). Firmware never writes Supabase directly; API validates JWT/HMAC, commits durable records+outbox in one TX; worker claims via `SKIP LOCKED`.
-
-## Honest validation
-
-Run `bash tools/verify.sh` after `pip install -r tools/requirements.txt` (needs C++17 + OpenSSL). See `docs/VALIDATION.md` for passed/blocked gates and `docs/RELEASE-GATES.md` for 9 gates with measurement requirements.
-
-- Specified: docs + contracts + firmware reference
-- Implemented: web + API + migrations + worker + client
-- Tested locally: `verify.sh` + API tests + web build + protocol vectors + health endpoint
-- Provider sandbox / hardware: labelled sandbox adapters; field qualification requires BOM, calibration, carrier, and procurement facts — no invented success
-
-Do not clear the repo again. Preserve foundation + source references (`docs/sources/`) + this implementation.
-
-## Key invariants (enforced)
-
-Browser / device / grid / physical relay are separate facts. Requested ≠ confirmed. Recharge clears only zero-balance restriction. Subscription expiry never cuts power. Landlords cannot enforce rent via cutoff. Duplicate messages never duplicate credits/vending/actuation. Missing readings never become fabricated zero or false verified. Gateway ACK ≠ durable ACK. Utility control requires authority+scope+consent+step-up. Supercapacitor prioritizes logging, not guaranteed SMS.
-
-## Design
-
-Navy #102A43, canvas #F7F9FC, white surfaces, strong hierarchy, amber/green/red with text labels. Responsive: 320/768/1440, stack/reflow, no page-wide horizontal scroll, 44px touch targets, keyboard + screen-reader + reduced-motion complete. Graphs with units + accessible tables; illustrations for devices; concise cards for balances/status.
-
-## Legal & safety
-
-SmartClamp provides sub-metering/verification technology; it does not generate/resell/distribute electricity and does not replace your utility meter. Wiring/voltage/relay work requires qualified installer + isolation + enclosure. Predictive fire/shock claims are research, not life-safety guarantees. Legal text pending professional review.
+API integration requires `SMARTCLAMP_QA_CONFIG`. Firmware/native checks verify portable policy/crypto/runtime; they do not qualify ADCs, relay circuits, modem, optical adapters or power-loss hardware. CI checks the contracts/native policies, six bench builds, frontend and real database/auth journeys. External merchant and physical hardware tests are separate release requirements.

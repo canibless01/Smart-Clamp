@@ -20,6 +20,8 @@ const homes: Record<string, string> = {
   internal_superadmin: "/ops",
 };
 export default function AuthPage({ signup = false }: { signup?: boolean }) {
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   const [form, setForm] = useState({
     phone: "",
     password: "",
@@ -27,6 +29,8 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     role: "homeowner",
   });
   const [loading, setLoading] = useState(false);
+  const [verification, setVerification] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -44,6 +48,8 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     if (!/^\+[1-9][0-9]{7,14}$/.test(form.phone.trim()))
       next.phone =
         "Enter your phone with its country code, e.g. +2348012345678.";
+    if (verification && !/^\d{6,10}$/.test(code))
+      next.code = "Enter the code sent to your phone.";
     if (signup && form.password.length < 8)
       next.password = "Use at least 8 characters.";
     if (!signup && !form.password) next.password = "Enter your password.";
@@ -57,12 +63,16 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     const timer = setTimeout(() => controller.abort(), 20000);
     try {
       const res = await fetch(
-        `${API_BASE}/auth/${signup ? "signup" : "login"}`,
+        `${API_BASE}/auth/${verification ? "verify" : signup ? "signup" : "login"}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            signup ? form : { phone: form.phone, password: form.password },
+            verification
+              ? { phone: form.phone, code }
+              : signup
+                ? form
+                : { phone: form.phone, password: form.password },
           ),
           signal: controller.signal,
         },
@@ -77,13 +87,25 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 ? "We couldn’t create your account. Please try again."
                 : "We couldn’t sign you in. Check your details and try again."),
         );
+      if (res.status === 202 && data.status === "verification_required") {
+        setVerification(true);
+        setLoading(false);
+        return;
+      }
       if (!data.access_token || !homes[data.role])
         throw new Error(
           "Your account needs a supported workspace. Please contact support.",
         );
       localStorage.setItem("smartclamp_token", data.access_token);
       localStorage.setItem("smartclamp_role", data.role);
-      location.assign(homes[data.role]);
+      if (data.refresh_token)
+        localStorage.setItem("smartclamp_refresh_token", data.refresh_token);
+      const invitation = sessionStorage.getItem("smartclamp_invitation");
+      location.assign(
+        invitation && data.role === "tenant"
+          ? `/join?token=${encodeURIComponent(invitation)}`
+          : homes[data.role],
+      );
     } catch (err) {
       setError(
         controller.signal.aborted
@@ -163,6 +185,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 <label htmlFor="full-name">Full name</label>
                 <input
                   className="input"
+                  disabled={!ready}
                   id="full-name"
                   autoComplete="name"
                   value={form.full_name}
@@ -184,6 +207,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               <label htmlFor="phone">Phone number</label>
               <input
                 className="input"
+                disabled={!ready}
                 id="phone"
                 type="tel"
                 autoComplete="tel"
@@ -204,6 +228,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               <div className="password-field">
                 <input
                   className="input"
+                  disabled={!ready}
                   id="password"
                   autoComplete={signup ? "new-password" : "current-password"}
                   type={show ? "text" : "password"}
@@ -233,6 +258,27 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 </span>
               )}
             </div>
+            {verification && (
+              <div>
+                <label htmlFor="verification-code">
+                  Phone verification code
+                </label>
+                <input
+                  id="verification-code"
+                  className="input"
+                  disabled={!ready}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+                {errors.code && <p role="alert">{errors.code}</p>}
+                <p>
+                  Enter the code sent to your phone to finish creating your
+                  account.
+                </p>
+              </div>
+            )}
             {error && (
               <div className="error-panel" role="alert">
                 {error}
@@ -241,15 +287,19 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={loading}
+              disabled={!ready || loading}
             >
-              {loading
-                ? signup
-                  ? "Creating your account…"
-                  : "Signing you in…"
-                : signup
-                  ? "Create my account"
-                  : "Log in"}
+              {verification
+                ? loading
+                  ? "Verifying…"
+                  : "Verify my phone"
+                : loading
+                  ? signup
+                    ? "Creating your account…"
+                    : "Signing you in…"
+                  : signup
+                    ? "Create my account"
+                    : "Log in"}
               <Icon name="arrow" size={17} />
             </button>
             <div className="auth-links">
@@ -258,8 +308,12 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               )}
               <span>
                 {signup ? "Already at home here?" : "New to SmartClamp?"}{" "}
-                <Link href={signup ? "/login" : "/signup"}>
-                  {signup ? "Log in" : "Get started"}
+                <Link
+                  className="auth-switch"
+                  href={signup ? "/login" : "/signup"}
+                >
+                  {signup ? "Log in" : "Get started"}{" "}
+                  <Icon name="arrow" size={15} />
                 </Link>
               </span>
             </div>

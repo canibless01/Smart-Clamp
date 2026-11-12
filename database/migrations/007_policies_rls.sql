@@ -1,3 +1,14 @@
+-- Pre-release correction: define viewer relation before functions/policies reference it.
+create table if not exists device_viewers (
+  id uuid primary key default gen_random_uuid(),
+  device_id uuid not null references devices(id) on delete cascade,
+  viewer_user_id uuid not null references profiles(id),
+  added_by uuid not null references profiles(id),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz,
+  unique(device_id, viewer_user_id)
+);
+
 -- 007_scoped_access_policies_grants_views
 -- Enable RLS on all tables and define least-privilege policies
 
@@ -121,15 +132,6 @@ alter table private.device_credentials enable row level security;
 -- no public policy -> deny by default; only service_role via API can read
 
 -- Device viewers
-create table if not exists device_viewers (
-  id uuid primary key default gen_random_uuid(),
-  device_id uuid not null references devices(id) on delete cascade,
-  viewer_user_id uuid not null references profiles(id),
-  added_by uuid not null references profiles(id),
-  created_at timestamptz not null default now(),
-  expires_at timestamptz,
-  unique(device_id, viewer_user_id)
-);
 alter table device_viewers enable row level security;
 create policy viewers_select on device_viewers for select using (
   viewer_user_id=auth.uid() or added_by=auth.uid() or exists(select 1 from devices where devices.id=device_viewers.device_id and devices.owner_id=auth.uid())

@@ -1,68 +1,234 @@
-'use client'
-import AppShell from '@/components/AppShell'
-import { useState } from 'react'
-import { API_BASE } from '@/lib/api'
-
-export default function Page(){
-  const [amount,setAmount]=useState('5000')
-  const [state,setState]=useState<'idle'|'quoting'|'checkout'|'verifying'|'paid_pending_vend'|'confirmed'|'failed'|'unknown'>('idle')
-  const [quote,setQuote]=useState<any>(null)
-  const [payment,setPayment]=useState<any>(null)
-  const [error,setError]=useState('')
-
-  async function createQuote(){
-    setState('quoting')
-    try{
-      const res=await fetch(`${API_BASE}/payments/quotes`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':`quote-${Date.now()}`},body:JSON.stringify({destination_token:'dest_demo',amount_kobo: parseInt(amount)*100,utility_type:'electricity'})})
-      if (!res.ok) throw await res.json()
-      const q=await res.json()
-      setQuote(q); setState('checkout')
-    }catch(e:any){ setError(e.message||'Quote failed'); setState('failed')}
+"use client";
+import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { apiFetch, formatNaira, formatKwh } from "@/lib/api";
+import { RecordTable } from "@/components/RecordWorkspace";
+export default function Page() {
+  const [wallets, setWallets] = useState<any[]>([]),
+    [selected, setSelected] = useState(""),
+    [amount, setAmount] = useState(""),
+    [email, setEmail] = useState(""),
+    [quote, setQuote] = useState<any>(null),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [loaded, setLoaded] = useState(false),
+    [payments, setPayments] = useState<any[]>([]);
+  useEffect(() => {
+    Promise.all([apiFetch("/wallets"), apiFetch("/transactions")])
+      .then(([w, p]) => {
+        setWallets(w.items);
+        setSelected(w.items[0]?.id || "");
+        setPayments(p.items);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoaded(true));
+  }, []);
+  const wallet = wallets.find((w) => w.id === selected);
+  async function checkout() {
+    if (!quote || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const p = await apiFetch("/payments/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          quote_id: quote.id,
+          payer_email: email,
+          return_path: "/payments/return",
+        }),
+      });
+      sessionStorage.setItem(
+        "smartclamp_payment",
+        JSON.stringify({ payment_id: p.id, status_token: p.status_token }),
+      );
+      if (p.checkout_url) {
+        const u = new URL(p.checkout_url);
+        if (u.protocol !== "https:" || u.hostname !== "checkout.paystack.com")
+          throw new Error("The checkout URL could not be verified.");
+        location.assign(u.href);
+      } else
+        location.assign(
+          `/payments/return?payment_id=${encodeURIComponent(p.id)}&status_token=${encodeURIComponent(p.status_token)}`,
+        );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Checkout could not be started. Retry this quote to recover its existing payment.",
+      );
+    } finally {
+      setBusy(false);
+    }
   }
-  async function checkout(){
-    setState('verifying')
-    try{
-      const res=await fetch(`${API_BASE}/payments/checkout`,{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':`chk-${Date.now()}`},body:JSON.stringify({quote_id:quote.id,return_path:'/payments/return'})})
-      if (!res.ok) throw await res.json()
-      const c=await res.json()
-      setPayment(c)
-      setState('paid_pending_vend')
-      setTimeout(()=>setState('confirmed'),1500)
-    }catch(e:any){ setError(e.message||'Checkout failed'); setState('failed')}
-  }
-
-  return <AppShell role="tenant">
-    <h1 style={{color:'var(--navy)'}}>Billing & Payments</h1>
-    <p style={{color:'var(--muted)'}}>Wallet and electricity ledger; subscriptions separate; tariff/fees; receipts; auto-recharge opt-in. Amounts in kobo, no float money.</p>
-    <div className="grid-12" style={{marginTop:16}}>
-      <div className="card" style={{gridColumn:'span 6'}}>
-        <h3>Recharge</h3>
-        <div style={{display:'flex',gap:8,alignItems:'end',flexWrap:'wrap'}}>
-          <div><label htmlFor="amt" style={{fontWeight:600}}>Amount NGN</label><input id="amt" className="input" value={amount} onChange={e=>setAmount(e.target.value)} inputMode="numeric" /></div>
-          <button onClick={createQuote} disabled={state==='quoting'} className="btn btn-primary">Get quote</button>
+  return (
+    <AppShell>
+      <h1>Wallet & electricity payments</h1>
+      <p>
+        Review your destination, approved tariff and fees before opening secure
+        checkout.
+      </p>
+      {error && (
+        <div className="error-panel" role="alert">
+          {error}
         </div>
-        {state==='quoting' && <div aria-busy="true" className="skeleton" style={{height:16,marginTop:12}} />}
-        {quote && <div style={{marginTop:12,background:'var(--canvas)',padding:12,borderRadius:8}}>
-          <div>Quote {quote.id.slice(0,8)} — expires {quote.expires_at}</div>
-          <div style={{fontSize:13,color:'var(--muted)'}}>Amount ₦{quote.amount_kobo/100} · Fee ₦{quote.fee_kobo/100} · Markup ₦{quote.markup_kobo/100} · Units {(quote.units_mwh/1000).toFixed(2)} kWh · Tariff {quote.tariff_version}</div>
-          <button onClick={checkout} className="btn btn-primary" style={{marginTop:8}}>Proceed to checkout</button>
-        </div>}
-        {state==='paid_pending_vend' && <div style={{marginTop:12,color:'var(--muted)'}}>Payment paid — vending pending. Reference {payment?.id}. Do not pay again while we reconcile.</div>}
-        {state==='confirmed' && <div style={{marginTop:12,background:'#E6F4EA',padding:12,borderRadius:8,color:'var(--green)'}}>✓ Payment confirmed, vending completed, credit available. Receipt issued.</div>}
-        {state==='failed' && <div className="error-panel" style={{marginTop:12}}>{error} <button onClick={()=>setState('idle')} className="btn btn-secondary">Retry</button></div>}
-        {state==='unknown' && <div className="error-panel">Outcome unknown — verifying using original operation ID/idempotency key. Never resubmit with fresh key.</div>}
-      </div>
-      <div className="card" style={{gridColumn:'span 6'}}>
-        <h3>Wallet Ledger</h3>
-        <table style={{width:'100%'}}><thead><tr><th>Date</th><th>Kind</th><th>Amount</th></tr></thead><tbody><tr><td>2026-11-09</td><td>recharge</td><td>₦5,000</td></tr><tr><td>2026-11-08</td><td>consumption</td><td>-12.4 kWh</td></tr></tbody></table>
-        <div style={{fontSize:12,color:'var(--muted)',marginTop:8}}>Duplicate messages must not duplicate credits/consumption/vending/actuation. Gateway ACK ≠ durable cloud ACK.</div>
-        <a href="/history" className="btn btn-secondary" style={{marginTop:12}}>Export CSV</a>
-      </div>
-    </div>
-    <div className="card" style={{marginTop:16}}>
-      <h3>Auto-recharge</h3>
-      <p style={{color:'var(--muted)'}}>Off by default. Requires opted-in mandate/cap/threshold. One in-flight request. No device-stored bank PIN.</p>
-      <label><input type="checkbox" /> Enable auto-recharge at 10% balance</label>
-    </div>
-  </AppShell>
+      )}
+      {!loaded ? (
+        <p role="status">Loading your wallets…</p>
+      ) : !wallets.length ? (
+        <div className="workspace-empty">
+          <h2>No payment destination linked yet.</h2>
+          <p>
+            Your installed SmartClamp needs a configured wallet and billing
+            destination before it can receive payments.
+          </p>
+          <a className="btn btn-primary" href="/devices/link">
+            Link SmartClamp
+          </a>
+        </div>
+      ) : (
+        <section className="card">
+          <form
+            className="resource-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError("");
+              try {
+                if (!/^\d+(\.\d{1,2})?$/.test(amount))
+                  throw new Error(
+                    "Enter an amount in naira, with up to two decimal places.",
+                  );
+                const [whole, fraction = ""] = amount.split(".");
+                const kobo =
+                  Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+                setQuote(
+                  await apiFetch("/payments/quotes", {
+                    method: "POST",
+                    body: JSON.stringify({
+                      destination_token: wallet.payment_token,
+                      amount_kobo: kobo,
+                      utility_type: "electricity",
+                    }),
+                  }),
+                );
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Unable to quote.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <label>
+              Payment destination
+              <select
+                className="input"
+                value={selected}
+                onChange={(e) => {
+                  setSelected(e.target.value);
+                  setQuote(null);
+                }}
+              >
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    SmartClamp {w.device_id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p>
+              Available: {formatNaira(wallet.available_kobo)} ·{" "}
+              {formatKwh(wallet.available_mwh)}. Reserved:{" "}
+              {formatNaira(wallet.reserved_kobo)}.
+            </p>
+            <label>
+              Amount in naira
+              <input
+                className="input"
+                required
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setQuote(null);
+                }}
+              />
+            </label>
+            <label>
+              Receipt email
+              <input
+                className="input"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <button className="btn btn-primary" disabled={busy}>
+              {busy ? "Please wait…" : "Get itemized quote"}
+            </button>
+          </form>
+          {quote && (
+            <div className="resource-list">
+              <h2>Your quote</h2>
+              <dl>
+                <dt>Total charge</dt>
+                <dd>{formatNaira(quote.amount_kobo)}</dd>
+                <dt>Electricity value</dt>
+                <dd>{formatNaira(quote.wallet_value_kobo)}</dd>
+                <dt>Provider fee</dt>
+                <dd>{formatNaira(quote.fee_kobo)}</dd>
+                <dt>Platform markup</dt>
+                <dd>{formatNaira(quote.markup_kobo)}</dd>
+                <dt>Quoted energy</dt>
+                <dd>{formatKwh(quote.units_mwh)}</dd>
+              </dl>
+              <p>
+                Tariff: {quote.tariff_version}. Expires{" "}
+                {new Date(quote.expires_at).toLocaleString()}.
+              </p>
+              <button
+                className="btn btn-primary"
+                disabled={busy || Date.parse(quote.expires_at) <= Date.now()}
+                onClick={() => void checkout()}
+              >
+                Continue to secure checkout
+              </button>
+              <p>
+                Returning from checkout does not confirm payment. Your receipt
+                shows payment, meter delivery and credit separately.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+      <section className="card" style={{ marginTop: 24 }}>
+        <h2>Your payment history</h2>
+        <RecordTable
+          items={payments}
+          columns={[
+            {
+              key: "id",
+              label: "Receipt",
+              render: (r) => (
+                <a
+                  className="text-link"
+                  href={`/payments/return?payment_id=${r.id}`}
+                >
+                  {r.id.slice(0, 8)}
+                </a>
+              ),
+            },
+            {
+              key: "amount_kobo",
+              label: "Amount",
+              render: (r) => formatNaira(r.amount_kobo),
+            },
+            { key: "payment_state", label: "Payment" },
+            { key: "credit_state", label: "Credit" },
+          ]}
+        />
+      </section>
+    </AppShell>
+  );
 }

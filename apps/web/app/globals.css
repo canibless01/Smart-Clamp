@@ -1862,7 +1862,7 @@ tr:last-child td {
 }
 .usage-bars {
   display: flex;
-  align-items: end;
+  align-items: flex-end;
   gap: 10px;
   height: 160px;
   position: relative;
@@ -1881,7 +1881,7 @@ tr:last-child td {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: end;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
 }
@@ -4053,3 +4053,49 @@ tr:last-child td {
     display: initial;
   }
 }
+
+/* Actions must remain recognizable without relying on color alone. */
+.public-main p a:not(.btn), .auth-fineprint a, .overview-help a {
+  text-decoration: underline; text-underline-offset: 4px; font-weight: 650;
+}
+.auth-links { align-items: center; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.auth-links > span { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.auth-links a { color: var(--navy); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.auth-links .auth-switch { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #b6c8bd; padding: 11px 16px; border-radius: 10px; background: #f4f8f5; text-decoration: none; min-height: 44px; }
+.auth-links a:hover, .auth-links .auth-switch:hover { color: #163e31; background: #e8f1eb; }
+.login-link { border: 1px solid #c8d5cc; border-radius: 9px; padding: 10px 16px; }
+.desktop-links a { border-bottom: 2px solid transparent; }
+.desktop-links a:hover, .desktop-links a[aria-current] { border-bottom-color: currentColor; }
+.data-table-wrap { overflow-x: auto; max-width: 100%; }
+.data-table-wrap table { width: 100%; border-collapse: collapse; text-align: left; }
+.data-table-wrap th,.data-table-wrap td { padding: 12px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.resource-form { display: grid; gap: 16px; max-width: 600px; }
+.resource-form label { display: grid; gap: 7px; }
+.resource-list { display: grid; gap: 16px; margin-top: 24px; }
+.resource-list .card { overflow-wrap: anywhere; }
+.resource-actions { display:flex; flex-wrap:wrap; gap: 12px; margin-top:16px; }
+.product-section { padding-top: 80px; padding-bottom: 80px; }
+.product-section h2 { max-width:650px; font-size:clamp(30px,3.5vw,48px); letter-spacing:-1.5px; }
+.product-rail { display:flex; gap:24px; overflow-x:auto; scroll-snap-type:x mandatory; padding:12px 2px 24px; }
+.product-card { flex:0 0 min(340px,85vw); scroll-snap-align:start; padding:20px; border:1px solid var(--border); border-radius:20px; }
+.product-card .eyebrow { display:block; margin-top:22px; font-size:10px; }
+.product-card h3 { font-size:23px; margin:12px 0; }
+.product-concept { background:linear-gradient(145deg,#f6f8f5,#e7eee6); min-height:230px; display:flex; align-items:center; justify-content:center; border-radius:16px; overflow:hidden; }
+.device-enclosure { display:flex; align-items:center; flex-direction:column; gap:12px; padding:26px 24px; color:#264d3b; background:linear-gradient(125deg,#fff,#edf2eb); border:2px solid #fff; border-radius:20px; box-shadow:8px 12px 24px #294d3024; transform:rotate(-7deg); }
+.device-enclosure small { font-size:12px; font-weight:700; }
+.device-wire { height:6px; flex:1; background:#8ca68e; }
+.product-concept-1 .device-enclosure,.product-concept-2 .device-enclosure { border-radius:50%; transform:rotate(8deg); }
+.product-concept-3 .device-enclosure { width:150px; transform:rotate(-4deg); }
+.product-concept-4 { background:linear-gradient(140deg,#f1f4f6,#dfe8e9); }
+.product-concept-5 .device-enclosure { border-radius:8px; transform:rotate(0); }
+.plan-comparison { margin:80px 0; scroll-margin-top:100px; }
+.plan-comparison h2 { font-size:clamp(28px,3.5vw,44px); max-width:750px; }
+.plan-comparison h3 { margin-top:40px; }
+.plan-comparison table { min-width:860px; font-size:13px; }
+.plan-comparison th:first-child { min-width:200px; }
+.plan-comparison td:last-child { min-width:230px; color:var(--muted); }
+.device-steps { display:grid; gap:18px; padding-left:24px; }
+.auth-links { color:#526056; }
+.data-table-wrap th, .data-table-wrap td { color:#405047; font-size:13px; font-weight:450; }
+.data-table-wrap th { font-weight:700; }
+.plan-comparison td:last-child { color:#526056; }

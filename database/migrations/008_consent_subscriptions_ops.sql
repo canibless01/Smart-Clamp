@@ -153,15 +153,5 @@ create policy audit_select on audit_log for select using (
   exists(select 1 from memberships where user_id=auth.uid() and role in ('internal_superadmin','internal_ops') and revoked_at is null)
 );
 
--- Seed compliance examples
-insert into compliance_items(title,status,expiry_date) values
-  ('Electrical certification','pending','2027-01-01'),
-  ('Data protection review','pending','2026-12-01')
-on conflict do nothing;
 
--- Seed inventory
-insert into inventory_items(sku,name,stock) values
-  ('ESP32-DEVKIT','ESP32 DevKit', 50),
-  ('CT-SCT013','SCT-013 CT', 100),
-  ('RELAY-LATCH','Latching relay', 30)
-on conflict (sku) do nothing;
+-- Operational records are entered by authorized staff. No fabricated stock or expiry dates.

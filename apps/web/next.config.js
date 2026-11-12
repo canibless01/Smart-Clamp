@@ -5,7 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: { typedRoutes: false },
   async headers() {
-    return [{
+    return [...['/dashboard','/ops','/admin','/settings','/devices','/billing','/history','/control','/alerts','/portal','/orders','/disputes','/payments','/join','/support/tickets','/d','/verification-reports','/api'].map(prefix => ({source: `${prefix}/:path*`,headers:[{key:'X-Robots-Tag',value:'noindex, nofollow'}]})),{
       source: '/(.*)',
       headers: [
         { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

@@ -1,3 +1,4 @@
+import PlanComparison from "@/components/PlanComparison";
 import PublicShell from "@/components/PublicShell";
 import Icon from "@/components/Icon";
 import Link from "next/link";
@@ -109,6 +110,7 @@ export default function Page() {
             control requires compatible, commissioned hardware.
           </p>
         </div>
+        <PlanComparison />
         <section className="marketing-two">
           <div>
             <span className="eyebrow">SHARING A BUILDING?</span>

@@ -114,7 +114,19 @@ export default function OverviewDashboard({
           ) : (
             data && (
               <>
-                {!fresh && (
+                {!device && (
+                  <div className="workspace-empty">
+                    <h2>Connect your home.</h2>
+                    <p>
+                      Link your SmartClamp to begin receiving measurements.
+                      Residents can join using their landlord’s invitation.
+                    </p>
+                    <a className="btn btn-primary" href="/devices/link">
+                      Link my SmartClamp
+                    </a>
+                  </div>
+                )}
+                {!!device && !fresh && (
                   <div className="overview-note">
                     <Icon name="history" size={17} />
                     <span>

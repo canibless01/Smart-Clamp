@@ -18,3 +18,7 @@ supabase/.temp/
 # Browser-test outputs
 test-results/
 playwright-report/
+
+# Private local integration-test and factory provisioning bundles
+.runtime/
+*.device-provisioning.json

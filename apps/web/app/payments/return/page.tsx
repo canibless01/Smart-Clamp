@@ -1,43 +1,166 @@
-'use client'
-import { useEffect, useState } from 'react'
-import PublicShell from '@/components/PublicShell'
-import { API_BASE } from '@/lib/api'
-export default function Page(){
-  const [state,setState]=useState<'pending'|'verifying'|'paid_pending_vend'|'available'|'failed'|'refund_pending'|'unknown'>('pending')
-  const [ref,setRef]=useState('PS_demo_123')
-  useEffect(()=>{
-    const id=setTimeout(()=>setState('verifying'),800)
-    const id2=setTimeout(()=>setState('paid_pending_vend'),1800)
-    const id3=setTimeout(()=>setState('available'),3200)
-    return ()=>{clearTimeout(id);clearTimeout(id2);clearTimeout(id3)}
-  },[])
-  return <PublicShell>
-    <div className="container" style={{padding:'32px 0',maxWidth:640}}>
-      <h1 style={{color:'var(--navy)'}}>Payment Return</h1>
-      <div className="card" style={{marginTop:16}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <strong>Checkout</strong>
-          <span className={`badge ${state==='available'?'badge-verified':state==='paid_pending_vend'?'badge-stale':state==='failed'?'badge-offline':'badge-unknown'}`}>{state}</span>
+"use client";
+import { useEffect, useState, useCallback } from "react";
+import PublicShell from "@/components/PublicShell";
+import { apiFetch, formatNaira, formatKwh } from "@/lib/api";
+export default function Page() {
+  const [receipt, setReceipt] = useState<any>(null),
+    [error, setError] = useState(""),
+    [target, setTarget] = useState<{ id: string; token: string } | null>(null),
+    [loading, setLoading] = useState(false),
+    [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    let saved: any = {};
+    try {
+      saved = JSON.parse(sessionStorage.getItem("smartclamp_payment") || "{}");
+    } catch {}
+    const id = q.get("payment_id") || saved.payment_id,
+      token =
+        q.get("status_token") ||
+        (saved.payment_id === id ? saved.status_token : "");
+    if (id) setTarget({ id, token });
+    else
+      setError(
+        "No payment reference was supplied. Open your receipt from billing.",
+      );
+    if (q.has("status_token"))
+      history.replaceState(
+        null,
+        "",
+        `/payments/return?payment_id=${encodeURIComponent(id)}`,
+      );
+  }, []);
+  const refresh = useCallback(async () => {
+    if (!target) return;
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch(
+        target.token
+          ? `/public/payments/${encodeURIComponent(target.token)}`
+          : `/payments/${encodeURIComponent(target.id)}`,
+      );
+      if (data.id !== target.id)
+        throw new Error("The receipt does not match this payment.");
+      setReceipt(data);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "We could not confirm the payment status.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [target]);
+  useEffect(() => {
+    void refresh();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [refresh]);
+  return (
+    <PublicShell>
+      <div className="container marketing-page" style={{ maxWidth: 760 }}>
+        <h1>Your payment receipt</h1>
+        <p>
+          These statuses come from the payment service. A checkout redirect
+          alone is not proof of payment.
+        </p>
+        {error && (
+          <div role="alert" className="error-panel">
+            {error}
+          </div>
+        )}
+        {loading && !receipt && <p role="status">Checking payment…</p>}
+        {receipt && (
+          <section className="card" aria-live="polite">
+            <h2>
+              {receipt.credit_state === "available"
+                ? "Credit available"
+                : receipt.payment_state === "verified"
+                  ? "Payment received — delivery in progress"
+                  : "Payment awaiting confirmation"}
+            </h2>
+            <p>Reference: {receipt.id}</p>
+            <p>
+              {formatNaira(receipt.amount_kobo)} ·{" "}
+              {formatKwh(receipt.units_mwh)} quoted
+            </p>
+            <dl>
+              <dt>Payment</dt>
+              <dd>{receipt.payment_state}</dd>
+              <dt>Meter delivery</dt>
+              <dd>{receipt.vending_state}</dd>
+              <dt>Credit</dt>
+              <dd>{receipt.credit_state}</dd>
+            </dl>
+            {receipt.credit_state !== "available" && (
+              <p>
+                Do not pay again while this payment is being checked. Contact
+                support with the reference if it stays unresolved.
+              </p>
+            )}
+            {receipt.meter_token && (
+              <div>
+                <h3>Meter token</h3>
+                <p style={{ overflowWrap: "anywhere" }}>
+                  {receipt.meter_token}
+                </p>
+                <p>
+                  Enter this token on your physical meter. Only confirm below
+                  after the meter accepts it. Your confirmation is an
+                  attestation, not a remote meter reading.
+                </p>
+                <button
+                  className="btn btn-primary"
+                  disabled={confirming}
+                  onClick={async () => {
+                    setConfirming(true);
+                    setError("");
+                    try {
+                      await apiFetch(
+                        `/payments/${receipt.id}/confirm-meter-entry`,
+                        {
+                          method: "POST",
+                          body: JSON.stringify({ confirmed: true }),
+                        },
+                      );
+                      await refresh();
+                    } catch (e) {
+                      setError(
+                        e instanceof Error
+                          ? e.message
+                          : "Unable to confirm entry. Log in as the payer.",
+                      );
+                    } finally {
+                      setConfirming(false);
+                    }
+                  }}
+                >
+                  The meter accepted my token
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+        <div className="resource-actions">
+          <button
+            className="btn btn-secondary"
+            disabled={loading || !target}
+            onClick={() => void refresh()}
+          >
+            Refresh payment status
+          </button>
+          <a className="btn btn-primary" href="/billing">
+            Open billing
+          </a>
+          <a className="btn btn-secondary" href="/support">
+            Payment help
+          </a>
         </div>
-        <div style={{marginTop:12,padding:12,background:'var(--canvas)',borderRadius:8}}>
-          <div style={{fontWeight:600}}>Reference: {ref}</div>
-          <div style={{fontSize:13,color:'var(--muted)'}}>Quote → checkout → provider → webhook → vending → credit are distinct. Redirect not proof.</div>
-        </div>
-        <div style={{marginTop:16}}>
-          {state==='pending' && <div><div className="skeleton" style={{height:16,width:'60%'}} /><div style={{fontSize:13,color:'var(--muted)',marginTop:8}}>Checkout pending — redirecting to provider…</div></div>}
-          {state==='verifying' && <div><div className="skeleton" style={{height:16,width:'50%'}} /><div style={{fontSize:13,color:'var(--muted)',marginTop:8}}>Verifying — checking amount/currency/account with provider…</div></div>}
-          {state==='paid_pending_vend' && <div style={{background:'#FFF4E5',padding:12,borderRadius:8}}>Payment received — vending pending. Reference {ref}. <strong>Do not pay again while we reconcile.</strong><div style={{fontSize:12,marginTop:8}}>Reserved units pending vendor confirmation; not yet usable physical supply.</div></div>}
-          {state==='available' && <div style={{background:'#E6F4EA',padding:12,borderRadius:8,color:'var(--green)'}}><strong>✓ Confirmed</strong> — {ref} · 50 kWh credited. Room balance updated. Receipt issued.</div>}
-          {state==='failed' && <div className="error-panel">Payment failed — no charge. <button className="btn btn-secondary">Retry</button></div>}
-          {state==='unknown' && <div className="error-panel">Outcome unknown — querying by original operation ID/idempotency key. Never resubmit with fresh key.</div>}
-        </div>
-        <div style={{display:'flex',gap:8,marginTop:16,flexWrap:'wrap'}}>
-          <a href="/billing" className="btn btn-primary">Billing</a>
-          <a href="/dashboard/tenant" className="btn btn-secondary">Dashboard</a>
-          <button onClick={()=>setState('unknown')} className="btn btn-secondary">Simulate unknown</button>
-        </div>
-        <div style={{fontSize:12,color:'var(--muted)',marginTop:12}}>Refresh polls status by Idempotency-Key, not another charge. Payment / vending / credit tracked separately.</div>
       </div>
-    </div>
-  </PublicShell>
+    </PublicShell>
+  );
 }

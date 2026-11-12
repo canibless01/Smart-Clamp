@@ -1,169 +1,196 @@
 "use client";
-import AppShell from "@/components/AppShell";
 import { useState } from "react";
-
+import RecordWorkspace from "@/components/RecordWorkspace";
+import { apiFetch } from "@/lib/api";
 export default function Page() {
-  const [relay, setRelay] = useState<
-    "idle" | "pending" | "applied" | "rejected" | "uncertain"
-  >("idle");
-  const [offReasons, setOffReasons] = useState<string[]>(["wallet_zero"]);
-  const [showStepUp, setShowStepUp] = useState(false);
-
-  function canTurnOn() {
-    return offReasons.length === 0;
-  }
-
+  const [selected, setSelected] = useState(""),
+    [state, setState] = useState("off"),
+    [challenge, setChallenge] = useState(""),
+    [code, setCode] = useState(""),
+    [message, setMessage] = useState(""),
+    [busy, setBusy] = useState(false),
+    [command, setCommand] = useState<any>(null);
   return (
-    <AppShell role="tenant">
-      <div className="prototype-notice" role="status">
-        Interactive preview · these controls do not operate an installed device.
-      </div>
-      <h1 style={{ color: "var(--navy)" }}>Control, Schedules & Budgets</h1>
-      <div className="card" style={{ marginTop: 12 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700 }}>Relay interface preview</div>
-            <div style={{ color: "var(--muted)", fontSize: 13 }}>
-              A real power state needs a confirmed device reading.
-            </div>
-          </div>
-          <span
-            className={`badge ${relay === "applied" ? "badge-verified" : relay === "pending" ? "badge-stale" : "badge-unknown"}`}
-          >
-            {relay === "idle" ? "Preview · OFF" : relay}
-          </span>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 13, color: "var(--muted)" }}>
-            OFF reasons:{" "}
-            {offReasons.length
-              ? offReasons.join(", ")
-              : "none — ON allowed if voltage/feedback/commissioning ok"}
-          </div>
-          <div
-            style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}
-          >
-            <button
-              onClick={() => {
-                if (!canTurnOn()) return;
-                setRelay("pending");
-                setTimeout(() => setRelay("applied"), 1200);
-              }}
-              disabled={!canTurnOn()}
-              className="btn btn-primary"
-            >
-              Turn ON {!canTurnOn() && "(blocked)"}
-            </button>
-            <button
-              onClick={() => setRelay("pending")}
-              className="btn btn-secondary"
-            >
-              Turn OFF
-            </button>
-            <button
-              onClick={() => setShowStepUp(true)}
-              className="btn btn-secondary"
-            >
-              Step-up verify
-            </button>
-          </div>
-          {!canTurnOn() && (
-            <div className="error-panel" style={{ marginTop: 12 }}>
-              ON rejected: wallet_zero still active. Recharge clears only
-              wallet_zero; protection/manual/budget/maintenance remain. Most
-              restrictive current OFF wins.
-            </div>
-          )}
-          {relay === "pending" && (
-            <div style={{ marginTop: 12 }}>
-              Request → 202 pending → polling receipt →
-              applied/rejected/expired/uncertain. Never blind-pulse on lost ACK.
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="grid-12" style={{ marginTop: 16 }}>
-        <div className="card" style={{ gridColumn: "span 6" }}>
-          <h3>Schedules</h3>
-          <p style={{ color: "var(--muted)", fontSize: 13 }}>
-            Africa/Lagos recurrence, unique(schedule_id, occurrence_utc), max
-            lateness 60s. Miss while offline = skip, not replay.
-          </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input
-              className="input"
-              placeholder="06:00"
-              style={{ width: 100 }}
-            />
-            <input
-              className="input"
-              placeholder="22:00"
-              style={{ width: 100 }}
-            />
-            <button className="btn btn-primary">Add schedule</button>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-            Creation uses step-up once to create bounded delegated policy, not
-            SMS each run. Edit requires version conflict409 → reload/review.
-          </div>
-        </div>
-        <div className="card" style={{ gridColumn: "span 6" }}>
-          <h3>Budget</h3>
-          <input className="input" placeholder="Monthly limit ₦ e.g. 10000" />
-          <button className="btn btn-primary" style={{ marginTop: 8 }}>
-            Save budget
-          </button>
-          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-            Budget counts consumption valuation in configured period, not
-            top-ups. Change recalculates present reason.
-          </div>
-        </div>
-      </div>
-      {showStepUp && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(16,42,67,.6)",
-            display: "grid",
-            placeItems: "center",
-            padding: 16,
-          }}
-        >
-          <div className="card" style={{ maxWidth: 400, width: "100%" }}>
-            <h3>Step-up required</h3>
-            <p style={{ color: "var(--muted)" }}>
-              Enter 6-digit code (sandbox: 123456). One-use, 5 attempts, 60s
-              cooldown, bound to operation hash.
+    <RecordWorkspace
+      title="Power control"
+      description="Confirm a specific action using your phone. Physical protection restrictions always take precedence."
+      endpoint="/users/me/context"
+    >
+      {(data) => {
+        const devices = data.devices.filter((d: any) =>
+            d.capabilities.includes("relay"),
+          ),
+          id = selected || devices[0]?.id;
+        return !devices.length ? (
+          <div className="workspace-empty">
+            <h2>No relay-equipped device linked.</h2>
+            <p>
+              Monitoring hardware cannot switch power. Control requires a
+              compatible installed relay and an eligible plan.
             </p>
-            <input className="input" placeholder="123456" inputMode="numeric" />
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button
-                onClick={() => setShowStepUp(false)}
-                className="btn btn-primary"
-              >
-                Verify
-              </button>
-              <button
-                onClick={() => setShowStepUp(false)}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </AppShell>
+        ) : (
+          <section className="card">
+            <div className="resource-form">
+              <label>
+                SmartClamp
+                <select
+                  className="input"
+                  disabled={busy || !!challenge}
+                  value={id}
+                  onChange={(e) => {
+                    setSelected(e.target.value);
+                    setCommand(null);
+                  }}
+                >
+                  {devices.map((d: any) => (
+                    <option key={d.id} value={d.id}>
+                      {d.role} · {d.id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Requested power
+                <select
+                  className="input"
+                  value={state}
+                  disabled={busy || !!challenge}
+                  onChange={(e) => {
+                    setState(e.target.value);
+                    setCommand(null);
+                  }}
+                >
+                  <option value="off">Turn off</option>
+                  <option value="on">Turn on</option>
+                </select>
+              </label>
+              {!challenge ? (
+                <button
+                  className="btn btn-primary"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    setMessage("");
+                    try {
+                      const canonical = JSON.stringify({
+                        device_id: id,
+                        state,
+                      });
+                      const hash = Array.from(
+                        new Uint8Array(
+                          await crypto.subtle.digest(
+                            "SHA-256",
+                            new TextEncoder().encode(canonical),
+                          ),
+                        ),
+                      )
+                        .map((x) => x.toString(16).padStart(2, "0"))
+                        .join("");
+                      const c = await apiFetch("/auth/step-up/challenges", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          scope_ids: [id],
+                          operation_hash: hash,
+                        }),
+                      });
+                      setChallenge(c.id);
+                      setCommand(null);
+                    } catch (e) {
+                      setMessage(
+                        e instanceof Error ? e.message : "Unable to send code.",
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Send confirmation code
+                </button>
+              ) : (
+                <>
+                  <label>
+                    Phone confirmation code
+                    <input
+                      className="input"
+                      autoComplete="one-time-code"
+                      inputMode="numeric"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </label>
+                  <button
+                    className="btn btn-primary"
+                    disabled={busy || !code}
+                    onClick={async () => {
+                      setBusy(true);
+                      setMessage("");
+                      try {
+                        await apiFetch(
+                          `/auth/step-up/challenges/${challenge}/verify`,
+                          { method: "POST", body: JSON.stringify({ code }) },
+                        );
+                        const c = await apiFetch(`/devices/${id}/relay`, {
+                          method: "POST",
+                          body: JSON.stringify({
+                            state,
+                            authorization_ref: challenge,
+                          }),
+                        });
+                        setCommand(c);
+                        setChallenge("");
+                        setCode("");
+                      } catch (e) {
+                        setMessage(
+                          e instanceof Error
+                            ? e.message
+                            : "Unable to send command.",
+                        );
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Confirm and request {state.toUpperCase()}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setChallenge("");
+                      setCode("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              {message && (
+                <p className="error-panel" role="alert">
+                  {message}
+                </p>
+              )}
+              {command && (
+                <div role="status">
+                  <h2>Request queued</h2>
+                  <p>No physical change is confirmed yet.</p>
+                  <a
+                    className="btn btn-secondary"
+                    href={`/devices/${id}/commands`}
+                  >
+                    Track command result
+                  </a>
+                </div>
+              )}
+              <p>
+                Schedules and budgets remain unavailable until their execution
+                and recovery workflows are implemented. An internet outage does
+                not disable local voltage protection.
+              </p>
+            </div>
+          </section>
+        );
+      }}
+    </RecordWorkspace>
   );
 }

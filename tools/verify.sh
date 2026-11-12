@@ -9,6 +9,7 @@ import json,yaml
 from openapi_spec_validator import validate_spec
 spec=yaml.safe_load(Path('contracts/openapi.yaml').read_text())
 validate_spec(spec)
+validate_spec(yaml.safe_load(Path('contracts/runtime-openapi.yaml').read_text()))
 operations=[o for methods in spec['paths'].values() for method,o in methods.items() if method in ('get','post','put','patch','delete')]
 assert len({o['operationId'] for o in operations})==len(operations)
 routes=json.loads(Path('contracts/routes.json').read_text())

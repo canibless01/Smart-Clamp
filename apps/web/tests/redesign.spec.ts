@@ -21,7 +21,7 @@ test("landing is responsive without page-wide overflow or hydration errors", asy
   }
   expect(errors).toEqual([]);
 });
-test("demo controls change usage and never send real control requests", async ({
+test("energy calculator uses user inputs without device control requests", async ({
   page,
 }) => {
   const posts: string[] = [];
@@ -29,17 +29,12 @@ test("demo controls change usage and never send real control requests", async ({
     if (r.method() === "POST") posts.push(r.url());
   });
   await page.goto("/");
-  const watts = page.locator(".experience-metrics strong");
-  await expect(watts).toContainText("1.24");
-  await page.getByRole("button", { name: /Lights/ }).click();
-  await expect(watts).toContainText("1.18");
-  await page.getByRole("button", { name: /Kettle/ }).click();
-  await expect(watts).toContainText("2.68");
-  await page.getByRole("switch", { name: "Simulated home power" }).click();
-  await expect(watts).toContainText("0.00");
-  await page.getByRole("switch", { name: "Simulated home power" }).click();
-  await page.getByRole("button", { name: "Week", exact: true }).click();
-  await expect(page.locator(".energy-estimate strong")).toContainText("75.04");
+  await page.getByLabel("Appliance power (watts)").fill("1000");
+  await page.getByLabel("Hours used per day").fill("2");
+  await expect(page.locator(".experience-metrics strong")).toContainText(
+    "2.00",
+  );
+  await expect(page.locator(".energy-estimate strong")).toContainText("14.00");
   expect(posts).toEqual([]);
 });
 test("audience tabs, FAQs and motion controls work", async ({ page }) => {
@@ -196,3 +191,37 @@ for (const path of [
     ).toEqual([]);
   });
 }
+
+test("secondary auth actions are distinct and product/plan exploration works", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  const signup = page
+    .getByRole("link", { name: "Get started", exact: true })
+    .last();
+  await expect(signup).toHaveClass(/auth-switch/);
+  await signup.click();
+  await expect(page).toHaveURL(/signup/);
+  await page.goto("/#devices");
+  await expect(
+    page.getByRole("heading", { name: "Find your place in the picture." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Next devices" }).click();
+  await page.goto("/products/home");
+  await expect(
+    page.getByRole("heading", { name: "Home SmartClamp", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Compare plans", exact: true }).click();
+  await expect(page).toHaveURL(/pricing#compare/);
+  await expect(
+    page.getByRole("cell", { name: "Planned", exact: true }).first(),
+  ).toBeVisible();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+  }
+});

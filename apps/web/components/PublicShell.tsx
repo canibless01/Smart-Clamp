@@ -7,6 +7,7 @@ const links = [
   ["How it works", "/how-it-works"],
   ["For your home", "/for-homeowners"],
   ["For your building", "/for-landlords"],
+  ["Devices", "/#devices"],
   ["Plans", "/pricing"],
 ];
 export default function PublicShell({

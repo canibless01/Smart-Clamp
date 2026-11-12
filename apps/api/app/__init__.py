@@ -1,161 +1,59 @@
-import os, uuid, hashlib, json, time, hmac, base64, logging
+import os,uuid
 from pathlib import Path
-from flask import Flask, request, jsonify, g
+from datetime import datetime,date
+from decimal import Decimal
+from flask import Flask,jsonify,request,g
+from flask.json.provider import DefaultJSONProvider
 from flask_cors import CORS
-from sqlalchemy import create_engine, text
-import jwt
+from sqlalchemy.exc import IntegrityError,SQLAlchemyError
+from dotenv import load_dotenv
+from .db import DomainError,init_database,transaction,scalar
 
-# Load .env if present (python-dotenv)
-try:
-    from dotenv import load_dotenv
-    # Load root .env plus apps/api/.env if they exist
-    root_env = Path(__file__).resolve().parents[3] / ".env"
-    api_env = Path(__file__).resolve().parents[1] / ".env"
-    if root_env.exists():
-        load_dotenv(root_env, override=False)
-    if api_env.exists():
-        load_dotenv(api_env, override=False)
-except Exception:
-    pass
+class JSONProvider(DefaultJSONProvider):
+    def default(self,o):
+        if isinstance(o,(datetime,date)):return o.isoformat()
+        if isinstance(o,(uuid.UUID,Decimal)):return str(o)
+        return super().default(o)
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'dev-secret-not-for-prod')
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///smartclamp.db')
-CORS_ORIGINS = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000')
-LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
-
-logger = logging.getLogger('smartclamp.api')
-
-def _create_engine():
-    """Create SQLAlchemy engine with appropriate connect_args for sqlite/postgres."""
-    db_url = DATABASE_URL
-    # Normalize postgres:// -> postgresql://
-    if db_url.startswith('postgres://'):
-        db_url = db_url.replace('postgres://', 'postgresql://', 1)
-    try:
-        if db_url.startswith('sqlite'):
-            engine = create_engine(db_url, connect_args={"check_same_thread": False}, future=True)
-        else:
-            engine = create_engine(db_url, pool_pre_ping=True, pool_size=5, max_overflow=10, future=True)
-        # Test connection non-fatally
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        logger.info(f"Database connected: {db_url.split('@')[-1] if '@' in db_url else db_url}")
-        return engine
-    except Exception as e:
-        logger.warning(f"Database unavailable ({db_url[:40]}...): {e} — falling back to in-memory stores for demo. Run migrations when ready.")
-        return None
-
-def create_app():
-    app = Flask(__name__)
-    app.config['JWT_SECRET'] = JWT_SECRET
-    app.config['DATABASE_URL'] = DATABASE_URL
-
-    # CORS: parse comma-separated origins
-    origins = [o.strip() for o in CORS_ORIGINS.split(',') if o.strip()]
-    CORS(app, supports_credentials=True, origins=origins, allow_headers=["Content-Type","Authorization","Idempotency-Key","X-Device-Signature","X-Paystack-Signature"], expose_headers=["X-Request-Id"])
-
-    # Engine (lazy, may be None if DB not ready)
-    app.db_engine = _create_engine()
-
-    # Simple in-memory stores for demo when DB not ready or as cache
-    app.stores = {
-        'users': {},  # phone -> user
-        'buildings': {},
-        'rooms': {},
-        'devices': {},
-        'payments': {},
-        'quotes': {},
-        'idempotency': {},  # key -> response
-        'inbox': {},  # device dedup
-        'wallets': {},
-        'commands': {},
-        'outbox': [],
-        'webhook_processed': {},
-    }
-
-    # Register routes
-    from .routes import register_all
-    register_all(app)
-
-    @app.route('/api/v1/health', methods=['GET'])
-    def health():
-        db_ok = False
-        if app.db_engine is not None:
-            try:
-                with app.db_engine.connect() as conn:
-                    conn.execute(text("SELECT 1"))
-                db_ok = True
-            except Exception:
-                pass
-        return jsonify({
-            'status': 'ok',
-            'version': '2.0.0',
-            'database': 'connected' if db_ok else 'in-memory (set DATABASE_URL and run migrations for persistence)',
-            'timestamp': time.time(),
-        })
-
-    @app.route('/api/v1/openapi.yaml', methods=['GET'])
-    def openapi():
-        spec_path = Path(__file__).resolve().parents[3] / "contracts" / "openapi.yaml"
-        if spec_path.exists():
-            return spec_path.read_text(), 200, {'Content-Type': 'text/yaml'}
-        return jsonify({'code':'not_found','message':'Spec not found','request_id':str(uuid.uuid4())}),404
-
-    @app.errorhandler(404)
-    def not_found(e):
-        return jsonify({'code':'not_found','message':'Not found','request_id':str(uuid.uuid4())}),404
-
-    @app.errorhandler(500)
-    def internal(e):
-        logger.exception("Internal error")
-        return jsonify({'code':'internal','message':'Internal error','request_id':str(uuid.uuid4())}),500
-
+def create_app(settings=None):
+    root=Path(__file__).resolve().parents[3]
+    load_dotenv(root/'.env',override=False);load_dotenv(root/'apps/api/.env',override=False)
+    app=Flask(__name__);app.json=JSONProvider(app);app.config.update(os.environ)
+    if settings:app.config.update(settings)
+    app.config['MAX_CONTENT_LENGTH']=65536
+    init_database(app)
+    origins=app.config.get('CORS_ORIGINS','').split(',')
+    if any(origins):CORS(app,resources={r'/api/*':{'origins':[o.strip() for o in origins if o.strip()]}},supports_credentials=False)
     @app.before_request
-    def idempotency_check():
-        g.request_id = str(uuid.uuid4())
-        # hash body for idempotency binding (24h payer+scope binding enforced per route)
-        try:
-            g.body_hash = hashlib.sha256(request.get_data() or b'').hexdigest()
-        except Exception:
-            g.body_hash = ""
-
+    def start():g.request_id=str(uuid.uuid4())
     @app.after_request
-    def add_request_id(resp):
-        resp.headers['X-Request-Id'] = g.get('request_id', '')
-        return resp
-
+    def finish(response):
+        response.headers['X-Request-Id']=getattr(g,'request_id','')
+        response.headers['Cache-Control']='no-store'
+        response.headers['X-Content-Type-Options']='nosniff'
+        return response
+    @app.errorhandler(DomainError)
+    def domain_error(e):return jsonify(code=e.code,message=e.message,request_id=getattr(g,'request_id','')),e.status
+    @app.errorhandler(IntegrityError)
+    def conflict(e):return jsonify(code='conflict',message='This operation conflicts with an existing record.',request_id=g.request_id),409
+    @app.errorhandler(SQLAlchemyError)
+    def database_error(e):
+        app.logger.error('Database operation failed; request_id=%s type=%s',g.request_id,type(e).__name__)
+        return jsonify(code='database_unavailable',message='The database is unavailable or migrations are incomplete.',request_id=g.request_id),503
+    @app.errorhandler(404)
+    def not_found(e):return jsonify(code='not_found',message='Resource not found.',request_id=getattr(g,'request_id','')),404
+    @app.get('/api/v1/health')
+    def health():
+        try:
+            with transaction() as c:ready=scalar(c,"SELECT to_regclass('public.provider_events') IS NOT NULL")
+        except Exception:return jsonify(status='unavailable',database='unavailable'),503
+        return jsonify(status='ready' if ready else 'migration_required',database='connected'),200 if ready else 503
+    @app.get('/api/v1/openapi.yaml')
+    def spec():return app.response_class((root/'contracts/runtime-openapi.yaml').read_text(),mimetype='application/yaml')
+    from .live_auth import bp as auth
+    from .live_resources import bp as resources
+    from .live_devices import bp as devices
+    from .live_payments import bp as payments
+    from .live_workflows import bp as workflows
+    for bp in(auth,resources,devices,payments,workflows):app.register_blueprint(bp)
     return app
-
-def make_token(user_id, role, phone):
-    # Re-read JWT_SECRET at call time so tests with env override work
-    secret = os.environ.get('JWT_SECRET', JWT_SECRET)
-    payload = {
-        'sub': user_id,
-        'role': role,
-        'phone': phone,
-        'exp': int(time.time())+3600,
-        'iat': int(time.time()),
-        'iss':'smartclamp',
-        'aud':'smartclamp-web'
-    }
-    return jwt.encode(payload, secret, algorithm='HS256')
-
-def verify_token(token):
-    secret = os.environ.get('JWT_SECRET', JWT_SECRET)
-    try:
-        data = jwt.decode(token, secret, algorithms=['HS256'], audience='smartclamp-web', issuer='smartclamp')
-        return data
-    except jwt.PyJWTError:
-        return None
-
-def require_auth():
-    auth = request.headers.get('Authorization','')
-    if not auth.startswith('Bearer '):
-        return None
-    token = auth[7:]
-    return verify_token(token)
-
-def api_error(code, message, status, retry_after=None):
-    body = {'code':code,'message':message,'request_id':str(uuid.uuid4())}
-    if retry_after: body['retry_after_seconds']=retry_after
-    return jsonify(body), status

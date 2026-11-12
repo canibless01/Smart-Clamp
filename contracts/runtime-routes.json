@@ -1,0 +1,452 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/alerts",
+    "handler": "live_resources.alerts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/alerts/{alert_id}/acknowledge",
+    "handler": "live_resources.acknowledge"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "handler": "live_auth.login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "handler": "live_auth.logout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/recovery",
+    "handler": "live_auth.recovery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/recovery/complete",
+    "handler": "live_auth.complete_phone_recovery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/recovery/phone",
+    "handler": "live_auth.phone_recovery"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "handler": "live_auth.refresh"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/signup",
+    "handler": "live_auth.signup"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/step-up/challenges",
+    "handler": "live_auth.challenge"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/step-up/challenges/{challenge_id}/verify",
+    "handler": "live_auth.confirm"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/verify",
+    "handler": "live_auth.verify_phone"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bills",
+    "handler": "live_resources.bills"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/buildings",
+    "handler": "live_resources.buildings_list"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/buildings",
+    "handler": "live_resources.buildings_create"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/rooms",
+    "handler": "live_resources.rooms_route"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/buildings/{building_id}/rooms",
+    "handler": "live_resources.rooms_route"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/homeowner",
+    "handler": "live_resources.dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/landlord",
+    "handler": "live_resources.dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/tenant",
+    "handler": "live_resources.dashboard"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/utility",
+    "handler": "live_workflows.utility_dashboard"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/device/events",
+    "handler": "live_devices.events"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/device/poll",
+    "handler": "live_devices.poll"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/device/receipts",
+    "handler": "live_devices.receipt"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}",
+    "handler": "live_resources.details"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}/commands",
+    "handler": "live_devices.commands"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}/events",
+    "handler": "live_resources.history"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/devices/{device_id}/relay",
+    "handler": "live_devices.relay"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}/viewers",
+    "handler": "live_resources.viewers"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/devices/{device_id}/viewers",
+    "handler": "live_resources.viewers"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/devices/{device_id}/viewers/{viewer_id}",
+    "handler": "live_resources.revoke_viewer"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/devices/claim",
+    "handler": "live_workflows.claim"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/disputes",
+    "handler": "live_resources.disputes"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/disputes",
+    "handler": "live_resources.dispute_create"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/disputes/{dispute_id}/meeting-view",
+    "handler": "live_resources.meeting"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/disputes/{dispute_id}/messages",
+    "handler": "live_resources.dispute_message"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/feature-flags/active",
+    "handler": "live_resources.flags"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health",
+    "handler": "health"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/invitations/{invitation_id}",
+    "handler": "live_resources.revoke_invitation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/invitations/accept",
+    "handler": "live_resources.accept_invitation"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/meters/{linked_meter_id}/manual-reading",
+    "handler": "live_resources.manual_reading"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/meters/link",
+    "handler": "live_resources.link_meter"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/meters/validate",
+    "handler": "live_resources.meter_validate"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/openapi.yaml",
+    "handler": "spec"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/devices/{device_id}/claim-code",
+    "handler": "live_workflows.create_claim"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/features/water-management",
+    "handler": "live_workflows.water_flag"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/fleet-health",
+    "handler": "live_resources.fleet"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/fleet-health-basic",
+    "handler": "live_resources.fleet"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/jobs",
+    "handler": "live_workflows.create_job"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/summary",
+    "handler": "live_workflows.ops_summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders",
+    "handler": "live_resources.orders"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders",
+    "handler": "live_resources.orders"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/{order_id}",
+    "handler": "live_resources.order_detail"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/{order_id}/actions",
+    "handler": "live_resources.order_action"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organizations/by-subdomain/{subdomain}",
+    "handler": "live_resources.organization"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/payments/{payment_id}",
+    "handler": "live_payments.payment_status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/{payment_id}/confirm-meter-entry",
+    "handler": "live_payments.confirm_entry"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/payments/{payment_id}/transfer-instructions",
+    "handler": "live_payments.transfer_instructions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/checkout",
+    "handler": "live_payments.checkout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/quotes",
+    "handler": "live_payments.quote"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/portal/jobs",
+    "handler": "live_resources.portal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/portal/payouts",
+    "handler": "live_resources.portal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/portal/referrals",
+    "handler": "live_resources.portal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/capabilities",
+    "handler": "live_workflows.capabilities"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/electricity-providers",
+    "handler": "live_resources.electricity_providers"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/payments/{status_token}",
+    "handler": "live_payments.payment_public"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/payments/{status_token}/transfer-instructions",
+    "handler": "live_payments.transfer_instructions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/rooms/{room_id}/invitations",
+    "handler": "live_resources.invitations"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/rooms/{room_id}/join",
+    "handler": "live_resources.accept_invitation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/rooms/{room_id}/occupancies",
+    "handler": "live_resources.occupancy_history"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/rooms/{room_id}/transfer",
+    "handler": "live_resources.transfer"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/support/tickets",
+    "handler": "live_resources.support"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/support/tickets",
+    "handler": "live_resources.support"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/support/tickets/{ticket_id}",
+    "handler": "live_resources.ticket_detail"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/support/tickets/{ticket_id}/messages",
+    "handler": "live_resources.ticket_message"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/transactions",
+    "handler": "live_resources.transactions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/me/context",
+    "handler": "live_auth.context"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/me/preferences",
+    "handler": "live_auth.preferences"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/users/me/preferences",
+    "handler": "live_auth.preferences"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/users/me/report-preferences",
+    "handler": "live_auth.report_preferences"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/me/subscription",
+    "handler": "live_auth.subscription"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/users/me/subscription",
+    "handler": "live_auth.upgrade"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/users/me/subscription/cancel",
+    "handler": "live_auth.cancel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/wallets",
+    "handler": "live_resources.wallets"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/wallets/{wallet_id}/ledger",
+    "handler": "live_resources.ledger"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/wallets/{wallet_id}/recharge",
+    "handler": "live_payments.old_recharge"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/notifications",
+    "handler": "live_payments.unsupported_webhook"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/payment",
+    "handler": "live_payments.webhook"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/ussd",
+    "handler": "live_payments.unsupported_webhook"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/webhooks/vending",
+    "handler": "live_payments.unsupported_webhook"
+  }
+]
