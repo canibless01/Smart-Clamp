@@ -287,17 +287,676 @@ paths:
                 phone:
                   type: string
                   pattern: ^\+[1-9]\d{7,14}$
+                email:
+                  type: string
+                  format: email
                 password:
                   type: string
                   minLength: 8
               required:
-              - phone
               - password
               additionalProperties: false
+              oneOf:
+              - required:
+                - phone
+                not:
+                  required:
+                  - email
+              - required:
+                - email
+                not:
+                  required:
+                  - phone
   /auth/logout:
     post:
       operationId: live_auth_logout_post_auth_logout
       summary: Logout
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /auth/oauth/exchange:
+    post:
+      operationId: live_auth_oauth_exchange_post_auth_oauth_exchange
+      summary: Oauth exchange
+      security: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: &id001
+                  type: string
+                code_verifier: *id001
+              required:
+              - code
+              - code_verifier
+              additionalProperties: false
+  /auth/oauth/start:
+    post:
+      operationId: live_auth_oauth_start_post_auth_oauth_start
+      summary: Oauth start
+      security: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code_challenge: *id001
+                flow_id: *id001
+              required:
+              - code_challenge
+              - flow_id
+              additionalProperties: false
+  /auth/onboarding:
+    get:
+      operationId: live_auth_onboarding_get_auth_onboarding
+      summary: Onboarding
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      operationId: live_auth_onboarding_post_auth_onboarding
+      summary: Onboarding
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                full_name: *id001
+                role: *id001
+                accepted_terms:
+                  type: boolean
+                  enum:
+                  - true
+                terms_version: *id001
+                privacy_version: *id001
+              required:
+              - full_name
+              - accepted_terms
+              - terms_version
+              - privacy_version
+              additionalProperties: false
+  /auth/options:
+    get:
+      operationId: live_auth_auth_options_get_auth_options
+      summary: Auth options
+      security: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /auth/phone/enroll:
+    post:
+      operationId: live_auth_enroll_phone_post_auth_phone_enroll
+      summary: Enroll phone
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /auth/phone/verify:
+    post:
+      operationId: live_auth_verify_enrolled_phone_post_auth_phone_verify
+      summary: Verify enrolled phone
       security:
       - bearerAuth: []
       responses:
@@ -838,6 +1497,9 @@ paths:
                 phone:
                   type: string
                   pattern: ^\+[1-9]\d{7,14}$
+                email:
+                  type: string
+                  format: email
                 password:
                   type: string
                   minLength: 8
@@ -849,14 +1511,32 @@ paths:
                   - landlord
                   - agent
                   - referrer
-                full_name: &id002
-                  type: string
+                full_name: *id001
+                accepted_terms:
+                  type: boolean
+                  enum:
+                  - true
+                terms_version: *id001
+                privacy_version: *id001
               required:
-              - phone
               - password
               - role
               - full_name
+              - accepted_terms
+              - terms_version
+              - privacy_version
               additionalProperties: false
+              oneOf:
+              - required:
+                - phone
+                not:
+                  required:
+                  - email
+              - required:
+                - email
+                not:
+                  required:
+                  - phone
   /auth/step-up/challenges:
     post:
       operationId: live_auth_challenge_post_auth_step_up_challenges
@@ -2827,7 +3507,7 @@ paths:
                   enum:
                   - 'on'
                   - 'off'
-                authorization_ref: &id001
+                authorization_ref: &id002
                   type: string
                   format: uuid
               required:
@@ -3210,7 +3890,7 @@ paths:
                   type: string
                   minLength: 32
                   maxLength: 128
-                room_id: *id001
+                room_id: *id002
               required:
               - claim_code
               additionalProperties: false
@@ -4013,7 +4693,7 @@ paths:
             schema:
               type: object
               properties:
-                token: *id002
+                token: *id001
               required:
               - token
               additionalProperties: false
@@ -4217,7 +4897,7 @@ paths:
                 expected_version:
                   type: integer
                   minimum: 1
-                assignee_id: *id001
+                assignee_id: *id002
                 note:
                   type: string
                   minLength: 10
@@ -4418,7 +5098,7 @@ paths:
                 meter_number:
                   type: string
                   pattern: ^[0-9]{6,20}$
-                service_id: *id002
+                service_id: *id001
               required:
               - meter_number
               additionalProperties: false
@@ -4515,7 +5195,7 @@ paths:
                 meter_number:
                   type: string
                   pattern: ^[0-9]{6,20}$
-                service_id: *id002
+                service_id: *id001
                 utility_type:
                   type: string
                   enum:
@@ -6414,11 +7094,11 @@ paths:
             schema:
               type: object
               properties:
-                quote_id: *id001
+                quote_id: *id002
                 payer_email:
                   type: string
                   format: email
-                return_path: *id002
+                return_path: *id001
               required:
               - quote_id
               - payer_email
@@ -6514,7 +7194,7 @@ paths:
             schema:
               type: object
               properties:
-                destination_token: *id002
+                destination_token: *id001
                 amount_kobo:
                   type: integer
                   minimum: 100
@@ -7386,7 +8066,7 @@ paths:
             schema:
               type: object
               properties:
-                device_id: *id001
+                device_id: *id002
                 period_start:
                   type: string
                   format: date

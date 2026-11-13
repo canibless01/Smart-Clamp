@@ -4,7 +4,7 @@ root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'app
 from app import create_app
 app=create_app({'DATABASE_URL':''})
 paths={};routes=[]
-public={'signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','download','firmware_receipt','public_report','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
+public={'auth_options','oauth_start','oauth_exchange','signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','download','firmware_receipt','public_report','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
 for rule in sorted(app.url_map.iter_rules(),key=lambda r:r.rule):
     if not rule.rule.startswith('/api/v1/'):continue
     path=rule.rule[len('/api/v1'):];params=re.findall(r'<(?:[^:>]+:)?([^>]+)>',path);path=re.sub(r'<(?:[^:>]+:)?([^>]+)>',r'{\1}',path)
@@ -30,9 +30,16 @@ body('/jobs/{job_id}/actions','post',{
     'expected_version':{'type':'integer','minimum':1},'assignee_id':uid,
     'note':{'type':'string','minLength':10,'maxLength':4000}},['action','expected_version','note'])
 for path in ['/auth/signup','/auth/login']:
-    props={'phone':{'type':'string','pattern':r'^\+[1-9]\d{7,14}$'},'password':{'type':'string','minLength':8}}
-    if path.endswith('signup'):props.update({'role':{'type':'string','enum':['homeowner','tenant','landlord','agent','referrer']},'full_name':string})
-    body(path,'post',props,list(props))
+    props={'phone':{'type':'string','pattern':r'^\+[1-9]\d{7,14}$'},'email':{'type':'string','format':'email'},'password':{'type':'string','minLength':8}}
+    required=['password']
+    if path.endswith('signup'):
+        props.update({'role':{'type':'string','enum':['homeowner','tenant','landlord','agent','referrer']},'full_name':string,'accepted_terms':{'type':'boolean','enum':[True]},'terms_version':string,'privacy_version':string})
+        required+=['role','full_name','accepted_terms','terms_version','privacy_version']
+    body(path,'post',props,required)
+    paths[path]['post']['requestBody']['content']['application/json']['schema']['oneOf']=[{'required':['phone'],'not':{'required':['email']}},{'required':['email'],'not':{'required':['phone']}}]
+body('/auth/onboarding','post',{'full_name':string,'role':string,'accepted_terms':{'type':'boolean','enum':[True]},'terms_version':string,'privacy_version':string},['full_name','accepted_terms','terms_version','privacy_version'])
+body('/auth/oauth/start','post',{'code_challenge':string,'flow_id':string},['code_challenge','flow_id'])
+body('/auth/oauth/exchange','post',{'code':string,'code_verifier':string},['code','code_verifier'])
 for path,method,mime in [('/device/firmware/download','post','application/octet-stream'),('/exports/{export_id}','get','text/csv')]:
     paths[path][method]['responses']['200']={'description':'Authenticated stored artifact bytes','content':{mime:{'schema':{'type':'string','format':'binary'}}}}
 spec={'openapi':'3.0.3','info':{'title':'SmartClamp implemented API surface','version':'0.3.0','description':'Implemented route surface. Response objects are intentionally open where typed schemas are not yet reconciled. See docs/API-RUNTIME.md and docs/LAUNCH-READINESS.md. This is not proof that every operation in the broader product contract is implemented.'},'servers':[{'url':'/api/v1'}],'components':{'securitySchemes':{'bearerAuth':{'type':'http','scheme':'bearer'}}},'paths':paths}

@@ -64,7 +64,9 @@ class LiveIntegration(unittest.TestCase):
         self.client=self.app.test_client();self.users=[];ProviderFixture.token=None;ProviderFixture.vend_units=None;ProviderFixture.omit_token=False;ProviderFixture.key_changes={};ProviderFixture.init_mode="success"
     def user(self,role='tenant'):
         phone='+1555'+str(secrets.randbelow(9000000)+1000000);pwd='A-real-QA-password-42'
-        r=self.client.post('/api/v1/auth/signup',json={'phone':phone,'password':pwd,'full_name':'Integration test account','role':role})
+        from app.live_auth import legal_versions
+        with self.app.app_context():consent={'accepted_terms':True,**legal_versions()}
+        r=self.client.post('/api/v1/auth/signup',json={'phone':phone,'password':pwd,'full_name':'Integration test account','role':role,**consent})
         self.assertEqual(r.status_code,200,r.json)
         u={'id':r.json['user_id'],'token':r.json['access_token'],'phone':phone,'password':pwd,'role':role};self.users.append(u);return u
     def headers(self,u,key=None):return {'Authorization':'Bearer '+u['token'],'Idempotency-Key':key or str(uuid.uuid4())}
@@ -99,6 +101,57 @@ class LiveIntegration(unittest.TestCase):
     def test_real_auth_rejects_wrong_password_and_persists_restart(self):
         u=self.user();bad=self.client.post('/api/v1/auth/login',json={'phone':u['phone'],'password':'wrong-password'});self.assertEqual(bad.status_code,401)
         other=create_app(self.settings);r=other.test_client().post('/api/v1/auth/login',json={'phone':u['phone'],'password':u['password']});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['user_id'],u['id']);other.db_engine.dispose()
+    def test_explicit_consent_and_email_password_identity(self):
+        from app.live_auth import legal_versions
+        from app.providers import auth_request
+        with self.app.app_context():
+            versions=legal_versions();enabled=(auth_request('settings').get('external') or {}).get('email')
+        if not enabled:self.skipTest('Requires the isolated email-enabled GoTrue QA stack')
+        body={'email':'qa-'+uuid.uuid4().hex+'@example.test','password':'QA-email-password-42','role':'homeowner','full_name':'Email QA account',**versions}
+        self.assertEqual(self.client.post('/api/v1/auth/signup',json=body).json['code'],'consent_required')
+        self.assertEqual(self.client.post('/api/v1/auth/signup',json=body|{'accepted_terms':True,'terms_version':'outdated'}).status_code,400)
+        created=self.client.post('/api/v1/auth/signup',json=body|{'accepted_terms':True});self.assertEqual(created.status_code,200,created.json)
+        self.assertFalse(created.json['onboarding_required'])
+        login=self.client.post('/api/v1/auth/login',json={'email':body['email'].upper(),'password':body['password']});self.assertEqual(login.status_code,200,login.json)
+        u={'id':created.json['user_id'],'token':login.json['access_token']}
+        profile=self.client.get('/api/v1/users/me/context',headers=self.headers(u));self.assertEqual(profile.status_code,200);self.assertIsNone(profile.json['authorized_context']['phone']);self.assertEqual(profile.json['authorized_context']['email'],body['email'])
+        self.assertEqual(self.client.post('/api/v1/payments/checkout',json={},headers=self.headers(u)).json['code'],'phone_verification_required')
+        self.assertEqual(self.client.post('/api/v1/auth/step-up/challenges',json={},headers=self.headers(u)).json['code'],'phone_verification_required')
+        with self.app.app_context(),transaction() as c:
+            self.assertEqual(scalar(c,'SELECT count(*) FROM account_consents WHERE user_id=:id',id=u['id']),1)
+    def test_verified_external_identity_requires_profile_consent_and_cannot_choose_staff(self):
+        from app.providers import auth_request
+        from app.live_auth import legal_versions
+        with self.app.app_context():
+            if not (auth_request('settings').get('external') or {}).get('email'):self.skipTest('Requires email-enabled QA GoTrue')
+            result=auth_request('signup','POST',{'email':'external-'+uuid.uuid4().hex+'@example.test','password':'QA-external-password-42'})
+            versions=legal_versions()
+        u={'id':result['user']['id'],'token':result['access_token']};h=self.headers(u)
+        self.assertEqual(self.client.get('/api/v1/users/me/context',headers=h).json['code'],'profile_required')
+        refresh=self.client.post('/api/v1/auth/refresh',json={'refresh_token':result['refresh_token']});self.assertEqual(refresh.status_code,200);self.assertTrue(refresh.json['onboarding_required'])
+        self.assertEqual(self.client.get('/api/v1/auth/onboarding',headers=h).status_code,200)
+        body={'full_name':'External identity QA','role':'internal_superadmin','accepted_terms':True,**versions}
+        self.assertEqual(self.client.post('/api/v1/auth/onboarding',json=body,headers=h).status_code,403)
+        body['role']='tenant';body['accepted_terms']=False
+        self.assertEqual(self.client.post('/api/v1/auth/onboarding',json=body,headers=h).json['code'],'consent_required')
+        body['accepted_terms']=True
+        self.assertEqual(self.client.post('/api/v1/auth/onboarding',json=body,headers=h).status_code,200)
+        body['role']='internal_superadmin'
+        self.assertEqual(self.client.post('/api/v1/auth/onboarding',json=body,headers=h).json['role'],'tenant')
+        self.assertEqual(self.client.get('/api/v1/users/me/context',headers=h).status_code,200)
+        with self.app.app_context(),transaction() as c:
+            self.assertEqual(scalar(c,'SELECT count(*) FROM account_consents WHERE user_id=:id',id=u['id']),1)
+    def test_google_start_is_pkce_bound_to_fixed_origin_and_configuration(self):
+        from unittest.mock import patch
+        from urllib.parse import urlparse,parse_qs
+        body={'code_challenge':'a'*43,'flow_id':'b'*64,'redirect_to':'https://untrusted.example/steal'}
+        self.assertEqual(self.client.post('/api/v1/auth/oauth/start',json=body).status_code,503)
+        with patch('app.live_auth.auth_request',return_value={'external':{'google':True}}):
+            response=self.client.post('/api/v1/auth/oauth/start',json=body)
+            self.assertEqual(response.status_code,200,response.json);params=parse_qs(urlparse(response.json['url']).query)
+            self.assertEqual(params['redirect_to'],['http://localhost:3000/auth/callback?flow_id='+'b'*64]);self.assertEqual(params['code_challenge_method'],['s256'])
+            self.assertEqual(self.client.post('/api/v1/auth/oauth/start',json=body|{'flow_id':'bad'}).status_code,400)
+        self.assertEqual(self.client.post('/api/v1/auth/oauth/exchange',json={'code':'x','code_verifier':'bad'}).status_code,400)
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)

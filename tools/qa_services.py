@@ -27,7 +27,7 @@ def start(path,port,auth_port):
             break
         except psycopg.OperationalError:time.sleep(.5)
     else:raise RuntimeError('QA PostgreSQL did not become ready.')
-    values={'GOTRUE_API_HOST':'0.0.0.0','PORT':'9999','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':f'http://localhost:{auth_port}','GOTRUE_SITE_URL':'http://localhost:3000','GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':f"postgres://postgres:{q['password']}@{name}:5432/smartclamp?search_path=auth",'GOTRUE_JWT_SECRET':q['jwt_secret'],'GOTRUE_JWT_EXP':'3600','GOTRUE_JWT_AUD':'authenticated','GOTRUE_EXTERNAL_EMAIL_ENABLED':'false','GOTRUE_EXTERNAL_PHONE_ENABLED':'true','GOTRUE_SMS_AUTOCONFIRM':'true','GOTRUE_DISABLE_SIGNUP':'false'}
+    values={'GOTRUE_API_HOST':'0.0.0.0','PORT':'9999','GOTRUE_API_PORT':'9999','API_EXTERNAL_URL':f'http://localhost:{auth_port}','GOTRUE_SITE_URL':'http://localhost:3000','GOTRUE_DB_DRIVER':'postgres','GOTRUE_DB_DATABASE_URL':f"postgres://postgres:{q['password']}@{name}:5432/smartclamp?search_path=auth",'GOTRUE_JWT_SECRET':q['jwt_secret'],'GOTRUE_JWT_EXP':'3600','GOTRUE_JWT_AUD':'authenticated','GOTRUE_EXTERNAL_EMAIL_ENABLED':'true','GOTRUE_MAILER_AUTOCONFIRM':'true','GOTRUE_EXTERNAL_PHONE_ENABLED':'true','GOTRUE_SMS_AUTOCONFIRM':'true','GOTRUE_DISABLE_SIGNUP':'false'}
     args=['run','-d','--name',name+'-auth','--network',network,'-p',f'127.0.0.1:{auth_port}:9999']
     for key in values:args+=['-e',key]
     docker(args+['supabase/gotrue:v2.177.0'],values)

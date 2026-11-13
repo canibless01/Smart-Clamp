@@ -56,6 +56,7 @@ def public_payment(p):
 @bp.post('/api/v1/payments/checkout')
 @authenticated
 def checkout():
+    if not g.actor.get('phone'):raise DomainError('phone_verification_required','Verify a phone number in Settings before making a meter purchase.',409)
     configured_payment();d=request.get_json() or {};email=d.get('payer_email','');path=d.get('return_path','/payments/return')
     if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email):raise DomainError('receipt_email_required','Enter a real email address for your payment receipt.')
     if not isinstance(path,str) or not path.startswith('/') or path.startswith('//') or '\\' in path or any(ch in path for ch in('\r','\n')):raise DomainError('invalid_return_path','The payment return path is invalid.')

@@ -8,6 +8,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'apps/api/tests'))
 from test_api import LiveIntegration
 from app.db import transaction,query
+from app.providers import auth_request
 parser=argparse.ArgumentParser();parser.add_argument('--fixture',type=pathlib.Path,required=True);parser.add_argument('--port',type=int,default=5000);a=parser.parse_args()
 LiveIntegration.setUpClass();t=LiveIntegration();t.setUp()
 owner=t.user('landlord');tenant=t.user();ops=t.promote(t.user('homeowner'),'internal_ops');d=t.provision(owner)
@@ -29,7 +30,14 @@ past=int((datetime.now(timezone.utc)-timedelta(days=1)).timestamp()*1000)
 for counter,at in [(0,past),(1000000,past+60000),(1000000,int(datetime.now(timezone.utc).timestamp()*1000))]:
     if t.client.post('/api/v1/device/events',json=t.envelope(d,occurred_at_ms=at,metrics={'voltage_mv':230000,'real_power_mw':1000000,'import_mwh':counter})).status_code!=200:raise RuntimeError('QA telemetry failed')
     t.drain()
-t.drain();a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+t.drain()
+pending_email=None
+with t.app.app_context():
+    if (auth_request('settings').get('external') or {}).get('email'):
+        import uuid
+        pending_email={'email':'browser-external-'+uuid.uuid4().hex+'@example.test','password':'QA-external-password-42'}
+        auth_request('signup','POST',pending_email)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

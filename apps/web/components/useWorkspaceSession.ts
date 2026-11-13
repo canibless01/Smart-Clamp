@@ -18,7 +18,8 @@ export function useWorkspaceSession() {
       }
       setRole(actual); setStatus("authenticated");
     } catch (e: any) {
-      if (e.status === 401) location.replace(loginPath());
+      if (e.body?.code === 'profile_required') location.replace('/account/complete-profile?next='+encodeURIComponent(location.pathname+location.search));
+      else if (e.status === 401) location.replace(loginPath());
       else setStatus("unavailable");
     }
   }, []);

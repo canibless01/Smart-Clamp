@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch, logout } from "@/lib/api";
+import PhoneEnrollment from '@/components/PhoneEnrollment';
 export default function Page() {
   const [prefs, setPrefs] = useState<any>(null),
     [smsAvailable, setSmsAvailable] = useState(false),
@@ -25,7 +26,9 @@ export default function Page() {
               <dt>Name</dt>
               <dd>{data.authorized_context.full_name}</dd>
               <dt>Phone</dt>
-              <dd>{data.authorized_context.phone}</dd>
+              <dd>{data.authorized_context.phone || 'Not verified'}</dd>
+              <dt>Email</dt>
+              <dd>{data.authorized_context.email || 'Not linked'}</dd>
               <dt>Workspace</dt>
               <dd>{data.authorized_context.role}</dd>
               <dt>Plan</dt>
@@ -35,6 +38,7 @@ export default function Page() {
               Request an account change
             </a>
           </section>
+          {!data.authorized_context.phone && <PhoneEnrollment/>}
           <section className="card" style={{ marginTop: 24 }}>
             <h2>Preferences</h2>
             {prefs && (

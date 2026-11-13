@@ -14,7 +14,10 @@ def validate(values):
     required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
     if values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
+    required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
     missing=[name for name in required if not values.get(name)];invalid=[]
+    for name in ('LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION'):
+        if values.get(name) and (values[name].lower().startswith('preview') or len(values[name])>100):invalid.append(name+' must identify an approved published legal document, not a preview')
     if not values.get('VTPASS_ELECTRICITY_SERVICES_JSON') and not values.get('VTPASS_ELECTRICITY_SERVICE_ID'):missing.append('VTPASS_ELECTRICITY_SERVICES_JSON (or single service ID)')
     for name in ['SUPABASE_URL','SUPABASE_AUTH_URL','APP_ORIGIN','AT_SMS_URL']:
         if values.get(name):

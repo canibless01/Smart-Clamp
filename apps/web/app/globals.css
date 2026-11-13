@@ -1914,6 +1914,11 @@ tr:last-child td {
 }
 .usage-axis span { max-width: 32%; }
 .usage-axis span:last-child { text-align: right; }
+.auth-google { margin: 24px 0; }
+.auth-google .btn { width: 100%; justify-content: center; }
+.consent-check { display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; }
+.consent-check input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: #234b3d; }
+.consent-check a { text-decoration: underline; }
 .usage-data summary {
   cursor: pointer;
   min-height: 36px;

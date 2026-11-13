@@ -16,7 +16,7 @@ export default function Page() {
       <div className="container marketing-page" style={{ maxWidth: 600 }}>
         <h1>Recover your account</h1>
         <p>
-          Verify the phone registered to your account before choosing a new
+          Verify the email or phone registered to your account before choosing a new
           password.
         </p>
         {stage === "done" ? (
@@ -32,15 +32,15 @@ export default function Page() {
               setError("");
               try {
                 if (stage === "request") {
-                  await apiFetch("/auth/recovery/phone", {
+                  await apiFetch(phone.includes("@") ? "/auth/recovery" : "/auth/recovery/phone", {
                     method: "POST",
-                    body: JSON.stringify({ phone }),
+                    body: JSON.stringify(phone.includes("@") ? {email:phone.trim()} : {phone}),
                   });
                   setStage("verify");
                 } else {
                   await apiFetch("/auth/recovery/complete", {
                     method: "POST",
-                    body: JSON.stringify({ phone, code, password }),
+                    body: JSON.stringify({ ...(phone.includes("@") ? {email:phone.trim()} : {phone}), code, password }),
                   });
                   setPassword("");
                   setCode("");
@@ -58,12 +58,12 @@ export default function Page() {
             }}
           >
             <label>
-              Phone number
+              Phone number or email
               <input
                 className="input"
-                type="tel"
+                type="text"
                 required
-                autoComplete="tel"
+                autoComplete="username"
                 value={phone}
                 disabled={!ready || stage !== "request"}
                 onChange={(e) => setPhone(e.target.value)}

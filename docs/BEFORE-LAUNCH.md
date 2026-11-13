@@ -6,7 +6,7 @@ This is the owner/builder checklist requested on 13 November 2026. Do not treat 
 
 | Information | When needed | Purpose / boundary |
 |---|---|---|
-| Verified phone or email; password for password login | Sign up / login | Identity. Google provides verified identity; it does not choose staff privileges. Email/password and Google onboarding are being implemented. |
+| Verified phone or email; password for password login | Sign up / login | Identity. Google provides verified identity; it does not choose staff privileges. Email/password and Google PKCE/profile onboarding are implemented; live Google consent and delivery require provider acceptance. See [account onboarding](ACCOUNT-ONBOARDING.md). |
 | Full name | Complete initial profile | Account/support and installation contact; bounded user-supplied display name. |
 | Homeowner, resident, landlord, agent/referrer intent | Complete initial profile | Route the public workspace. Installer, utility and internal roles require operator provisioning; signup never grants them. |
 | Explicit Terms and Privacy agreement, document versions and timestamp | Initial profile completion | Must be recorded, not inferred merely from clicking signup. Final legal documents/approved versions are owner inputs. Google users must complete this step too. |

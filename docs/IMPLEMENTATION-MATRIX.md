@@ -27,6 +27,10 @@ Baseline: `ui-revamp` / `4f6be8a`. Updated against actual handlers, migrations, 
 | Agent/referrer earns payout | Attribution → approved entitlement/payment → reviewed payable → provider payout | Not implemented end-to-end; no invented payout records. |
 | Water/gas payment | Server utility gate | Disabled; cannot be enabled by public/admin flag until real integration exists. |
 
+## Account and UI continuation
+
+Email/password and Google PKCE/profile onboarding, immutable explicit legal consent, private workspace guards and coordinated persistent refresh are implemented; see `ACCOUNT-ONBOARDING.md`. Google provider consent, production mail/SMS and phone enrollment need external acceptance after configuration. All existing trusted roles survive public profile completion. A real populated local QA capture gallery is in `screenshots/README.md`; no dedicated finance/support panels are implied.
+
 ## Reconciled source decisions
 
 Master 07.1 is explicit: central-meter purchases are recorded to the paying room's own wallet; consumption of another room never debits that wallet. “Sharing units” does not authorize a landlord resale/middleman feature (master 05.5). Pooling in master 07.2 applies to **unmetered** building contributions and must not be silently applied to metered rooms. The historical build-guide wallet webhook credits before verified vending and assumes tariff-derived units; the runtime separates collection/reservation/vending/credit. This continuation pins the quote destination and reconciles actual VTPass-delivered units, while retaining separate physical token acceptance and merchant/hardware acceptance gates. Reconciliation is implemented software; external acceptance is not solved by an environment variable.

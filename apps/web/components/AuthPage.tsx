@@ -5,24 +5,14 @@ import Image from "next/image";
 import PublicShell from "./PublicShell";
 import Icon, { IconName } from "./Icon";
 import { API_BASE } from "@/lib/api";
-import { storeSession, safeReturnPath } from "@/lib/session";
-const homes: Record<string, string> = {
-  tenant: "/dashboard/tenant",
-  landlord: "/dashboard/landlord",
-  homeowner: "/dashboard/homeowner",
-  nepa_staff: "/dashboard/utility",
-  installer: "/portal",
-  agent: "/portal",
-  referrer: "/portal",
-  internal_ops: "/ops",
-  internal_finance: "/ops",
-  internal_support: "/ops",
-  internal_engineering: "/ops",
-  internal_superadmin: "/ops",
-};
+import { finishSignin } from "@/lib/signin";
+import GoogleSignin from "./GoogleSignin";
 export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const [ready, setReady] = useState(false);
   const [returnTo, setReturnTo] = useState("");
+  const [options,setOptions]=useState<any>(null);
+  const [consent,setConsent]=useState(false);
+  useEffect(()=>{const controller=new AbortController();fetch(`${API_BASE}/auth/options`,{signal:controller.signal,cache:"no-store"}).then(async r=>{if(r.ok)setOptions(await r.json());}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(() => { setReady(true); setReturnTo(new URLSearchParams(location.search).get("next") || ""); }, []);
   const [form, setForm] = useState({
     phone: "",
@@ -47,16 +37,17 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     e.preventDefault();
     if (loading) return;
     const next: Record<string, string> = {};
-    if (!/^\+[1-9][0-9]{7,14}$/.test(form.phone.trim()))
+    if (!/^\+[1-9][0-9]{7,14}$/.test(form.phone.trim().replace(/ /g,"")) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.phone.trim()))
       next.phone =
-        "Enter your phone with its country code, e.g. +2348012345678.";
+        "Enter your email or phone with its country code, e.g. +2348012345678.";
     if (verification && !/^\d{6,10}$/.test(code))
-      next.code = "Enter the code sent to your phone.";
+      next.code = "Enter the code sent to your email or phone.";
     if (signup && form.password.length < 8)
       next.password = "Use at least 8 characters.";
     if (!signup && !form.password) next.password = "Enter your password.";
     if (signup && !form.full_name.trim())
       next.full_name = "Please enter your full name.";
+    if(signup && (!consent || !options)) next.consent="Read and accept the terms and privacy policy before creating your account.";
     setErrors(next);
     if (Object.keys(next).length) return;
     setLoading(true);
@@ -64,6 +55,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20000);
     try {
+      const contact=form.phone.includes("@")?{email:form.phone.trim().toLowerCase()}:{phone:form.phone.replace(/ /g,"")};
       const res = await fetch(
         `${API_BASE}/auth/${verification ? "verify" : signup ? "signup" : "login"}`,
         {
@@ -71,10 +63,10 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
             verification
-              ? { phone: form.phone, code }
+              ? { ...contact, code }
               : signup
-                ? form
-                : { phone: form.phone, password: form.password },
+                ? { ...contact, password:form.password, full_name:form.full_name, role:form.role, accepted_terms:consent, terms_version:options?.terms_version, privacy_version:options?.privacy_version }
+                : { ...contact, password: form.password },
           ),
           signal: controller.signal,
         },
@@ -83,7 +75,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
       if (!res.ok)
         throw new Error(
           res.status === 409
-            ? "This phone is already registered. Try logging in."
+            ? "This contact is already registered. Try logging in."
             : data.message ||
               (signup
                 ? "We couldn’t create your account. Please try again."
@@ -94,17 +86,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
         setLoading(false);
         return;
       }
-      if (!data.access_token || !homes[data.role])
-        throw new Error(
-          "Your account needs a supported workspace. Please contact support.",
-        );
-      storeSession(data);
-      const invitation = sessionStorage.getItem("smartclamp_invitation");
-      location.assign(
-        invitation && data.role === "tenant"
-          ? `/join?token=${encodeURIComponent(invitation)}`
-          : safeReturnPath(new URLSearchParams(location.search).get("next"), homes[data.role]),
-      );
+      finishSignin(data,new URLSearchParams(location.search).get("next"));
     } catch (err) {
       setError(
         controller.signal.aborted
@@ -173,6 +155,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               ))}
             </div>
           )}
+          <GoogleSignin enabled={!!options?.google_enabled} role={form.role} next={returnTo}/>
           <form
             onSubmit={submit}
             className="auth-form"
@@ -203,16 +186,16 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               </div>
             )}
             <div>
-              <label htmlFor="phone">Phone number</label>
+              <label htmlFor="phone">Phone number or email</label>
               <input
                 className="input"
                 disabled={!ready}
                 id="phone"
-                type="tel"
-                autoComplete="tel"
+                type="text"
+                autoComplete="username"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                placeholder="+234 801 234 5678"
+                placeholder="you@example.com or +2348012345678"
                 aria-invalid={!!errors.phone}
                 aria-describedby={errors.phone ? "phone-error" : undefined}
               />
@@ -260,7 +243,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
             {verification && (
               <div>
                 <label htmlFor="verification-code">
-                  Phone verification code
+                  Email or phone verification code
                 </label>
                 <input
                   id="verification-code"
@@ -273,7 +256,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 />
                 {errors.code && <p role="alert">{errors.code}</p>}
                 <p>
-                  Enter the code sent to your phone to finish creating your
+                  Enter the code sent to your email or phone to finish creating your
                   account.
                 </p>
               </div>
@@ -283,6 +266,11 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 {error}
               </div>
             )}
+            {signup && <>
+              <label className="consent-check"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>I agree to the <Link href="/terms" target="_blank">Terms</Link> and acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>.</span></label>
+              {errors.consent && <p role="alert">{errors.consent}</p>}
+              <p className="auth-fineprint">Professional and utility accounts need an invitation. Address details are requested when you set up a building or installation.</p>
+            </>}
             <button
               type="submit"
               className="btn btn-primary"
@@ -291,7 +279,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               {verification
                 ? loading
                   ? "Verifying…"
-                  : "Verify my phone"
+                  : "Verify my contact"
                 : loading
                   ? signup
                     ? "Creating your account…"
@@ -316,14 +304,6 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 </Link>
               </span>
             </div>
-            {signup && (
-              <p className="auth-fineprint">
-                By creating an account, you agree to our{" "}
-                <Link href="/terms">terms</Link> and{" "}
-                <Link href="/privacy">privacy policy</Link>. Professional and
-                utility accounts need an invitation from our team.
-              </p>
-            )}
           </form>
         </div>
       </div>

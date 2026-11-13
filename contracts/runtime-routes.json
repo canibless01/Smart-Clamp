@@ -21,6 +21,41 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/auth/oauth/exchange",
+    "handler": "live_auth.oauth_exchange"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/oauth/start",
+    "handler": "live_auth.oauth_start"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/onboarding",
+    "handler": "live_auth.onboarding"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/onboarding",
+    "handler": "live_auth.onboarding"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/options",
+    "handler": "live_auth.auth_options"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/phone/enroll",
+    "handler": "live_auth.enroll_phone"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/phone/verify",
+    "handler": "live_auth.verify_enrolled_phone"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/auth/recovery",
     "handler": "live_auth.recovery"
   },
