@@ -131,7 +131,8 @@ def transfer(room_id):
 def details(device_id):
     with transaction() as c:
         d=device(c,g.actor,device_id)
-        return jsonify({k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')})
+        from .prepaid import state
+        return jsonify({**{k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')},'prepaid_policy':state(c,d)})
 
 @bp.get('/api/v1/devices/<device_id>/events')
 @authenticated

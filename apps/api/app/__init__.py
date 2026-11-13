@@ -72,5 +72,6 @@ def create_app(settings=None):
     from .live_workflows import bp as workflows
     from .firmware import bp as firmware
     from .reports import bp as reports
-    for bp in(auth,resources,devices,payments,workflows,firmware,reports):app.register_blueprint(bp)
+    from .prepaid import bp as prepaid
+    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid):app.register_blueprint(bp)
     return app

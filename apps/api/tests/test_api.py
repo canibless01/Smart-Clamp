@@ -577,4 +577,38 @@ class LiveIntegration(unittest.TestCase):
         before=ProviderFixture.initializations
         recovered=self.client.post('/api/v1/payments/checkout',json={'quote_id':qid,'payer_email':'qa@example.test','return_path':'/payments/return'},headers=self.headers(owner));self.assertEqual(recovered.status_code,202,recovered.json);self.assertEqual(recovered.json['id'],pid);self.assertEqual(recovered.json['status'],'unknown');self.assertEqual(ProviderFixture.initializations,before)
 
+    def test_signed_prepaid_ceiling_uses_funded_lots_not_stale_cloud_balance(self):
+        from app.protocol import verify
+        owner=self.user('homeowner');d=self.provision(owner)
+        self.assertIsNone(self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll')).json['prepaid_policy'])
+        with self.app.app_context(),transaction() as c:
+            query(c,'UPDATE devices SET prepaid_enforced=true,persistent_counter_qualified=true,prepaid_policy_qualified=true,prepaid_anchor_mwh=100,meter_counter_epoch=1 WHERE id=:id',id=d['id'])
+        empty=self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll'));self.assertEqual(empty.status_code,200,empty.json)
+        initial=verify(empty.json['prepaid_policy'],d['command_key']);self.assertEqual(initial['ceiling_mwh'],100);self.assertEqual(initial['funded_mwh'],0)
+        p=self.payment(owner,d);self.assertEqual(self.signed_webhook(p).status_code,200);self.drain();self.attest(owner,p)
+        poll=self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll'));grant=verify(poll.json['prepaid_policy'],d['command_key']);self.assertEqual(grant['ceiling_mwh'],5000100);self.assertGreater(grant['policy_seq'],initial['policy_seq'])
+        repeated=self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll'));again=verify(repeated.json['prepaid_policy'],d['command_key']);self.assertEqual(again['policy_seq'],grant['policy_seq']);self.assertEqual(again['body_sha256'],grant['body_sha256']);self.assertNotEqual(again['request_seq'],grant['request_seq'])
+        # A wrong/missing counter epoch cannot install the allowance.
+        invalid=self.envelope(d,'prepaid_policy_receipt',policy_id=grant['policy_id'],policy_seq=grant['policy_seq'],body_sha256=grant['body_sha256'],result='accepted',reason_code='durable_policy_installed',import_mwh=100,counter_epoch=2)
+        self.assertEqual(self.client.post('/api/v1/device/prepaid-policy/receipts',json=invalid).status_code,409)
+        accepted=self.envelope(d,'prepaid_policy_receipt',policy_id=grant['policy_id'],policy_seq=grant['policy_seq'],body_sha256=grant['body_sha256'],result='accepted',reason_code='durable_policy_installed',import_mwh=100,counter_epoch=1)
+        r=self.client.post('/api/v1/device/prepaid-policy/receipts',json=accepted);self.assertEqual(r.status_code,200,r.json)
+        self.assertEqual(self.client.post('/api/v1/device/prepaid-policy/receipts',json=accepted).json,r.json)
+        detail=self.client.get('/api/v1/devices/'+d['id'],headers=self.headers(owner));self.assertEqual(detail.json['prepaid_policy']['status'],'accepted');self.assertFalse(detail.json['prepaid_policy']['physical_cutoff_confirmed'])
+        with self.app.app_context(),transaction() as c:
+            # Delayed cloud accounting cannot manufacture another allowance.
+            query(c,'UPDATE wallets SET available_mwh=999999999 WHERE id=:id',id=d['wallet']['id'])
+            self.assertIsNone(scalar(c,'SELECT relay_observed FROM devices WHERE id=:id',id=d['id']))
+        after=self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll'));fixed=verify(after.json['prepaid_policy'],d['command_key']);self.assertEqual(fixed['ceiling_mwh'],5000100);self.assertEqual(fixed['policy_seq'],grant['policy_seq'])
+
+    def test_unqualified_commissioning_policy_rejection_is_visible_without_claimed_cutoff(self):
+        from app.protocol import verify
+        owner=self.user('homeowner');d=self.provision(owner)
+        with self.app.app_context(),transaction() as c:query(c,'UPDATE devices SET prepaid_enforced=true,persistent_counter_qualified=true,prepaid_policy_qualified=true,prepaid_anchor_mwh=0 WHERE id=:id',id=d['id'])
+        poll=self.client.post('/api/v1/device/poll',json=self.envelope(d,'poll'));grant=verify(poll.json['prepaid_policy'],d['command_key'])
+        rejected=self.envelope(d,'prepaid_policy_receipt',policy_id=grant['policy_id'],policy_seq=grant['policy_seq'],body_sha256=grant['body_sha256'],result='rejected',reason_code='hardware_unqualified',import_mwh=None,counter_epoch=1)
+        r=self.client.post('/api/v1/device/prepaid-policy/receipts',json=rejected);self.assertEqual(r.status_code,200,r.json)
+        view=self.client.get('/api/v1/devices/'+d['id'],headers=self.headers(owner));self.assertEqual(view.json['prepaid_policy']['status'],'rejected');self.assertFalse(view.json['prepaid_policy']['physical_cutoff_confirmed'])
+        with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT count(*) FROM commands WHERE device_id=:id',id=d['id']),0)
+
 if __name__=='__main__':unittest.main()

@@ -94,7 +94,9 @@ def poll():
         signed_time=sign(time_payload,credential(c,d['id'],d['key_epoch'],'command'))
         from .firmware import offer
         firmware=offer(c,d,p)
-    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time,firmware=firmware)
+        from .prepaid import policy_offer
+        prepaid=policy_offer(c,d,p)
+    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time,firmware=firmware,prepaid_policy=prepaid)
 
 @bp.post('/api/v1/device/receipts')
 def receipt():

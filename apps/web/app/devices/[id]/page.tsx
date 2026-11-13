@@ -32,6 +32,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             A recent connection does not confirm supply or relay state. Those
             require measurements and physical feedback.
           </p>
+          {d.prepaid_policy?.enabled && <section><h3>Prepaid allowance synchronization</h3><p>Policy: {d.prepaid_policy.status.replace(/_/g, " ")}. {d.prepaid_policy.qualified_for_sync ? "Configured for qualified synchronization." : "Installation qualification is incomplete."}</p>{d.prepaid_policy.reason_code && <p>Device response: {d.prepaid_policy.reason_code.replace(/_/g, " ")}.</p>}<p>A policy acknowledgement does not confirm a physical cutoff or restoration. Those require separate relay feedback.</p></section>}
           <div className="resource-actions">
             <a className="btn btn-primary" href="/history">
               View measurements

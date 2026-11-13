@@ -19,7 +19,7 @@ print(f'OpenAPI valid: {len(operations)} operations; 48 unique documented routes
 PY
 verify_dir=$(mktemp -d /tmp/smartclamp-verify.XXXXXX)
 trap 'rm -rf "$verify_dir"' EXIT
-for suite in core runtime link driver; do
+for suite in core runtime link driver prepaid; do
   c++ -std=c++17 -Wall -Wextra -Werror -Ifirmware/include "firmware/tests/${suite}_test.cpp" -o "$verify_dir/$suite"
   "$verify_dir/$suite"
 done

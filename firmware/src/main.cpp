@@ -4,6 +4,7 @@
 #include "crypto.hpp"
 #include "hardware_config.hpp"
 #include "cloud_agent.hpp"
+#include "prepaid_policy.hpp"
 #ifndef DEVICE_ROLE
 #error DEVICE_ROLE must be defined by a device profile
 #endif

@@ -126,6 +126,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/device/prepaid-policy/receipts",
+    "handler": "prepaid.receipt"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/device/receipts",
     "handler": "live_devices.receipt"
   },
