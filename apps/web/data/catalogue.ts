@@ -204,7 +204,7 @@ export const featureGroups = [
         "Yes",
         "Yes",
         "Yes",
-        "In-app workflow implemented; SMS/push integrations remain pending.",
+        "In-app notices and opt-in SMS/push adapters are implemented; provider activation and handset acceptance are required.",
       ],
       [
         "Own-device tamper signals",

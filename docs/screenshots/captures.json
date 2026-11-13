@@ -1,0 +1,534 @@
+[
+  {
+    "role": "public",
+    "name": "public-home",
+    "file": "public-home.jpg",
+    "state": "Public page / form",
+    "route": "/"
+  },
+  {
+    "role": "public",
+    "name": "public-about",
+    "file": "public-about.jpg",
+    "state": "Public page / form",
+    "route": "/about"
+  },
+  {
+    "role": "public",
+    "name": "public-how-it-works",
+    "file": "public-how-it-works.jpg",
+    "state": "Public page / form",
+    "route": "/how-it-works"
+  },
+  {
+    "role": "public",
+    "name": "public-smart-meter",
+    "file": "public-smart-meter.jpg",
+    "state": "Public page / form",
+    "route": "/smart-meter"
+  },
+  {
+    "role": "public",
+    "name": "public-for-homeowners",
+    "file": "public-for-homeowners.jpg",
+    "state": "Public page / form",
+    "route": "/for-homeowners"
+  },
+  {
+    "role": "public",
+    "name": "public-for-landlords",
+    "file": "public-for-landlords.jpg",
+    "state": "Public page / form",
+    "route": "/for-landlords"
+  },
+  {
+    "role": "public",
+    "name": "public-utilities",
+    "file": "public-utilities.jpg",
+    "state": "Public page / form",
+    "route": "/utilities"
+  },
+  {
+    "role": "public",
+    "name": "public-pricing",
+    "file": "public-pricing.jpg",
+    "state": "Public page / form",
+    "route": "/pricing"
+  },
+  {
+    "role": "public",
+    "name": "public-installation",
+    "file": "public-installation.jpg",
+    "state": "Public page / form",
+    "route": "/install"
+  },
+  {
+    "role": "public",
+    "name": "public-faqs",
+    "file": "public-faqs.jpg",
+    "state": "Public page / form",
+    "route": "/faqs"
+  },
+  {
+    "role": "public",
+    "name": "public-connection-help",
+    "file": "public-connection-help.jpg",
+    "state": "Public page / form",
+    "route": "/connection-help"
+  },
+  {
+    "role": "public",
+    "name": "public-terms",
+    "file": "public-terms.jpg",
+    "state": "Public page / form",
+    "route": "/terms"
+  },
+  {
+    "role": "public",
+    "name": "public-privacy",
+    "file": "public-privacy.jpg",
+    "state": "Public page / form",
+    "route": "/privacy"
+  },
+  {
+    "role": "public",
+    "name": "public-login",
+    "file": "public-login.jpg",
+    "state": "Public page / form",
+    "route": "/login"
+  },
+  {
+    "role": "public",
+    "name": "public-signup",
+    "file": "public-signup.jpg",
+    "state": "Public page / form",
+    "route": "/signup"
+  },
+  {
+    "role": "public",
+    "name": "public-account-recovery",
+    "file": "public-account-recovery.jpg",
+    "state": "Public page / form",
+    "route": "/account/recovery"
+  },
+  {
+    "role": "public",
+    "name": "public-room-invitation",
+    "file": "public-room-invitation.jpg",
+    "state": "Public page / form",
+    "route": "/join"
+  },
+  {
+    "role": "public",
+    "name": "product-home",
+    "file": "product-home.jpg",
+    "state": "Product information",
+    "route": "/products/home"
+  },
+  {
+    "role": "public",
+    "name": "product-pole",
+    "file": "product-pole.jpg",
+    "state": "Product information",
+    "route": "/products/pole"
+  },
+  {
+    "role": "public",
+    "name": "product-pole-gateway",
+    "file": "product-pole-gateway.jpg",
+    "state": "Product information",
+    "route": "/products/pole-gateway"
+  },
+  {
+    "role": "public",
+    "name": "product-building-hub",
+    "file": "product-building-hub.jpg",
+    "state": "Product information",
+    "route": "/products/building-hub"
+  },
+  {
+    "role": "public",
+    "name": "product-meter-reader",
+    "file": "product-meter-reader.jpg",
+    "state": "Product information",
+    "route": "/products/meter-reader"
+  },
+  {
+    "role": "public",
+    "name": "product-transformer",
+    "file": "product-transformer.jpg",
+    "state": "Product information",
+    "route": "/products/transformer"
+  },
+  {
+    "role": "public",
+    "name": "plan-basic",
+    "file": "plan-basic.jpg",
+    "state": "Plan information",
+    "route": "/plans/basic"
+  },
+  {
+    "role": "public",
+    "name": "plan-basic-pro",
+    "file": "plan-basic-pro.jpg",
+    "state": "Plan information",
+    "route": "/plans/basic-pro"
+  },
+  {
+    "role": "public",
+    "name": "plan-pro",
+    "file": "plan-pro.jpg",
+    "state": "Plan information",
+    "route": "/plans/pro"
+  },
+  {
+    "role": "public",
+    "name": "public-oauth-expired",
+    "file": "public-oauth-expired.jpg",
+    "state": "Expected expired sign-in",
+    "route": "/auth/callback"
+  },
+  {
+    "role": "public",
+    "name": "public-sharing-unavailable",
+    "file": "public-sharing-unavailable.jpg",
+    "state": "Explicitly unavailable",
+    "route": "/d/qa-unissued-scope"
+  },
+  {
+    "role": "public",
+    "name": "public-signed-report",
+    "file": "public-signed-report.jpg",
+    "state": "Signed QA measurement snapshot",
+    "route": "/verification-reports/[token]"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-overview",
+    "file": "homeowner-overview.jpg",
+    "state": "Signed simulated measurements and credited QA wallet",
+    "route": "/dashboard/homeowner"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-overview-mobile",
+    "file": "homeowner-overview-mobile.jpg",
+    "state": "Signed simulated measurements and credited QA wallet",
+    "route": "/dashboard/homeowner"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-control",
+    "file": "homeowner-control.jpg",
+    "state": "Control form; no physical relay confirmation",
+    "route": "/control"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-wallet",
+    "file": "homeowner-wallet.jpg",
+    "state": "Reconciled local-fixture purchases",
+    "route": "/billing"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-wallet-mobile",
+    "file": "homeowner-wallet-mobile.jpg",
+    "state": "Reconciled local-fixture purchases",
+    "route": "/billing"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-history",
+    "file": "homeowner-history.jpg",
+    "state": "Signed simulated readings",
+    "route": "/history"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-alerts",
+    "file": "homeowner-alerts.jpg",
+    "state": "Persisted account and staff/utility notices",
+    "route": "/alerts"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-settings",
+    "file": "homeowner-settings.jpg",
+    "state": "Real profile/preferences and installation options",
+    "route": "/settings"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-orders",
+    "file": "homeowner-orders.jpg",
+    "state": "Actual QA installation request",
+    "route": "/orders"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-disputes",
+    "file": "homeowner-disputes.jpg",
+    "state": "Persisted dispute from an explicit QA bill",
+    "route": "/disputes"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-support",
+    "file": "homeowner-support.jpg",
+    "state": "Support form",
+    "route": "/support"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-device-link",
+    "file": "homeowner-device-link.jpg",
+    "state": "Private claim form",
+    "route": "/devices/link"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-meter-link",
+    "file": "homeowner-meter-link.jpg",
+    "state": "Meter-provider validation form",
+    "route": "/meters/link"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-subscription",
+    "file": "homeowner-subscription.jpg",
+    "state": "Actual saved entitlement status; checkout gated",
+    "route": "/settings/subscription"
+  },
+  {
+    "role": "homeowner",
+    "name": "smart-devices-unavailable",
+    "file": "smart-devices-unavailable.jpg",
+    "state": "Explicitly unavailable",
+    "route": "/settings/smart-devices"
+  },
+  {
+    "role": "homeowner",
+    "name": "utility-control-unavailable",
+    "file": "utility-control-unavailable.jpg",
+    "state": "Explicitly unavailable",
+    "route": "/settings/utility-control"
+  },
+  {
+    "role": "homeowner",
+    "name": "reader-setup-unavailable",
+    "file": "reader-setup-unavailable.jpg",
+    "state": "Explicitly unavailable",
+    "route": "/ir-reader/setup"
+  },
+  {
+    "role": "homeowner",
+    "name": "community-unavailable",
+    "file": "community-unavailable.jpg",
+    "state": "Explicitly unavailable",
+    "route": "/community"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-device-detail",
+    "file": "homeowner-device-detail.jpg",
+    "state": "Qualified QA metadata; no physical hardware qualification claim",
+    "route": "/devices/b1e6a572-4486-49d2-aac6-6be2bc682e8e"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-command-history",
+    "file": "homeowner-command-history.jpg",
+    "state": "Actual command history; no invented switching",
+    "route": "/devices/b1e6a572-4486-49d2-aac6-6be2bc682e8e/commands"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-support-thread",
+    "file": "homeowner-support-thread.jpg",
+    "state": "Persisted ticket and messages",
+    "route": "/support/tickets/a122d11d-8361-4f09-8ccf-3081a5720989"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-dispute-evidence",
+    "file": "homeowner-dispute-evidence.jpg",
+    "state": "Stored explicit QA bill evidence",
+    "route": "/disputes/f53c0bdb-b8db-4698-b603-c7ac522b1204/meeting"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-signed-report",
+    "file": "homeowner-signed-report.jpg",
+    "state": "Stored signed QA snapshot",
+    "route": "/reports"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-payment-receipt",
+    "file": "homeowner-payment-receipt.jpg",
+    "state": "Actual reconciled local-provider fixture receipt",
+    "route": "/payments/return"
+  },
+  {
+    "role": "homeowner",
+    "name": "homeowner-wallet-quote",
+    "file": "homeowner-wallet-quote.jpg",
+    "state": "Itemized actual API quote; not payment",
+    "route": "/billing"
+  },
+  {
+    "role": "homeowner",
+    "name": "bank-transfer-unavailable",
+    "file": "bank-transfer-unavailable.jpg",
+    "state": "Explicitly unavailable transfer adapter",
+    "route": "/payments/transfer/480119d6-e95d-4268-a386-d0bce9c75d19"
+  },
+  {
+    "role": "landlord",
+    "name": "landlord-overview",
+    "file": "landlord-overview.jpg",
+    "state": "Actual building records",
+    "route": "/dashboard/landlord"
+  },
+  {
+    "role": "landlord",
+    "name": "landlord-rooms",
+    "file": "landlord-rooms.jpg",
+    "state": "Actual room claim/invitation and approved central destination",
+    "route": "/dashboard/landlord/buildings/0c5a08f9-d077-4262-ba01-e8da737c0904/rooms"
+  },
+  {
+    "role": "landlord",
+    "name": "landlord-new-building",
+    "file": "landlord-new-building.jpg",
+    "state": "Building setup form",
+    "route": "/dashboard/landlord/buildings/new"
+  },
+  {
+    "role": "landlord",
+    "name": "landlord-properties-alias",
+    "file": "landlord-properties-alias.jpg",
+    "state": "Alias of landlord overview",
+    "route": "/dashboard/properties"
+  },
+  {
+    "role": "tenant",
+    "name": "resident-overview",
+    "file": "resident-overview.jpg",
+    "state": "Current occupancy only; recently joined QA resident",
+    "route": "/dashboard/tenant"
+  },
+  {
+    "role": "tenant",
+    "name": "resident-wallet",
+    "file": "resident-wallet.jpg",
+    "state": "Current occupancy only; recently joined QA resident",
+    "route": "/billing"
+  },
+  {
+    "role": "tenant",
+    "name": "resident-history",
+    "file": "resident-history.jpg",
+    "state": "Current occupancy only; recently joined QA resident",
+    "route": "/history"
+  },
+  {
+    "role": "ops",
+    "name": "operations-overview",
+    "file": "operations-overview.jpg",
+    "state": "Actual shared isolated QA fleet/work records",
+    "route": "/ops"
+  },
+  {
+    "role": "ops",
+    "name": "operations-notice-preview",
+    "file": "operations-notice-preview.jpg",
+    "state": "Actual scoped audience preview and committed QA notice history",
+    "route": "/communications"
+  },
+  {
+    "role": "ops",
+    "name": "operations-notice-preview-mobile",
+    "file": "operations-notice-preview-mobile.jpg",
+    "state": "Actual scoped audience preview and committed QA notice history",
+    "route": "/communications"
+  },
+  {
+    "role": "engineer",
+    "name": "engineering-firmware",
+    "file": "engineering-firmware.jpg",
+    "state": "Real compiled ESP binary signed/uploaded; pending QA canary, no boot confirmation",
+    "route": "/ops/firmware"
+  },
+  {
+    "role": "installer",
+    "name": "installer-assignments",
+    "file": "installer-assignments.jpg",
+    "state": "Actual assigned QA work order",
+    "route": "/portal"
+  },
+  {
+    "role": "installer",
+    "name": "installer-work-order",
+    "file": "installer-work-order.jpg",
+    "state": "Versioned actual work record",
+    "route": "/portal/jobs/54493895-d67c-48e2-8e32-ae23ce0acca0"
+  },
+  {
+    "role": "utility",
+    "name": "utility-overview",
+    "file": "utility-overview.jpg",
+    "state": "Assigned-device scope; private customer identity excluded",
+    "route": "/dashboard/utility"
+  },
+  {
+    "role": "utility",
+    "name": "utility-notice-preview",
+    "file": "utility-notice-preview.jpg",
+    "state": "Reviewed QA authority and explicit customer opt-in",
+    "route": "/communications"
+  },
+  {
+    "role": "utility",
+    "name": "utility-notice-preview-mobile",
+    "file": "utility-notice-preview-mobile.jpg",
+    "state": "Reviewed QA authority and explicit customer opt-in",
+    "route": "/communications"
+  },
+  {
+    "role": "admin",
+    "name": "admin-messaging-grants",
+    "file": "admin-messaging-grants.jpg",
+    "state": "Reviewed grant history and versioned authority form",
+    "route": "/communications"
+  },
+  {
+    "role": "admin",
+    "name": "organization-admin-unavailable",
+    "file": "organization-admin-unavailable.jpg",
+    "state": "Explicitly unavailable organization-management workflow",
+    "route": "/admin/organizations/b638da48-5354-47e8-8c66-36927ad94f0f"
+  },
+  {
+    "role": "ops",
+    "name": "incident-detail-unavailable",
+    "file": "incident-detail-unavailable.jpg",
+    "state": "Explicitly unavailable incident-detail workflow",
+    "route": "/ops/incidents/qa-unimplemented"
+  },
+  {
+    "role": "support",
+    "name": "support-service-messages",
+    "file": "support-service-messages.jpg",
+    "state": "Implemented service composer; not a complete support case panel",
+    "route": "/communications"
+  },
+  {
+    "role": "onboarding",
+    "name": "account-complete-profile",
+    "file": "account-complete-profile.jpg",
+    "state": "Real verified email identity awaiting explicit profile/consent",
+    "route": "/account/complete-profile"
+  }
+]

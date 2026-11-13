@@ -9,6 +9,7 @@
 .env
 .runtime
 artifacts
+docs/screenshots
 **/test-results
 **/playwright-report
 

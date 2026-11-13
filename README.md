@@ -67,3 +67,7 @@ npm run test:ui
 ```
 
 API integration requires `SMARTCLAMP_QA_CONFIG`. Firmware/native checks verify portable policy/crypto/runtime; they do not qualify ADCs, relay circuits, modem, optical adapters or power-loss hardware. CI checks the contracts/native policies, six bench builds, frontend and real database/auth journeys. External merchant and physical hardware tests are separate release requirements.
+
+## Visual review
+
+[All 76 page screenshots](docs/screenshots/INDEX.md) · [Filterable gallery](docs/screenshots/gallery.html) · [Data and availability limits](docs/screenshots/README.md). These are real isolated QA captures, including explicit unavailable-feature pages; they do not certify production or hardware readiness.
