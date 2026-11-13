@@ -49,3 +49,5 @@ Pre-018 available credit has no automatically invented funding lot. Reconcile at
 Migration 024 adds email-only profiles and immutable legal-consent receipts. It does not infer consent for existing accounts. Run it before deploying the corresponding auth runtime; see `docs/ACCOUNT-ONBOARDING.md`.
 
 Migration 025 adds private encrypted browser subscriptions and durable Web Push dispatch records. See `docs/PWA-NOTIFICATIONS.md`.
+
+Migration 026 adds reviewed expiring utility messaging authority, immutable audience previews and dispatch receipts. No production grants are seeded. See `docs/SERVICE-MESSAGES.md`.

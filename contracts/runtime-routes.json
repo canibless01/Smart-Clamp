@@ -121,6 +121,21 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/communications/context",
+    "handler": "communications.context"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/communications/previews",
+    "handler": "communications.preview"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/communications/send",
+    "handler": "communications.send"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/dashboard/homeowner",
     "handler": "live_resources.dashboard"
   },
@@ -333,6 +348,11 @@
     "method": "POST",
     "path": "/api/v1/ops/jobs",
     "handler": "live_workflows.create_job"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/organizations/{organization_id}/notice-grant",
+    "handler": "communications.grant"
   },
   {
     "method": "GET",

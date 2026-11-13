@@ -38,6 +38,7 @@ const groups: Record<string, { label: string; href: string; icon: string }[]> =
         icon: "building",
       },
       { label: "Notifications", href: "/alerts", icon: "bell" },
+      { label: "Service messages", href: "/communications", icon: "bell" },
     ],
     installer: [
       { label: "Your assignments", href: "/portal", icon: "plug" },
@@ -72,7 +73,8 @@ export default function AppShell({
   const internal = role.startsWith("internal_");
   const items = internal
     ? [
-        { label: "Operations", href: "/ops", icon: "chart" },
+        ...(role !== 'internal_support' ? [{ label: "Operations", href: "/ops", icon: "chart" }] : []),
+        ...(['internal_ops','internal_support','internal_superadmin'].includes(role) ? [{label:'Service messages',href:'/communications',icon:'bell'}] : []),
         ...(role === "internal_engineering" || role === "internal_superadmin" ? [{ label: "Firmware", href: "/ops/firmware", icon: "plug" }] : []),
       ]
     : groups[role] || [{ label: "Home", href: "/", icon: "home" }];

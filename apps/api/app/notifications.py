@@ -43,7 +43,7 @@ def process_sms(notification_id):
         n=one(c,"SELECT * FROM notifications WHERE id=:id AND channel='sms' FOR UPDATE",id=notification_id)
         if not n or n['status']!='queued':return
         pref=one(c,'SELECT value FROM user_preferences WHERE user_id=:id',id=n['recipient_id'])
-        if not pref or pref['value'].get('sms_enabled') is not True:
+        if not pref or pref['value'].get('sms_enabled') is not True or n['template_key']=='utility.notice' and pref['value'].get('utility_notices_enabled') is not True:
             query(c,"UPDATE notifications SET status='failed',last_error='recipient_opted_out' WHERE id=:id",id=notification_id);return
         if not sms_configured():raise DomainError('sms_not_configured','SMS delivery requires an activated provider.',503)
         user=one(c,'SELECT phone FROM profiles WHERE id=:id',id=n['recipient_id'])

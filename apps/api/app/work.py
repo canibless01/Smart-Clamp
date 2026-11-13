@@ -6,13 +6,13 @@ from flask import current_app
 from .db import transaction,one,rows,query,scalar,DomainError,json_text,outbox,audit
 from .providers import vtpass,paystack,config
 
-def notify(c,uid,key,message,dedupe,episode=None):
+def notify(c,uid,key,message,dedupe,episode=None,channels=None):
     if uid:query(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id) VALUES(:uid,:key,'in_app','delivered',CAST(:payload AS jsonb),:dedupe,:episode) ON CONFLICT(dedupe_key) DO NOTHING",uid=uid,key=key,payload=json_text({'message':message}),dedupe=dedupe,episode=episode)
     if uid:
         from .notifications import queue_sms
-        queue_sms(c,uid,key,message,dedupe,episode)
+        if channels is None or 'sms' in channels:queue_sms(c,uid,key,message,dedupe,episode)
         from .web_push import queue_push
-        queue_push(c,uid,key,dedupe,episode)
+        if channels is None or 'push' in channels:queue_push(c,uid,key,dedupe,episode)
 
 def release_credit(c,payment_id,source='provider_confirmed'):
     p=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)

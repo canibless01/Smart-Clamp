@@ -46,7 +46,7 @@ export function refreshSession(base: string): Promise<RefreshResult> {
 }
 export function safeReturnPath(candidate: string | null, fallback: string) {
   if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//") || /[\\\r\n]/.test(candidate)) return fallback;
-  const allowed = /^\/(dashboard|devices|history|billing|control|alerts|settings|reports|ops|portal|orders|disputes|join|meters|ir-reader|admin)(\/|\?|$)|^\/support\/tickets\//;
+  const allowed = /^\/(dashboard|devices|history|billing|control|alerts|settings|reports|ops|portal|orders|disputes|join|meters|ir-reader|admin|communications)(\/|\?|$)|^\/support\/tickets\//;
   return allowed.test(candidate) ? candidate : fallback;
 }
 export function loginPath() {
@@ -54,5 +54,5 @@ export function loginPath() {
 }
 export const roleHome: Record<string, string> = {
   tenant: "/dashboard/tenant", landlord: "/dashboard/landlord", homeowner: "/dashboard/homeowner", nepa_staff: "/dashboard/utility",
-  installer: "/portal", agent: "/portal", referrer: "/portal", internal_ops: "/ops", internal_finance: "/ops", internal_support: "/ops", internal_engineering: "/ops", internal_superadmin: "/ops",
+  installer: "/portal", agent: "/portal", referrer: "/portal", internal_ops: "/ops", internal_finance: "/ops", internal_support: "/communications", internal_engineering: "/ops", internal_superadmin: "/ops",
 };

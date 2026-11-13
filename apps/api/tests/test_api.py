@@ -180,7 +180,9 @@ class LiveIntegration(unittest.TestCase):
                 self.assertEqual(self.client.post(endpoint,json=sub,headers=self.headers(other)).status_code,409)
                 with self.app.app_context(),transaction() as c:
                     stored=one(c,'SELECT * FROM push_subscriptions WHERE user_id=:id',id=user['id']);self.assertNotIn(sub['endpoint'],stored['encrypted_subscription'])
-                    notify(c,user['id'],'supply.lost','Private test message must not enter the push payload.',uuid.uuid4().hex)
+                ops=self.promote(self.user('homeowner'),'internal_ops');device=self.provision(user)
+                preview=self.client.post('/api/v1/communications/previews',json={'title':'Private service update','message':'Private test message must not enter the push payload.','device_ids':[device['id']],'channels':['in_app','push']},headers=self.headers(ops));self.assertEqual(preview.status_code,201,preview.json);self.assertEqual(preview.json['push_subscriptions'],1)
+                self.assertEqual(self.client.post('/api/v1/communications/send',json={'preview_id':preview.json['id']},headers=self.headers(ops)).status_code,201)
                 self.drain();self.assertEqual(len(ProviderFixture.push_requests),1)
                 sent=ProviderFixture.push_requests[-1];plain=json.loads(http_ece.decrypt(sent['raw'],private_key=receiver,auth_secret=auth,version='aes128gcm'));self.assertEqual(set(plain),{'id'})
                 token=sent['authorization'].split('t=')[1].split(',')[0]
@@ -198,6 +200,50 @@ class LiveIntegration(unittest.TestCase):
                     with self.app.app_context():process_push(delivery['id'])
                     self.assertEqual(len(ProviderFixture.push_requests),before+(0 if mode=='optout' else 1))
             finally:self.app.config.update(previous)
+    def test_staff_notice_preview_delivery_and_duplicate_send_are_scoped(self):
+        user=self.user('homeowner');stranger=self.user('homeowner');ops=self.promote(self.user('homeowner'),'internal_ops');dev=self.provision(user);second=self.provision(user)
+        path='/api/v1/communications';body={'title':'Connection review','message':'We are reviewing your recorded connection interruption.','device_ids':[dev['id'],second['id']],'channels':['in_app']}
+        self.assertEqual(self.client.post(path+'/previews',json=body,headers=self.headers(user)).status_code,403)
+        preview=self.client.post(path+'/previews',json=body,headers=self.headers(ops));self.assertEqual(preview.status_code,201,preview.json);self.assertEqual(preview.json['in_app_recipients'],1)
+        self.assertNotIn('recipient_ids',preview.json)
+        self.assertEqual(self.client.post(path+'/send',json={'preview_id':preview.json['id']},headers=self.headers(stranger)).status_code,403)
+        sent=self.client.post(path+'/send',json={'preview_id':preview.json['id']},headers=self.headers(ops));self.assertEqual(sent.status_code,201,sent.json)
+        again=self.client.post(path+'/send',json={'preview_id':preview.json['id']},headers=self.headers(ops));self.assertEqual(again.json['id'],sent.json['id'])
+        notices=self.client.get('/api/v1/alerts',headers=self.headers(user)).json['items'];self.assertEqual(len([n for n in notices if n['template_key']=='service.notice']),1)
+        self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(stranger)).json['items'])
+        fresh=self.client.post(path+'/previews',json=body,headers=self.headers(ops));self.assertEqual(fresh.status_code,201)
+        self.assertEqual(self.client.post(path+'/send',json={'preview_id':fresh.json['id']},headers=self.headers(ops)).status_code,429)
+    def test_notice_send_rechecks_changed_device_ownership(self):
+        a=self.user('homeowner');b=self.user('homeowner');ops=self.promote(self.user('homeowner'),'internal_ops');dev=self.provision(a)
+        p=self.client.post('/api/v1/communications/previews',json={'title':'Review','message':'Please review the latest account service update.','device_ids':[dev['id']]},headers=self.headers(ops));self.assertEqual(p.status_code,201,p.json)
+        # Isolated authority-change fixture, not a production ownership-transfer API.
+        with self.app.app_context(),transaction() as c:query(c,'UPDATE devices SET owner_id=:owner WHERE id=:id',owner=b['id'],id=dev['id'])
+        r=self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops));self.assertEqual(r.status_code,409,r.json);self.assertEqual(r.json['code'],'audience_changed')
+    def test_utility_notices_require_reviewed_grant_device_scope_and_current_optin(self):
+        owner=self.user('homeowner');other=self.user('homeowner');dev=self.provision(owner);out_of_scope=self.provision(other);utility=self.promote(self.user('homeowner'),'nepa_staff');admin=self.promote(self.user('homeowner'),'internal_superadmin')
+        with self.app.app_context(),transaction() as c:
+            org=one(c,'INSERT INTO organizations(name,subdomain) VALUES(:name,:sub) RETURNING id',name='QA notice utility',sub='qa-notice-'+uuid.uuid4().hex[:10])['id']
+            query(c,"INSERT INTO memberships(user_id,role,organization_id) VALUES(:uid,'nepa_staff',:org)",uid=utility['id'],org=org)
+            query(c,'INSERT INTO utility_device_scopes(organization_id,device_id,granted_by) VALUES(:org,:did,:uid)',org=org,did=dev['id'],uid=admin['id'])
+        path='/api/v1/communications';body={'organization_id':str(org),'title':'Service notice','message':'Scheduled service review for your assigned connection.','device_ids':[dev['id']]}
+        self.assertEqual(self.client.post(path+'/previews',json=body,headers=self.headers(utility)).status_code,403)
+        grant='/api/v1/ops/organizations/'+str(org)+'/notice-grant';review={'enabled':True,'valid_days':30,'review_note':'Isolated QA authority review; no real utility agreement.'}
+        self.assertEqual(self.client.post(grant,json=review,headers=self.headers(utility)).status_code,403)
+        self.assertEqual(self.client.post(grant,json=review,headers=self.headers(admin)).status_code,201)
+        empty=self.client.post(path+'/previews',json=body,headers=self.headers(utility));self.assertEqual(empty.json['code'],'audience_empty')
+        self.assertEqual(self.client.patch('/api/v1/users/me/preferences',json={'utility_notices_enabled':True},headers=self.headers(owner)).status_code,200)
+        self.assertEqual(self.client.post(path+'/previews',json=body|{'device_ids':[out_of_scope['id']]},headers=self.headers(utility)).status_code,403)
+        p=self.client.post(path+'/previews',json=body,headers=self.headers(utility));self.assertEqual(p.status_code,201,p.json)
+        self.client.patch('/api/v1/users/me/preferences',json={'utility_notices_enabled':False},headers=self.headers(owner))
+        self.assertEqual(self.client.post(path+'/send',json={'preview_id':p.json['id']},headers=self.headers(utility)).json['code'],'audience_changed')
+        self.client.patch('/api/v1/users/me/preferences',json={'utility_notices_enabled':True},headers=self.headers(owner))
+        p=self.client.post(path+'/previews',json=body,headers=self.headers(utility))
+        self.assertEqual(self.client.post(grant,json=review|{'enabled':False,'expected_version':1},headers=self.headers(admin)).status_code,201)
+        self.assertEqual(self.client.post(path+'/send',json={'preview_id':p.json['id']},headers=self.headers(utility)).status_code,403)
+        self.assertEqual(self.client.post(grant,json=review|{'expected_version':2},headers=self.headers(admin)).status_code,201)
+        sent=self.client.post(path+'/send',json={'preview_id':p.json['id']},headers=self.headers(utility));self.assertEqual(sent.status_code,201,sent.json)
+        self.assertEqual(self.client.get('/api/v1/alerts',headers=self.headers(owner)).json['items'][0]['template_key'],'utility.notice')
+        self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(other)).json['items'])
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)

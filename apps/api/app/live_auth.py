@@ -169,9 +169,9 @@ def context():
 def preferences():
     with transaction() as c:
         if request.method=='PATCH':
-            d=request.get_json() or {};allowed={'language','email_enabled','sms_enabled','push_enabled','theme'}
+            d=request.get_json() or {};allowed={'language','email_enabled','sms_enabled','push_enabled','utility_notices_enabled','theme'}
             if set(d)-allowed:raise DomainError('validation_error','Unknown preference field.')
-            for key in ('email_enabled','sms_enabled','push_enabled'):
+            for key in ('email_enabled','sms_enabled','push_enabled','utility_notices_enabled'):
                 if key in d and type(d[key]) is not bool:raise DomainError('validation_error','Notification preferences require explicit booleans.')
             if d.get('sms_enabled') is True and not g.actor.get('phone'):raise DomainError('phone_verification_required','Verify a phone before enabling SMS.',409)
             if 'language' in d and d['language']!='en':raise DomainError('validation_error','This language is not supported yet.')

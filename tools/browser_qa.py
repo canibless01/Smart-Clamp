@@ -1,19 +1,27 @@
 """Start the real local API with test-only fixtures. Never deploy this runner.
 Requires an isolated qa_services.py config in SMARTCLAMP_QA_CONFIG.
 """
-import argparse,sys,pathlib,json,tempfile
+import argparse,sys,pathlib,json,tempfile,uuid
 from datetime import datetime,timezone,timedelta
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa,ec
 from cryptography.fernet import Fernet
 root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'apps/api/tests'))
 from test_api import LiveIntegration
-from app.db import transaction,query
+from app.db import transaction,query,one
 from app.providers import auth_request
 parser=argparse.ArgumentParser();parser.add_argument('--fixture',type=pathlib.Path,required=True);parser.add_argument('--port',type=int,default=5000);a=parser.parse_args()
 LiveIntegration.setUpClass();t=LiveIntegration();t.setUp()
 owner=t.user('landlord');tenant=t.user();ops=t.promote(t.user('homeowner'),'internal_ops');d=t.provision(owner)
 installer=t.promote(t.user('homeowner'),'installer');engineer=t.promote(t.user('homeowner'),'internal_engineering')
+message_recipient=t.user('homeowner');message_device=t.provision(message_recipient)
+utility=t.promote(t.user('homeowner'),'nepa_staff');admin=t.promote(t.user('homeowner'),'internal_superadmin')
+with t.app.app_context(),transaction() as c:
+    utility_org=one(c,'INSERT INTO organizations(name,subdomain) VALUES(:name,:sub) RETURNING id',name='Browser QA utility',sub='qa-browser-'+uuid.uuid4().hex[:12])['id']
+    query(c,"INSERT INTO memberships(user_id,role,organization_id) VALUES(:uid,'nepa_staff',:org)",uid=utility['id'],org=utility_org)
+    query(c,'INSERT INTO utility_device_scopes(organization_id,device_id,granted_by) VALUES(:org,:did,:uid)',org=utility_org,did=message_device['id'],uid=admin['id'])
+grant=t.client.post('/api/v1/ops/organizations/'+str(utility_org)+'/notice-grant',json={'enabled':True,'valid_days':30,'review_note':'Isolated browser QA reviewed authority, no real utility agreement.'},headers=t.headers(admin))
+if grant.status_code!=201:raise RuntimeError('Could not create isolated reviewed notice grant')
 job=t.client.post('/api/v1/ops/jobs',json={'device_id':d['id'],'kind':'repair'},headers=t.headers(ops))
 if job.status_code!=201:raise RuntimeError('Could not create isolated work-order fixture')
 private=rsa.generate_private_key(public_exponent=65537,key_size=3072)
@@ -42,7 +50,7 @@ with t.app.app_context():
         import uuid
         pending_email={'email':'browser-external-'+uuid.uuid4().hex+'@example.test','password':'QA-external-password-42'}
         auth_request('signup','POST',pending_email)
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

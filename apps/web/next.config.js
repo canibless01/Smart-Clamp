@@ -5,7 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: { typedRoutes: false },
   async headers() {
-    return [{source:'/sw.js',headers:[{key:'Cache-Control',value:'no-cache'},{key:'Service-Worker-Allowed',value:'/'}]},...['/login','/signup','/account','/auth','/reports','/meters','/dashboard','/ops','/admin','/settings','/devices','/billing','/history','/control','/alerts','/portal','/orders','/disputes','/payments','/join','/support/tickets','/d','/verification-reports','/api'].map(prefix => ({source: `${prefix}/:path*`,headers:[{key:'X-Robots-Tag',value:'noindex, nofollow'},{key:'Cache-Control',value:'no-store'}]})),{
+    return [{source:'/sw.js',headers:[{key:'Cache-Control',value:'no-cache'},{key:'Service-Worker-Allowed',value:'/'}]},...['/communications','/login','/signup','/account','/auth','/reports','/meters','/dashboard','/ops','/admin','/settings','/devices','/billing','/history','/control','/alerts','/portal','/orders','/disputes','/payments','/join','/support/tickets','/d','/verification-reports','/api'].map(prefix => ({source: `${prefix}/:path*`,headers:[{key:'X-Robots-Tag',value:'noindex, nofollow'},{key:'Cache-Control',value:'no-store'}]})),{
       source: '/(.*)',
       headers: [
         { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

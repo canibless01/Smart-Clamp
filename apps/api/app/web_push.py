@@ -88,7 +88,8 @@ def process_push(delivery_id):
         d=one(c,"SELECT d.*,s.enabled,s.user_id,s.encrypted_subscription FROM push_deliveries d JOIN push_subscriptions s ON s.id=d.subscription_id WHERE d.id=:id FOR UPDATE OF d",id=delivery_id)
         if not d or d['status']!='queued':return
         pref=one(c,'SELECT value FROM user_preferences WHERE user_id=:id',id=d['user_id'])
-        if not d['enabled'] or not pref or pref['value'].get('push_enabled') is not True:
+        notice=one(c,'SELECT template_key FROM notifications WHERE id=:id',id=d['notification_id'])
+        if not d['enabled'] or not pref or pref['value'].get('push_enabled') is not True or notice['template_key']=='utility.notice' and pref['value'].get('utility_notices_enabled') is not True:
             query(c,"UPDATE push_deliveries SET status='opted_out' WHERE id=:id",id=delivery_id)
             query(c,"UPDATE notifications SET status='failed' WHERE id=:id AND NOT EXISTS(SELECT 1 FROM push_deliveries WHERE notification_id=:id AND status IN('queued','unknown','provider_accepted'))",id=d['notification_id']);return
         if not configured():raise DomainError('push_not_configured','Web Push is not configured.',503)

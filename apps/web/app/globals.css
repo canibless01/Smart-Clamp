@@ -1919,6 +1919,9 @@ tr:last-child td {
 .consent-check { display: flex; align-items: flex-start; gap: 12px; line-height: 1.6; }
 .consent-check input[type="checkbox"] { flex: 0 0 auto; width: 18px; height: 18px; margin-top: 3px; accent-color: #234b3d; }
 .consent-check a { text-decoration: underline; }
+.notice-device-list { max-height: 240px; overflow: auto; display: grid; gap: 12px; padding: 12px 0; }
+.notice-device-list label { display: flex; align-items: flex-start; gap: 12px; overflow-wrap: anywhere; }
+.notice-device-list input { flex: 0 0 auto; }
 .usage-data summary {
   cursor: pointer;
   min-height: 36px;
