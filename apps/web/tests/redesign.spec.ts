@@ -112,6 +112,7 @@ test("login routes the actual returned role and dashboard has no invented fallba
   await page.route("**/api/v1/auth/login", (route) =>
     route.fulfill({ json: { access_token: "test-session", role: "tenant" } }),
   );
+  await page.route("**/api/v1/users/me/context", route => route.fulfill({ json: { authorized_context: { role: "tenant" }, devices: [] } }));
   await page.route("**/api/v1/dashboard/tenant", (route) =>
     route.fulfill({ json: { devices: [], allowed_actions: [] } }),
   );
@@ -139,6 +140,7 @@ test("landlord setup query is honored and create-building route exists", async (
   await page.addInitScript(() =>
     localStorage.setItem("smartclamp_token", "test-session"),
   );
+  await page.route("**/api/v1/users/me/context", route => route.fulfill({ json: { authorized_context: { role: "landlord" }, devices: [] } }));
   await page.route("**/api/v1/buildings", async (route) => {
     expect(route.request().postDataJSON()).toMatchObject({
       name: "Cedar House",

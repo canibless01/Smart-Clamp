@@ -29,12 +29,7 @@ export function isExpired(): boolean {
   if (!p?.exp) return false
   return Date.now()/1000 > p.exp - 10
 }
-export function logout() {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem('smartclamp_token')
-  localStorage.removeItem('smartclamp_role')
-  location.href = '/login'
-}
+export { logout } from "./api";
 export function authHeader(): Record<string,string> {
   const t = getToken()
   return t ? { Authorization: `Bearer ${t}` } : {}

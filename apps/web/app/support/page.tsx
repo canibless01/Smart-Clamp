@@ -1,4 +1,5 @@
 "use client";
+import { hasSession } from "@/lib/session";
 import { useState, useRef, FormEvent } from "react";
 import PublicShell from "@/components/PublicShell";
 import Icon from "@/components/Icon";
@@ -21,7 +22,7 @@ export default function Page() {
       setError("Add a subject and a little detail so we can help.");
       return;
     }
-    if (!localStorage.getItem("smartclamp_token")) {
+    if (!hasSession()) {
       setError(
         "Please log in before opening a private support request. Your message is still here.",
       );
@@ -198,6 +199,6 @@ export default function Page() {
 }
 function localStorageSafe() {
   return (
-    typeof window !== "undefined" && !!localStorage.getItem("smartclamp_token")
+    typeof window !== "undefined" && hasSession()
   );
 }

@@ -611,4 +611,16 @@ class LiveIntegration(unittest.TestCase):
         view=self.client.get('/api/v1/devices/'+d['id'],headers=self.headers(owner));self.assertEqual(view.json['prepaid_policy']['status'],'rejected');self.assertFalse(view.json['prepaid_policy']['physical_cutoff_confirmed'])
         with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT count(*) FROM commands WHERE device_id=:id',id=d['id']),0)
 
+    def test_landlord_cannot_manually_cut_resident_power_and_controls_are_explicit(self):
+        from app.live_devices import issue_command
+        from app.db import DomainError
+        owner=self.user('landlord');d=self.provision(owner)
+        with self.app.app_context(),transaction() as c:
+            actor=dict(one(c,'SELECT * FROM profiles WHERE id=:id',id=owner['id']))
+            with self.assertRaises(DomainError) as denied:issue_command(c,actor,d['id'],False,'not-an-authority')
+            self.assertEqual(denied.exception.code,'resident_control_required')
+            self.assertEqual(scalar(c,'SELECT count(*) FROM commands WHERE device_id=:id',id=d['id']),0)
+        context=self.client.get('/api/v1/users/me/context',headers=self.headers(owner)).json
+        self.assertFalse(context['devices'][0]['controls']['can_request']);self.assertNotIn('relay_toggle',context['allowed_actions'])
+
 if __name__=='__main__':unittest.main()

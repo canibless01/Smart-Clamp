@@ -14,7 +14,7 @@ export default function Page() {
       <h1>Link your SmartClamp</h1>
       <p>
         Use the single-use claim code supplied with your device or by your
-        installer. This links the account; it does not bypass installation or
+        installer. A public device ID, phone number or meter number is not a claim code. This links the account; it does not bypass installation or
         calibration.
       </p>
       <form

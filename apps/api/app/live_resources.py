@@ -23,12 +23,15 @@ def owned_device_ids(c):
     return rows(c,"""SELECT d.id FROM devices d WHERE d.owner_id=:uid OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL) OR EXISTS(SELECT 1 FROM buildings b LEFT JOIN rooms r ON r.building_id=b.id WHERE b.landlord_id=:uid AND(b.id=d.building_id OR r.id=d.room_id)) OR EXISTS(SELECT 1 FROM device_viewers v WHERE v.device_id=d.id AND v.viewer_user_id=:uid AND v.revoked_at IS NULL AND(v.expires_at IS NULL OR v.expires_at>now()))""",uid=g.actor['id'])
 
 def projection(c):
+    from .live_devices import control_eligibility
     devices=[]
     for d in owned_device_ids(c):
         dev=device(c,g.actor,d['id']);r=one(c,"SELECT r.* FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 1",id=d['id'],role=g.actor['role'],room=dev['room_id'],uid=g.actor['id']);wallet=one(c,'SELECT * FROM wallets WHERE device_id=:id',id=d['id']);at=datetime.fromtimestamp(r['occurred_at_ms']/1000,timezone.utc) if r and r['occurred_at_ms'] is not None else None
         fresh=at and 0<=(datetime.now(timezone.utc)-at).total_seconds()<180
         pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') ORDER BY created_at DESC LIMIT 1",id=d['id'])
         devices.append({'id':str(dev['id']),'role':dev['profile'],'capabilities':dev['capabilities'],'supply_state':dev['supply_state'] if dev['supply_clock_quality']=='trusted' and dev['supply_observed_at_ms'] is not None and 0<=datetime.now(timezone.utc).timestamp()*1000-dev['supply_observed_at_ms']<180000 else 'unknown','connectivity':'online' if dev['last_seen_at'] and (datetime.now(timezone.utc)-dev['last_seen_at']).total_seconds()<180 else 'stale' if dev['last_seen_at'] else 'unknown','relay':{'observed':dev['relay_observed'],'observed_at':dev['relay_observed_at'],'pending_command_id':pending['command_id'] if pending else None,'off_reasons':[x['reason'] for x in rows(c,"SELECT reason FROM off_reasons WHERE device_id=:id AND active AND(expires_at IS NULL OR expires_at>now())",id=d['id'])]},'measurement':{'value':float(Decimal(r['real_power_mw'])/1000) if r and r['real_power_mw'] is not None else None,'unit':'W','observed_at':at,'quality':r['quality'] if r else 'unavailable','coverage':None},'wallet':{'id':wallet['id'],'available':wallet['available_kobo'],'reserved':wallet['reserved_kobo'],'available_mwh':wallet['available_mwh'],'unit':'kobo','ledger_version':wallet['ledger_version'],'updated_at':wallet['updated_at'],'payment_token':wallet['payment_token']} if wallet else None})
+        allowed,code,message,_=control_eligibility(c,g.actor,dev)
+        devices[-1]['controls']={'can_request':allowed,'unavailable_code':code,'unavailable_reason':message}
     usage=[]
     if devices:
         periods=rows(c,"""SELECT r.occurred_at_ms,u.consumed_mwh FROM usage_postings u JOIN readings r ON r.id=u.reading_id
@@ -37,7 +40,9 @@ def projection(c):
             WHERE d.id=r.device_id AND o.tenant_id=:uid AND o.end_at IS NULL AND u.interval_start_ms>=extract(epoch FROM o.start_at)*1000))
           ORDER BY r.occurred_at_ms DESC LIMIT 24""",id=devices[0]['id'],role=g.actor['role'],uid=g.actor['id'])
         usage=[{'time':datetime.fromtimestamp(p['occurred_at_ms']/1000,timezone(timedelta(hours=1))).strftime('%d %b %H:%M'),'kwh':p['consumed_mwh']/1000000} for p in reversed(periods)]
-    return {'snapshot_version':int(scalar(c,"SELECT coalesce(max(id),0) FROM audit_log WHERE actor_id=:uid",uid=g.actor['id']) or 0),'generated_at':datetime.now(timezone.utc),'usage_history':usage,'authorized_context':{'user_id':g.actor['id'],'role':g.actor['role']},'devices':devices,'allowed_actions':['view_dashboard','recharge'] if devices else ['view_dashboard']}
+    actions=['view_dashboard','recharge'] if devices else ['view_dashboard']
+    if any(d['controls']['can_request'] for d in devices):actions.append('relay_toggle')
+    return {'snapshot_version':int(scalar(c,"SELECT coalesce(max(id),0) FROM audit_log WHERE actor_id=:uid",uid=g.actor['id']) or 0),'generated_at':datetime.now(timezone.utc),'usage_history':usage,'authorized_context':{'user_id':g.actor['id'],'role':g.actor['role']},'devices':devices,'allowed_actions':actions}
 
 @bp.get('/api/v1/dashboard/tenant')
 @bp.get('/api/v1/dashboard/homeowner')

@@ -19,66 +19,41 @@ export type ApiError = {
   retry_after_seconds?: number;
 };
 
-let refreshInFlight: Promise<boolean> | null = null;
-async function refreshSession() {
-  const refresh_token = localStorage.getItem("smartclamp_refresh_token");
-  if (!refresh_token) return false;
-  try {
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token }),
-    });
-    if (!response.ok) return false;
-    const data = await response.json();
-    if (!data.access_token || !data.refresh_token) return false;
-    localStorage.setItem("smartclamp_token", data.access_token);
-    localStorage.setItem("smartclamp_refresh_token", data.refresh_token);
-    localStorage.setItem("smartclamp_role", data.role);
-    return true;
-  } catch {
-    return false;
-  }
+import { getAccessToken, refreshSession, tokenNeedsRefresh, clearSession, hasSession } from "./session";
+function sessionError(unavailable: boolean) {
+  const error: any = new Error(unavailable ? "Your sign-in could not be refreshed. Your session is retained; reconnect and retry." : "Please log in to continue.");
+  error.status = unavailable ? 503 : 401; return error;
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
   const url = `${API_BASE}${path}`;
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("smartclamp_token")
-      : null;
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...((init.headers as Record<string, string>) || {}),
-  };
-  if (
-    init.method &&
-    !["GET", "HEAD"].includes(init.method.toUpperCase()) &&
-    !headers["Idempotency-Key"]
-  )
-    headers["Idempotency-Key"] = crypto.randomUUID();
-  if (token && !headers["Authorization"])
-    headers["Authorization"] = `Bearer ${token}`;
+  const browser = typeof window !== "undefined";
+  const authPath = ["/auth/login", "/auth/signup", "/auth/verify", "/auth/refresh", "/auth/recovery", "/auth/recovery/phone", "/auth/recovery/complete", "/auth/options", "/auth/oauth/start", "/auth/oauth/exchange"].includes(path);
+  const publicPath = path.startsWith("/public/") || path === "/meters/validate";
+  if (browser && !authPath && !publicPath && hasSession() && localStorage.getItem("smartclamp_refresh_token") && tokenNeedsRefresh()) {
+    const state = await refreshSession(API_BASE);
+    if (state === "invalid") { clearSession(); throw sessionError(false); }
+    if (state === "unavailable") throw sessionError(true);
+  }
+  const token = getAccessToken();
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (init.method && !["GET", "HEAD"].includes(init.method.toUpperCase()) && !headers.has("Idempotency-Key")) headers.set("Idempotency-Key", crypto.randomUUID());
+  if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
   let res = await fetch(url, {
     ...init,
     headers,
     cache: "no-store",
   });
-  if (
-    res.status === 401 &&
-    token &&
-    !path.startsWith("/auth/") &&
-    typeof window !== "undefined"
-  ) {
-    if (!refreshInFlight)
-      refreshInFlight = refreshSession().finally(() => {
-        refreshInFlight = null;
-      });
-    if (await refreshInFlight) {
-      headers.Authorization = `Bearer ${localStorage.getItem("smartclamp_token")}`;
+  if (res.status === 401 && token && !authPath && !publicPath && browser) {
+    const state = await refreshSession(API_BASE);
+    if (state === "refreshed") {
+      headers.set("Authorization", `Bearer ${getAccessToken()}`);
       res = await fetch(url, { ...init, headers, cache: "no-store" });
-    }
+    } else if (state === "invalid") { clearSession(); throw sessionError(false); }
+    else throw sessionError(true);
   }
+  if (res.status === 401 && !authPath && !publicPath && browser) clearSession();
   if (!res.ok) {
     let body: any = {};
     try {
@@ -133,9 +108,7 @@ export async function logout() {
     await apiFetch("/auth/logout", { method: "POST" });
   } catch {}
   sessionStorage.clear();
-  localStorage.removeItem("smartclamp_refresh_token");
-  localStorage.removeItem("smartclamp_token");
-  localStorage.removeItem("smartclamp_role");
+  clearSession();
   location.href = "/login";
 }
 export function requireToken(): string {

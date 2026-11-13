@@ -20,7 +20,8 @@ export default function Page() {
         const devices = data.devices.filter((d: any) =>
             d.capabilities.includes("relay"),
           ),
-          id = selected || devices[0]?.id;
+          id = selected || devices[0]?.id,
+          controls = devices.find((d: any) => d.id === id)?.controls;
         return !devices.length ? (
           <div className="workspace-empty">
             <h2>No relay-equipped device linked.</h2>
@@ -32,6 +33,7 @@ export default function Page() {
         ) : (
           <section className="card">
             <div className="resource-form">
+              {!controls?.can_request && <p role="status">{controls?.unavailable_reason || "This device is not eligible for control yet."}</p>}
               <label>
                 SmartClamp
                 <select
@@ -68,7 +70,7 @@ export default function Page() {
               {!challenge ? (
                 <button
                   className="btn btn-primary"
-                  disabled={busy}
+                  disabled={busy || !controls?.can_request}
                   onClick={async () => {
                     setBusy(true);
                     setMessage("");

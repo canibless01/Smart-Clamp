@@ -1819,7 +1819,7 @@ tr:last-child td {
   gap: 4px;
   min-width: 48px;
   min-height: 44px;
-  font-size: 9px;
+  font-size: 11px;
   color: #aabb96;
 }
 .bottom-nav a[aria-current] {

@@ -126,11 +126,21 @@ def receipt():
         audit(c,cmd['requester_id'],'command_'+result,cmd['command_id'])
     return jsonify(ack)
 
+def control_eligibility(c,actor,d):
+    if actor['role'] not in ('tenant','homeowner'):return False,'resident_control_required','Individual power control belongs to the resident/homeowner. Landlord maintenance requires its separately approved workflow.',403
+    writable=str(d['owner_id'])==str(actor['id']) or bool(scalar(c,'SELECT count(*) FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=actor['id']))
+    if not writable:return False,'read_only_device','This device is shared for viewing only.',403
+    if 'relay' not in d['capabilities'] or d['install_state']!='commissioned' or d['calibration_status']!='qualified':return False,'capability_unavailable','Control needs a fitted, commissioned relay and qualified sensing.',422
+    if actor['subscription_tier']!='pro' and d['profile']!='house_full':return False,'entitlement_required','An eligible control plan is required.',403
+    if not actor.get('phone'):return False,'phone_verification_required','Verify a phone number before requesting power-control confirmation.',409
+    if not scalar(c,"SELECT enabled_globally FROM feature_flags WHERE key='pro_relay_control'"):return False,'control_rollout_disabled','Remote control is not enabled for this rollout.',503
+    if d['last_seen_at'] is None or(datetime.now(timezone.utc)-d['last_seen_at']).total_seconds()>180:return False,'device_stale','The device must reconnect before a new control request can be sent.',409
+    return True,None,None,200
+
 def issue_command(c,actor,did,on,authorization_ref,reason='user_manual'):
     d=device(c,actor,did,write=True)
-    if not scalar(c,"SELECT enabled_globally FROM feature_flags WHERE key='pro_relay_control'"):raise DomainError('control_rollout_disabled','Remote control is not enabled for launch.',503)
-    if 'relay' not in d['capabilities'] or d['install_state']!='commissioned':raise DomainError('capability_unavailable','This device does not have commissioned relay control.',422)
-    if actor['subscription_tier']!='pro' and d['profile']!='house_full':raise DomainError('entitlement_required','An eligible control plan is required.',403)
+    allowed,code,message,status=control_eligibility(c,actor,d)
+    if not allowed:raise DomainError(code,message,status)
     clock=datetime.now(timezone.utc)
     if d['last_seen_at'] is None or(clock-d['last_seen_at']).total_seconds()>180:raise DomainError('device_stale','The device must reconnect before a new control request can be sent.',409)
     row=one(c,'SELECT id,next_command_seq,key_epoch,config_epoch,policy_epoch FROM devices WHERE id=:id FOR UPDATE',id=did)

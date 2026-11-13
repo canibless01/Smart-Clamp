@@ -2,7 +2,7 @@
 
 A Next.js website, PostgreSQL-backed Flask API, durable worker and six ESP32 targets with a safe commissioning agent. The core software journeys have been exercised with real local authentication/database services. Merchant services were contract-tested with local test fixtures. Production metrology, actuation and local-link/modem integration remain incomplete, and the whole ecosystem is **not launch-ready**.
 
-For a fresh assistant session, copy [the continuation prompt](docs/NEXT-CHAT-PROMPT.md). Start with [launch readiness](docs/LAUNCH-READINESS.md). It lists tested journeys, unfinished capabilities, external dependencies and owner-supplied launch content. Nothing described as planned becomes implemented merely by setting an environment variable.
+For a fresh assistant session, copy [the continuation prompt](docs/NEXT-CHAT-PROMPT.md). Start with [launch readiness](docs/LAUNCH-READINESS.md) and the [owner/provider/content checklist](docs/BEFORE-LAUNCH.md). It lists tested journeys, unfinished capabilities, external dependencies and owner-supplied launch content. Nothing described as planned becomes implemented merely by setting an environment variable.
 
 ## Builder reading order
 

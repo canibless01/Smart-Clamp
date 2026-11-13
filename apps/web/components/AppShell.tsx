@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Icon, { Brand, IconName } from "./Icon";
+import { useWorkspaceSession } from "./useWorkspaceSession";
 const common = [
   { label: "Usage history", href: "/history", icon: "chart" },
   { label: "Wallet & bills", href: "/billing", icon: "wallet" },
@@ -13,12 +14,13 @@ const groups: Record<string, { label: string; href: string; icon: string }[]> =
     tenant: [
       { label: "Overview", href: "/dashboard/tenant", icon: "home" },
       ...common,
-      { label: "Power & schedules", href: "/control", icon: "bolt" },
+      { label: "Control", href: "/control", icon: "bolt" },
       { label: "Community", href: "/community", icon: "building" },
     ],
     homeowner: [
       { label: "Overview", href: "/dashboard/homeowner", icon: "home" },
       ...common,
+      { label: "Control", href: "/control", icon: "bolt" },
     ],
     landlord: [
       {
@@ -52,12 +54,8 @@ export default function AppShell({
   role?: string;
 }) {
   const path = usePathname();
-  const [trustedRole, setTrustedRole] = useState<string | null>(null);
-  useEffect(() => {
-    // APIs independently enforce permissions.
-    setTrustedRole(localStorage.getItem("smartclamp_role"));
-  }, []);
-  role = trustedRole || role;
+  const session = useWorkspaceSession();
+  role = session.role || role;
   const [online, setOnline] = useState(true);
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -69,15 +67,17 @@ export default function AppShell({
       window.removeEventListener("offline", sync);
     };
   }, []);
+  if (session.status === "checking") return <main id="main" className="container marketing-page"><p role="status">Checking your saved sign-in…</p></main>;
+  if (session.status === "unavailable") return <main id="main" className="container marketing-page"><h1>We couldn’t verify your workspace.</h1><p role="alert">Your saved sign-in has been retained. Check your connection and retry.</p><button className="btn btn-primary" onClick={() => void session.retry()}>Try again</button><a className="btn btn-secondary" href="/">SmartClamp home</a></main>;
   const internal = role.startsWith("internal_");
   const items = internal
     ? [
         { label: "Operations", href: "/ops", icon: "chart" },
-        { label: "Incidents", href: "/ops/incidents", icon: "shield" },
+        ...(role === "internal_engineering" || role === "internal_superadmin" ? [{ label: "Firmware", href: "/ops/firmware", icon: "plug" }] : []),
       ]
     : groups[role] || [{ label: "Home", href: "/", icon: "home" }];
   const current = items.find((i) => path === i.href)?.label || "Workspace";
-  const mobile = [
+  const mobile = role === "tenant" || role === "homeowner" ? [items[0], items.find(i => i.href === "/history")!, items.find(i => i.href === "/control")!, items.find(i => i.href === "/billing")!, { label: "Settings", href: "/settings", icon: "settings" }] : [
     ...items.slice(0, 3),
     { label: "Settings", href: "/settings", icon: "settings" },
   ];

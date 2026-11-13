@@ -32,6 +32,9 @@ export default function RecordWorkspace({
   }, [endpoint]);
   useEffect(() => {
     void load();
+    const refreshed = () => void load();
+    window.addEventListener("smartclamp:session-updated", refreshed);
+    return () => window.removeEventListener("smartclamp:session-updated", refreshed);
   }, [load]);
   return (
     <AppShell role={role}>

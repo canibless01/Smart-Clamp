@@ -80,10 +80,10 @@ export default function Page() {
           <p>
             Link a meter account or an installed SmartClamp with an approved billing destination.
           </p>
-          <a className="btn btn-primary" href="/devices/link">
+          <div className="resource-actions"><a className="btn btn-primary" href="/devices/link">
             Link SmartClamp
           </a>
-          <a className="btn btn-secondary" href="/meters/link">Link a meter account</a>
+          <a className="btn btn-secondary" href="/meters/link">Link a meter account</a></div>
         </div>
       ) : (
         <section className="card">

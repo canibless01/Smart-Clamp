@@ -1,4 +1,5 @@
 "use client";
+import { hasSession } from "@/lib/session";
 import { useState, useEffect, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
@@ -11,7 +12,7 @@ export default function Page() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    if (!localStorage.getItem("smartclamp_token")) {
+    if (!hasSession()) {
       setLoading(false);
       return;
     }

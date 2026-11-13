@@ -5,6 +5,7 @@ import Image from "next/image";
 import PublicShell from "./PublicShell";
 import Icon, { IconName } from "./Icon";
 import { API_BASE } from "@/lib/api";
+import { storeSession, safeReturnPath } from "@/lib/session";
 const homes: Record<string, string> = {
   tenant: "/dashboard/tenant",
   landlord: "/dashboard/landlord",
@@ -21,7 +22,8 @@ const homes: Record<string, string> = {
 };
 export default function AuthPage({ signup = false }: { signup?: boolean }) {
   const [ready, setReady] = useState(false);
-  useEffect(() => setReady(true), []);
+  const [returnTo, setReturnTo] = useState("");
+  useEffect(() => { setReady(true); setReturnTo(new URLSearchParams(location.search).get("next") || ""); }, []);
   const [form, setForm] = useState({
     phone: "",
     password: "",
@@ -96,15 +98,12 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
         throw new Error(
           "Your account needs a supported workspace. Please contact support.",
         );
-      localStorage.setItem("smartclamp_token", data.access_token);
-      localStorage.setItem("smartclamp_role", data.role);
-      if (data.refresh_token)
-        localStorage.setItem("smartclamp_refresh_token", data.refresh_token);
+      storeSession(data);
       const invitation = sessionStorage.getItem("smartclamp_invitation");
       location.assign(
         invitation && data.role === "tenant"
           ? `/join?token=${encodeURIComponent(invitation)}`
-          : homes[data.role],
+          : safeReturnPath(new URLSearchParams(location.search).get("next"), homes[data.role]),
       );
     } catch (err) {
       setError(
@@ -310,7 +309,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 {signup ? "Already at home here?" : "New to SmartClamp?"}{" "}
                 <Link
                   className="auth-switch"
-                  href={signup ? "/login" : "/signup"}
+                  href={`${signup ? "/login" : "/signup"}${returnTo ? `?next=${encodeURIComponent(returnTo)}` : ""}`}
                 >
                   {signup ? "Log in" : "Get started"}{" "}
                   <Icon name="arrow" size={15} />

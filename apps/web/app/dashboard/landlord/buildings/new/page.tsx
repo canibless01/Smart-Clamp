@@ -1,4 +1,5 @@
 "use client";
+import { hasSession } from "@/lib/session";
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
@@ -17,7 +18,7 @@ export default function Page() {
   const key = useRef("");
   const body = useRef("");
   useEffect(
-    () => setAuthenticated(!!localStorage.getItem("smartclamp_token")),
+    () => setAuthenticated(hasSession()),
     [],
   );
   async function submit(e: FormEvent) {

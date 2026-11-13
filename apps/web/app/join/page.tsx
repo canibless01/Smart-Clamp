@@ -1,4 +1,5 @@
 "use client";
+import { hasSession } from "@/lib/session";
 import { useEffect, useState } from "react";
 import PublicShell from "@/components/PublicShell";
 import { apiFetch } from "@/lib/api";
@@ -12,7 +13,7 @@ export default function Page() {
     const invited = new URLSearchParams(location.search).get("token") || "";
     setToken(invited);
     if (invited) sessionStorage.setItem("smartclamp_invitation", invited);
-    setSignedIn(!!localStorage.getItem("smartclamp_token"));
+    setSignedIn(hasSession());
   }, []);
   return (
     <PublicShell>
@@ -27,12 +28,13 @@ export default function Page() {
             <p>
               Log in with your tenant account, then return to this invitation.
             </p>
-            <a className="btn btn-primary" href="/login">
+            <div className="resource-actions"><a className="btn btn-primary" href="/login">
               Log in
             </a>
             <a className="btn btn-secondary" href="/signup?setup=tenant">
               Create a tenant account
             </a>
+            </div>
           </>
         ) : done ? (
           <>

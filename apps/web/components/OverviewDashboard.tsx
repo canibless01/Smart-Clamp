@@ -1,4 +1,5 @@
 "use client";
+import { hasSession } from "@/lib/session";
 import { useState, useEffect, useCallback } from "react";
 import AppShell from "./AppShell";
 import UsageChart from "./UsageChart";
@@ -18,12 +19,13 @@ export default function OverviewDashboard({
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    if (!localStorage.getItem("smartclamp_token")) {
+    if (!hasSession()) {
       setAuth(true);
       setLoading(false);
       return;
     }
     try {
+      setAuth(false);
       setData(await apiFetch(`/dashboard/${role}`));
     } catch (e) {
       setError(
@@ -37,6 +39,9 @@ export default function OverviewDashboard({
   }, [role]);
   useEffect(() => {
     void load();
+    const refreshed = () => void load();
+    window.addEventListener("smartclamp:session-updated", refreshed);
+    return () => window.removeEventListener("smartclamp:session-updated", refreshed);
   }, [load]);
   const device = data?.devices?.[0];
   const measured = device?.measurement;
