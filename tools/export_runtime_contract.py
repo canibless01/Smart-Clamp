@@ -4,7 +4,7 @@ root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'app
 from app import create_app
 app=create_app({'DATABASE_URL':''})
 paths={};routes=[]
-public={'signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
+public={'signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','download','firmware_receipt','public_report','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
 for rule in sorted(app.url_map.iter_rules(),key=lambda r:r.rule):
     if not rule.rule.startswith('/api/v1/'):continue
     path=rule.rule[len('/api/v1'):];params=re.findall(r'<(?:[^:>]+:)?([^>]+)>',path);path=re.sub(r'<(?:[^:>]+:)?([^>]+)>',r'{\1}',path)
@@ -24,9 +24,16 @@ body('/payments/quotes','post',{'destination_token':string,'amount_kobo':{'type'
 body('/payments/checkout','post',{'quote_id':uid,'payer_email':{'type':'string','format':'email'},'return_path':string},['quote_id','payer_email'])
 body('/devices/{device_id}/relay','post',{'state':{'type':'string','enum':['on','off']},'authorization_ref':uid},['state','authorization_ref'])
 body('/invitations/accept','post',{'token':string},['token'])
+body('/reports','post',{'device_id':uid,'period_start':{'type':'string','format':'date'},'period_end':{'type':'string','format':'date'}},['device_id','period_start','period_end'])
+body('/jobs/{job_id}/actions','post',{
+    'action':{'type':'string','enum':['assign','start','fail_diagnostics','submit','rma','close','reopen']},
+    'expected_version':{'type':'integer','minimum':1},'assignee_id':uid,
+    'note':{'type':'string','minLength':10,'maxLength':4000}},['action','expected_version','note'])
 for path in ['/auth/signup','/auth/login']:
     props={'phone':{'type':'string','pattern':r'^\+[1-9]\d{7,14}$'},'password':{'type':'string','minLength':8}}
     if path.endswith('signup'):props.update({'role':{'type':'string','enum':['homeowner','tenant','landlord','agent','referrer']},'full_name':string})
     body(path,'post',props,list(props))
+for path,method,mime in [('/device/firmware/download','post','application/octet-stream'),('/exports/{export_id}','get','text/csv')]:
+    paths[path][method]['responses']['200']={'description':'Authenticated stored artifact bytes','content':{mime:{'schema':{'type':'string','format':'binary'}}}}
 spec={'openapi':'3.0.3','info':{'title':'SmartClamp implemented API surface','version':'0.3.0','description':'Implemented route surface. Response objects are intentionally open where typed schemas are not yet reconciled. See docs/API-RUNTIME.md and docs/LAUNCH-READINESS.md. This is not proof that every operation in the broader product contract is implemented.'},'servers':[{'url':'/api/v1'}],'components':{'securitySchemes':{'bearerAuth':{'type':'http','scheme':'bearer'}}},'paths':paths}
 (root/'contracts/runtime-openapi.yaml').write_text(yaml.safe_dump(spec,sort_keys=False,allow_unicode=True));(root/'contracts/runtime-routes.json').write_text(json.dumps(routes,indent=2)+'\n');print('Exported implemented operations:',len(routes))

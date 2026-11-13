@@ -111,6 +111,16 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/device/firmware/download",
+    "handler": "firmware.download"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/device/firmware/receipts",
+    "handler": "firmware.firmware_receipt"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/device/poll",
     "handler": "live_devices.poll"
   },
@@ -181,6 +191,11 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/exports/{export_id}",
+    "handler": "reports.download_export"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/feature-flags/active",
     "handler": "live_resources.flags"
   },
@@ -198,6 +213,16 @@
     "method": "POST",
     "path": "/api/v1/invitations/accept",
     "handler": "live_resources.accept_invitation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/jobs/{job_id}",
+    "handler": "live_workflows.job_detail"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/jobs/{job_id}/actions",
+    "handler": "live_workflows.job_action"
   },
   {
     "method": "POST",
@@ -221,6 +246,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/ops/buildings/{building_id}/payment-destination",
+    "handler": "live_workflows.configure_building_destination"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/ops/devices/{device_id}/claim-code",
     "handler": "live_workflows.create_claim"
   },
@@ -228,6 +258,26 @@
     "method": "POST",
     "path": "/api/v1/ops/features/water-management",
     "handler": "live_workflows.water_flag"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/firmware",
+    "handler": "firmware.overview"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/firmware/artifacts",
+    "handler": "firmware.upload"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/firmware/rollouts",
+    "handler": "firmware.create_rollout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/firmware/rollouts/{rollout_id}/actions",
+    "handler": "firmware.rollout_action"
   },
   {
     "method": "GET",
@@ -333,6 +383,36 @@
     "method": "GET",
     "path": "/api/v1/public/payments/{status_token}/transfer-instructions",
     "handler": "live_payments.transfer_instructions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/reports/{token}",
+    "handler": "reports.public_report"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/reports",
+    "handler": "reports.report_list"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/reports",
+    "handler": "reports.issue"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/reports/{report_id}",
+    "handler": "reports.private_report"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/reports/{report_id}/exports",
+    "handler": "reports.export"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/reports/{report_id}/revoke",
+    "handler": "reports.revoke"
   },
   {
     "method": "POST",

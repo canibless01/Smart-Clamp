@@ -22,3 +22,4 @@ playwright-report/
 # Private local integration-test and factory provisioning bundles
 .runtime/
 *.device-provisioning.json
+firmware/data/

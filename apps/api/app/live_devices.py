@@ -92,7 +92,9 @@ def poll():
         commands=rows(c,"SELECT signed_envelope FROM commands WHERE device_id=:id AND key_epoch=:epoch AND config_epoch=:config AND policy_epoch=:policy AND expires_at>now() AND status IN('pending','pending_delivery') ORDER BY seq LIMIT 16",id=d['id'],epoch=d['key_epoch'],config=d['config_epoch'],policy=d['policy_epoch'])
         time_payload={'kind':'time','device_id':str(d['id']),'key_epoch':d['key_epoch'],'config_epoch':d['config_epoch'],'policy_epoch':d['policy_epoch'],'issued_at_s':int(datetime.now(timezone.utc).timestamp()),'request_boot_id':p['boot_id'],'request_seq':p['seq']}
         signed_time=sign(time_payload,credential(c,d['id'],d['key_epoch'],'command'))
-    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time)
+        from .firmware import offer
+        firmware=offer(c,d,p)
+    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time,firmware=firmware)
 
 @bp.post('/api/v1/device/receipts')
 def receipt():
@@ -103,20 +105,22 @@ def receipt():
         if duplicate:return jsonify(ack)
         cmd=one(c,'SELECT * FROM commands WHERE command_id=:id AND device_id=:device AND seq=:seq FOR UPDATE',id=uuid_string(p.get('command_id')),device=d['id'],seq=p.get('command_seq'))
         if not cmd:raise DomainError('not_found','Command not found.',404)
-        if cmd['status'] in('expired','revoked') or cmd['expires_at']<=datetime.now(timezone.utc):raise DomainError('command_expired','The command is no longer current.',409)
         observed=p.get('observed_on')
         if observed is not None and type(observed) is not bool:raise DomainError('invalid_receipt','Observed state must be a boolean or null.')
         result=p['result']
         if result=='applied' and observed!=cmd['on_state']:result='uncertain'
-        existing=one(c,'SELECT result,observed_on FROM command_receipts WHERE command_id=:id',id=cmd['command_id'])
-        if existing:
-            if existing['result']!=result or existing['observed_on']!=observed:raise DomainError('receipt_conflict','A different receipt already exists for this command.',409)
-            return jsonify(ack)
+        if result=='applied' and p.get('clock_quality')!='trusted':result='uncertain'
         at=p.get('observed_at_ms')
-        if type(at) is not int or at<int(cmd['issued_at'].timestamp()*1000) or at>int(datetime.now(timezone.utc).timestamp()*1000)+30000:raise DomainError('invalid_receipt_time','The physical observation timestamp is invalid.')
+        if type(at) is not int or at<int(cmd['issued_at'].timestamp()*1000) or at>=int(cmd['expires_at'].timestamp()*1000) or at>int(datetime.now(timezone.utc).timestamp()*1000)+30000:raise DomainError('invalid_receipt_time','The physical observation must be within the command validity interval.')
+        existing=one(c,'SELECT result,observed_on,observed_at_ms,reason_code FROM command_receipts WHERE command_id=:id',id=cmd['command_id'])
+        if existing:
+            if existing['result']!=result or existing['observed_on']!=observed or existing['observed_at_ms']!=at or existing['reason_code']!=p.get('reason_code'):raise DomainError('receipt_conflict','A different receipt already exists for this command.',409)
+            return jsonify(ack)
         query(c,'INSERT INTO command_receipts(command_id,device_id,seq,result,observed_on,reason_code,observed_at_ms,payload_sha256) VALUES(:command,:device,:seq,:result,:observed,:reason,:at,:hash)',command=cmd['command_id'],device=d['id'],seq=p['command_seq'],result=result,observed=observed,reason=p.get('reason_code'),at=at,hash=ack['payload_sha256'])
-        query(c,'UPDATE commands SET status=:state WHERE command_id=:id',state=result,id=cmd['command_id'])
-        if observed is not None:query(c,'UPDATE devices SET relay_observed=:state,relay_observed_at=:at WHERE id=:id',state=observed,at=datetime.fromtimestamp(at/1000,timezone.utc),id=d['id'])
+        # Delivery can be delayed after a timely physical observation. Preserve the
+        # receipt without allowing it to overwrite newer feedback or revive a revocation.
+        if cmd['status']!='revoked':query(c,'UPDATE commands SET status=:state WHERE command_id=:id',state=result,id=cmd['command_id'])
+        if observed is not None and p.get('clock_quality')=='trusted':query(c,'UPDATE devices SET relay_observed=:state,relay_observed_at=:at WHERE id=:id AND(relay_observed_at IS NULL OR relay_observed_at<:at)',state=observed,at=datetime.fromtimestamp(at/1000,timezone.utc),id=d['id'])
         audit(c,cmd['requester_id'],'command_'+result,cmd['command_id'])
     return jsonify(ack)
 

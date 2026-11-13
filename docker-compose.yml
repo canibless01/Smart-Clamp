@@ -7,6 +7,8 @@ x-api-image: &api-image
     secrets: [proxy_ca]
   image: smartclamp-api:local
   env_file: .env
+  volumes:
+    - ${SMARTCLAMP_SECRETS_DIR:-./.runtime/secrets}:/run/smartclamp-secrets:ro
 services:
   migrate:
     <<: *api-image

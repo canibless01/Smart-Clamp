@@ -79,6 +79,8 @@ export default function Page() {
             <h2>
               {receipt.credit_state === "available"
                 ? "Credit available"
+                : receipt.payment_state === "failed"
+                  ? "Payment not completed"
                 : receipt.payment_state === "verified"
                   ? "Payment received — delivery in progress"
                   : "Payment awaiting confirmation"}
@@ -88,6 +90,7 @@ export default function Page() {
               {formatNaira(receipt.amount_kobo)} ·{" "}
               {formatKwh(receipt.units_mwh)} quoted
             </p>
+            <p>Actual provider-vended units: {receipt.delivered_units_mwh == null ? "Awaiting provider reconciliation" : formatKwh(receipt.delivered_units_mwh)}</p>
             <dl>
               <dt>Payment</dt>
               <dd>{receipt.payment_state}</dd>
@@ -96,7 +99,7 @@ export default function Page() {
               <dt>Credit</dt>
               <dd>{receipt.credit_state}</dd>
             </dl>
-            {receipt.credit_state !== "available" && (
+            {receipt.credit_state !== "available" && receipt.payment_state !== "failed" && (
               <p>
                 Do not pay again while this payment is being checked. Contact
                 support with the reference if it stays unresolved.
@@ -105,15 +108,14 @@ export default function Page() {
             {receipt.meter_token && (
               <div>
                 <h3>Meter token</h3>
+                {!!receipt.key_change_tokens?.length && <><p>The provider supplied key-change tokens. Enter these in the listed order before the credit token, following your meter’s prompts.</p><ol>{receipt.key_change_tokens.map((t: any) => <li key={t.kind} style={{ overflowWrap: "anywhere" }}>{t.kind.toUpperCase()}: {t.token}</li>)}</ol></>}
                 <p style={{ overflowWrap: "anywhere" }}>
                   {receipt.meter_token}
                 </p>
                 <p>
-                  Enter this token on your physical meter. Only confirm below
-                  after the meter accepts it. Your confirmation is an
-                  attestation, not a remote meter reading.
+                  {receipt.vending_state === "token_pending_entry" ? "Enter this token on your physical meter. Only confirm below after the meter accepts it. Your confirmation is an attestation, not a remote meter reading." : "This token was marked accepted and remains available as your purchase record. Contact support if the meter did not accept it."}
                 </p>
-                <button
+                {receipt.vending_state === "token_pending_entry" && <button
                   className="btn btn-primary"
                   disabled={confirming}
                   onClick={async () => {
@@ -140,7 +142,7 @@ export default function Page() {
                   }}
                 >
                   The meter accepted my token
-                </button>
+                </button>}
               </div>
             )}
           </section>

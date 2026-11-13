@@ -87,6 +87,8 @@ export default function Page() {
         <section className="card" role="status">
           <h2>Meter account saved</h2>
           <p>{result.connection_status}</p>
+          <p>Account reference for installation support: {result.id}</p>
+          <a className="btn btn-primary" href="/billing">Buy electricity for this meter</a>
           <a className="btn btn-secondary" href="/ir-reader/setup">
             Explore reader installation
           </a>

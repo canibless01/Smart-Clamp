@@ -17,7 +17,7 @@ export default function Page() {
             columns={
               tab === "jobs"
                 ? [
-                    { key: "id", label: "Job" },
+                    { key: "id", label: "Job", render: (r) => <a className="text-link" href={`/portal/jobs/${r.id}`}>Open work order</a> },
                     { key: "device_id", label: "Device" },
                     { key: "status", label: "Status" },
                     { key: "priority", label: "Priority" },

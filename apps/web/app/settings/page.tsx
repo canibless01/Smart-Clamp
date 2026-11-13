@@ -4,10 +4,11 @@ import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch, logout } from "@/lib/api";
 export default function Page() {
   const [prefs, setPrefs] = useState<any>(null),
+    [smsAvailable, setSmsAvailable] = useState(false),
     [message, setMessage] = useState("");
   useEffect(() => {
     apiFetch("/users/me/preferences")
-      .then((d) => setPrefs(d.value))
+      .then((d) => { setPrefs(d.value); setSmsAvailable(d.notification_channels?.sms === true); })
       .catch((e) => setMessage(e.message));
   }, []);
   return (
@@ -67,9 +68,9 @@ export default function Page() {
                   </select>
                 </label>
                 <p>
-                  In-app notifications are available. SMS, push and email
-                  delivery are not yet enabled.
+                  In-app notifications are available. {smsAvailable ? "SMS is available for account events. Provider acceptance does not confirm handset delivery." : "SMS is unavailable until the delivery provider is activated."} Push and email delivery remain unavailable.
                 </p>
+                <label><input type="checkbox" checked={prefs.sms_enabled === true} disabled={!smsAvailable} onChange={e => setPrefs({ ...prefs, sms_enabled: e.target.checked })} /> Send account events to my phone by SMS</label>
                 <button className="btn btn-primary">Save preferences</button>
               </form>
             )}

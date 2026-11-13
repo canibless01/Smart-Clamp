@@ -16,6 +16,7 @@ export default function Page() {
                 <p>
                   {r.payload?.message || "An event was recorded for review."}
                 </p>
+                <p>{r.channel === "sms" ? `SMS · ${r.status.replace(/_/g, " ")}${r.status === "provider_accepted" ? " (handset delivery unconfirmed)" : ""}` : "In-app record"}</p>
                 <time dateTime={r.created_at}>
                   {new Date(r.created_at).toLocaleString()}
                 </time>

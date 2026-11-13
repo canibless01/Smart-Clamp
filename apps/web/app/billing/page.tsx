@@ -78,12 +78,12 @@ export default function Page() {
         <div className="workspace-empty">
           <h2>No payment destination linked yet.</h2>
           <p>
-            Your installed SmartClamp needs a configured wallet and billing
-            destination before it can receive payments.
+            Link a meter account or an installed SmartClamp with an approved billing destination.
           </p>
           <a className="btn btn-primary" href="/devices/link">
             Link SmartClamp
           </a>
+          <a className="btn btn-secondary" href="/meters/link">Link a meter account</a>
         </div>
       ) : (
         <section className="card">
@@ -130,16 +130,16 @@ export default function Page() {
               >
                 {wallets.map((w) => (
                   <option key={w.id} value={w.id}>
-                    SmartClamp {w.device_id}
+                    {w.balance_kind === "meter_purchases" ? `Meter ending ${w.meter_hint}` : `SmartClamp ${w.device_id}`}
                   </option>
                 ))}
               </select>
             </label>
-            <p>
+            {wallet.balance_kind === "meter_purchases" ? <p>Delivered purchase total: {formatKwh(wallet.available_mwh)}. Your meter’s remaining balance and usage are unknown without a supported reader.</p> : <p>
               Available: {formatNaira(wallet.available_kobo)} ·{" "}
               {formatKwh(wallet.available_mwh)}. Reserved:{" "}
               {formatNaira(wallet.reserved_kobo)}.
-            </p>
+            </p>}
             <label>
               Amount in naira
               <input
@@ -181,8 +181,9 @@ export default function Page() {
                 <dt>Platform markup</dt>
                 <dd>{formatNaira(quote.markup_kobo)}</dd>
                 <dt>Quoted energy</dt>
-                <dd>{formatKwh(quote.units_mwh)}</dd>
+                <dd>{formatKwh(quote.units_mwh)} estimated</dd>
               </dl>
+              <p>Destination: {quote.service_id} · meter ending {quote.meter_hint}. The provider confirms the actual vended units after payment.</p>
               <p>
                 Tariff: {quote.tariff_version}. Expires{" "}
                 {new Date(quote.expires_at).toLocaleString()}.

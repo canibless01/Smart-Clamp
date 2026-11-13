@@ -19,8 +19,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install platformio==6.1.18
+      - run: python -m pip install platformio==6.1.18 cryptography==46.0.3
       - run: pio run -d firmware -j 2
+      - run: python tools/test_firmware_wire.py
   web-interface:
     runs-on: ubuntu-latest
     defaults:

@@ -39,3 +39,9 @@ Files 009–014 add the live runtime, enforced ledger balance/immutability, acco
 No business sample customers, stock, plan prices or fake operational figures should be seeded. Real approved tariffs, payment destinations, factory identities and organization scopes are setup data with operational approval requirements. SQL alone does not qualify sensors or activate merchant integrations.
 
 See [launch readiness](../docs/LAUNCH-READINESS.md) and [runtime API](../docs/API-RUNTIME.md) for exact deployment and integration-test commands.
+
+## Continuation migrations 015–022
+
+015 adds versioned field-work history; 016 durable SMS dispatch outcome metadata; 017 private signed firmware artifacts/cohorts/receipts; 018 actual-vend units and attributable FIFO funding lots; 019 provider-specific linked-meter identity; 020 pinned quote destinations and approved shared-building meter configuration; 021 immutable signed report snapshots and stored CSV exports; 022 immutable quote and tariff versions. New tables deny direct browser access. Applied 001–014 remain unchanged. Run the migration tool against the intended project, then `python tools/check_config.py --database` to compare applied checksums.
+
+Pre-018 available credit has no automatically invented funding lot. Reconcile attributable historic payments/provider units before enabling consumption against such balances. Pre-020 quotes lack a pinned destination and require review rather than silently vending against a possibly changed device association. Take a backup and review these pre-release upgrade boundaries before migrating any live project.

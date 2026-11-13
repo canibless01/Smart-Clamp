@@ -1,17 +1,18 @@
 # SmartClamp — Electricity you can verify
 
-A Next.js website, PostgreSQL-backed Flask API, durable worker and six ESP32 reference profiles. The core software journeys have been exercised with real local authentication/database services. Merchant services were contract-tested with local test fixtures. Firmware remains bench software, and the whole ecosystem is **not launch-ready**.
+A Next.js website, PostgreSQL-backed Flask API, durable worker and six ESP32 targets with a safe commissioning agent. The core software journeys have been exercised with real local authentication/database services. Merchant services were contract-tested with local test fixtures. Production metrology, actuation and local-link/modem integration remain incomplete, and the whole ecosystem is **not launch-ready**.
 
 For a fresh assistant session, copy [the continuation prompt](docs/NEXT-CHAT-PROMPT.md). Start with [launch readiness](docs/LAUNCH-READINESS.md). It lists tested journeys, unfinished capabilities, external dependencies and owner-supplied launch content. Nothing described as planned becomes implemented merely by setting an environment variable.
 
 ## Builder reading order
 
 1. [Launch readiness and remaining work](docs/LAUNCH-READINESS.md).
-2. [Implemented API behavior](docs/API-RUNTIME.md), [runtime OpenAPI](contracts/runtime-openapi.yaml) and [registered routes](contracts/runtime-routes.json).
-3. [Implementation contract](docs/IMPLEMENTATION-CONTRACT.md), [product](docs/PRODUCT.md) and [source reconciliation](docs/DECISIONS.md).
-4. [Architecture](docs/ARCHITECTURE.md), [current UI direction](docs/UI-REVAMP.md) and [original page specifications](docs/pages/INDEX.md).
-5. [Database/migrations](database/README.md) and [device protocol](contracts/device-protocol.md).
-6. [Firmware limits](firmware/README.md) and [hardware configuration](firmware/HARDWARE-CONFIG.md).
+2. [Action/acceptance matrix](docs/IMPLEMENTATION-MATRIX.md) and [firmware update runbook](docs/FIRMWARE-UPDATES.md).
+3. [Implemented API behavior](docs/API-RUNTIME.md), [runtime OpenAPI](contracts/runtime-openapi.yaml) and [registered routes](contracts/runtime-routes.json).
+4. [Implementation contract](docs/IMPLEMENTATION-CONTRACT.md), [product](docs/PRODUCT.md) and [source reconciliation](docs/DECISIONS.md).
+5. [Architecture](docs/ARCHITECTURE.md), [current UI direction](docs/UI-REVAMP.md) and [original page specifications](docs/pages/INDEX.md).
+6. [Database/migrations](database/README.md) and [device protocol](contracts/device-protocol.md).
+7. [Firmware limits](firmware/README.md) and [hardware configuration](firmware/HARDWARE-CONFIG.md).
 
 The original 128-operation [product OpenAPI](contracts/openapi.yaml) and 48 page specifications describe the desired scope. The runtime manifest describes actual registered handlers, including explicit unavailable integrations. Additional implemented routes include account device linking, resident invitations, device catalogue and detailed plan pages. Read the current runtime documents before following older aspirational examples.
 

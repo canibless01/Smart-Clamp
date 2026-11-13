@@ -69,7 +69,7 @@ test("real auth/database: landlord creates room, links device, invites resident 
   await page.getByLabel("Receipt email").fill("browser@example.test");
   await page.getByRole("button", { name: "Get itemized quote" }).click();
   await expect(page.getByRole("heading", { name: "Your quote" })).toBeVisible();
-  await expect(page.getByText("5.000 kWh", { exact: true })).toBeVisible();
+  await expect(page.getByText("5.000 kWh estimated", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Continue to secure checkout" }),
   ).toBeVisible();

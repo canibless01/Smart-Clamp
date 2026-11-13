@@ -1,5 +1,5 @@
-# ESP32 firmware: shared policy + six bench targets
-Status: tested portable core and bench application, **not complete production device firmware**. Never upload this expecting metering, payment protection, GSM, or relay operation. No pin is actuated; measurement stays null. This prevents unknown wiring from being energized while providing a compilable basis for all six roles.
+# ESP32 firmware: safe commissioning + shared policy
+Status: actual TLS commissioning agent plus tested portable core, **not complete production device firmware**. Provisioned Wi-Fi devices can send signed heartbeats/poll and use the qualified signed-OTA path. Never upload expecting production metering, prepaid enforcement, GSM, ESP-NOW/RS485 forwarding or relay operation. No metering/relay pin is actuated; measurement stays unavailable. See [exact provisioning/update steps](../docs/FIRMWARE-UPDATES.md).
 
 Build: `cd firmware && pio run` with PlatformIO 6.1.18 (install in an external venv). Select `-e pole_gateway` etc. Serial: 115200. Native core tests are listed in root README. Target reference: classic dual-core ESP32 DevKit/ESP32-WROOM-32, not ESP8266, ESP32-C3 or an assumed universal ESP32 pinout. C++ Arduino framework runs safety task on core1, network task on core0. Hardware acceleration, TLS, secure boot and flash encryption require actual integrations/configuration, not just two tasks.
 
@@ -51,3 +51,9 @@ The owner clarified that existing hardware uses an unspecified generic ESP32, an
 
 ## Revision2 reference extensions
 include/runtime.hpp now encodes the outage/recovery lifecycle, durable event/command adapter boundaries, independent OFF-reason set, safe preboot intent recovery and feedback checks. include/crypto.hpp implements protocol-v1 HMAC-SHA256 envelope signatures with mbedTLS on Arduino/OpenSSL for host tests; both Python and C++ verify the same public test vector. include/hardware_config.hpp centralizes proposed pins and calibration placeholders; HardwareQualified remains false. Read HARDWARE-CONFIG.md, ../docs/POWER-LOSS.md and ../contracts/device-protocol.md before adapting hardware. Run all native/contract suites with bash tools/verify.sh from repository root. No physical adapter completion or target compilation is implied by these additions.
+
+## Continuation implementation
+
+`include/cloud_agent.hpp` implements private LittleFS configuration, TLS CA validation, HMAC heartbeats/poll, signed time, immutable retry records and exact durable ACK deletion. Commands are explicitly rejected as hardware-unqualified. Its signed OTA path checks pinned RSA manifests, compatibility, image SHA-256, staged ACK, reboot intent and running-image health; production rollout still requires qualification. `include/link_frames.hpp` implements bounded RS485 framing/CRC and radio fragmentation/reassembly with conflict, timeout and capacity handling. It is not an ESP-NOW radio or UART polling HAL. `include/latching_driver.hpp` implements non-blocking interlocked pulse/cooldown/feedback/fault logic against a `CoilIO` contract. A qualified GPIO/independent watchdog circuit remains required; it is not wired into the entrypoint.
+
+The native wire suite compiles the same ArduinoJson/HMAC/RSA helpers used by the ESP32, against independent Python fixtures. Run `python tools/test_firmware_wire.py` after `pio run -e house_full`. Host tests do not prove the ESP32 has operated these interfaces physically.

@@ -160,7 +160,10 @@ def link_meter():
     d=body();number=str(d.get('meter_number',''));validated=validate_meter(number,d.get('service_id'))
     if not validated['valid']:raise DomainError('meter_not_found','The meter provider could not validate this account.',422)
     with transaction() as c:
-        record=one(c,"INSERT INTO linked_meters(owner_id,meter_number,disco_name,provider,validated_at,status) VALUES(:uid,:number,:disco,'vtpass',now(),'pending') ON CONFLICT(owner_id,meter_number) DO UPDATE SET validated_at=now() RETURNING *",uid=g.actor['id'],number=number,disco=validated['disco_name'])
+        record=one(c,"INSERT INTO linked_meters(owner_id,meter_number,disco_name,provider,validated_at,status) VALUES(:uid,:number,:disco,'vtpass',now(),'pending') ON CONFLICT(owner_id,disco_name,meter_number) DO UPDATE SET validated_at=now() RETURNING *",uid=g.actor['id'],number=number,disco=validated['disco_name'])
+        # A meter-payment destination does not require a SmartClamp or pretend to
+        # expose meter balance/history. A current approved tariff is still required.
+        query(c,'INSERT INTO wallets(linked_meter_id) VALUES(:id) ON CONFLICT(linked_meter_id) DO NOTHING',id=record['id'])
     return jsonify({**dict(record),'connection_status':'Account validated; live optical readings require a supported installed reader.'}),201
 
 @bp.post('/api/v1/meters/<linked_meter_id>/manual-reading')
@@ -196,13 +199,13 @@ def revoke_viewer(device_id,viewer_id):
 @bp.get('/api/v1/alerts')
 @authenticated
 def alerts():
-    with transaction() as c:return page(rows(c,'SELECT id,episode_id,template_key,status,payload,created_at FROM notifications WHERE recipient_id=:uid ORDER BY created_at DESC LIMIT :n',uid=g.actor['id'],n=limit()))
+    with transaction() as c:return page(rows(c,'SELECT id,episode_id,template_key,channel,status,payload,created_at FROM notifications WHERE recipient_id=:uid ORDER BY created_at DESC LIMIT :n',uid=g.actor['id'],n=limit()))
 
 @bp.post('/api/v1/alerts/<alert_id>/acknowledge')
 @authenticated
 def acknowledge(alert_id):
     with transaction() as c:
-        r=query(c,"UPDATE notifications SET status='delivered' WHERE id=:id AND recipient_id=:uid",id=uuid_string(alert_id),uid=g.actor['id'])
+        r=query(c,"UPDATE notifications SET status='delivered' WHERE id=:id AND recipient_id=:uid AND channel='in_app'",id=uuid_string(alert_id),uid=g.actor['id'])
         if not r.rowcount:raise DomainError('not_found','Notification not found.',404)
         audit(c,g.actor['id'],'notification_acknowledged',alert_id)
     return jsonify(status='acknowledged')
@@ -278,7 +281,11 @@ def transactions():
 def wallets():
     with transaction() as c:
         ids=[d['id'] for d in owned_device_ids(c)]
-        result=rows(c,'SELECT id,device_id,available_kobo,reserved_kobo,available_mwh,reserved_mwh,ledger_version,updated_at,payment_token FROM wallets WHERE device_id=ANY(CAST(:ids AS uuid[])) ORDER BY id',ids=ids)
+        result=rows(c,"""SELECT w.id,w.device_id,w.linked_meter_id,w.available_kobo,w.reserved_kobo,w.available_mwh,w.reserved_mwh,w.ledger_version,w.updated_at,w.payment_token,
+            CASE WHEN w.linked_meter_id IS NULL THEN 'device_credit' ELSE 'meter_purchases' END AS balance_kind,
+            CASE WHEN m.id IS NOT NULL THEN right(m.meter_number,4) END AS meter_hint
+            FROM wallets w LEFT JOIN linked_meters m ON m.id=w.linked_meter_id
+            WHERE w.device_id=ANY(CAST(:ids AS uuid[])) OR m.owner_id=:uid ORDER BY w.id""",ids=ids,uid=g.actor['id'])
         return page(result)
 
 @bp.get('/api/v1/wallets/<wallet_id>/ledger')
@@ -286,8 +293,10 @@ def wallets():
 def ledger(wallet_id):
     with transaction() as c:
         w=one(c,'SELECT * FROM wallets WHERE id=:id',id=uuid_string(wallet_id))
-        if not w or not w['device_id']:raise DomainError('not_found','Wallet not found.',404)
-        device(c,g.actor,w['device_id']);return page(rows(c,'SELECT t.kind,t.created_at,e.account,e.direction,e.amount_kobo,e.energy_mwh FROM ledger_transactions t JOIN ledger_entries e ON e.transaction_id=t.id WHERE t.wallet_id=:id ORDER BY t.created_at DESC LIMIT :n',id=wallet_id,n=limit()))
+        if not w:raise DomainError('not_found','Wallet not found.',404)
+        if w['device_id']:device(c,g.actor,w['device_id'])
+        elif not one(c,'SELECT id FROM linked_meters WHERE id=:id AND owner_id=:uid',id=w['linked_meter_id'],uid=g.actor['id']):raise DomainError('not_found','Wallet not found.',404)
+        return page(rows(c,'SELECT t.kind,t.created_at,e.account,e.direction,e.amount_kobo,e.energy_mwh FROM ledger_transactions t JOIN ledger_entries e ON e.transaction_id=t.id WHERE t.wallet_id=:id ORDER BY t.created_at DESC LIMIT :n',id=wallet_id,n=limit()))
 
 @bp.get('/api/v1/bills')
 @authenticated

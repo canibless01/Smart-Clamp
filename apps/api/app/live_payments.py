@@ -24,9 +24,21 @@ def quote():
     if type(amount) is not int or amount<100 or amount>100000000:raise DomainError('validation_error','Enter an amount between ₦1 and ₦1,000,000.')
     if d.get('utility_type','electricity')!='electricity':raise DomainError('unsupported_utility','This utility is not configured.',503)
     with transaction() as c:
-        w=one(c,"SELECT w.*,d.linked_meter_id AS destination_meter FROM wallets w JOIN devices d ON d.id=w.device_id WHERE w.payment_token=:token",token=d.get('destination_token',''))
+        hint=one(c,'SELECT device_id FROM wallets WHERE payment_token=:token',token=d.get('destination_token',''))
+        destination=None
+        if hint and hint['device_id']:
+            current=one(c,'SELECT linked_meter_id FROM devices WHERE id=:id FOR UPDATE',id=hint['device_id'])
+            destination=current['linked_meter_id'] if current else None
+        locked=one(c,'SELECT * FROM wallets WHERE payment_token=:token FOR UPDATE',token=d.get('destination_token',''))
+        w={**dict(locked),'destination_meter':destination or locked['linked_meter_id']} if locked else None
         if not w or not w['destination_meter']:raise DomainError('payment_destination_unavailable','This device needs a configured meter and tariff before it can receive electricity payments.',422)
-        rate=one(c,'SELECT * FROM tariffs WHERE version=:version AND effective_from<=now() AND(effective_to IS NULL OR effective_to>now())',version=w['tariff_version'])
+        meter=one(c,'SELECT id,meter_number,disco_name FROM linked_meters WHERE id=:id',id=w['destination_meter'])
+        if not meter or not meter['disco_name']:raise DomainError('payment_destination_unavailable','A validated electricity destination is required.',422)
+        if w['tariff_version'] is None and w['linked_meter_id']:
+            rates=rows(c,"SELECT t.* FROM tariffs t JOIN linked_meters m ON t.provider=m.disco_name WHERE m.id=:id AND t.effective_from<=now() AND(t.effective_to IS NULL OR t.effective_to>now())",id=w['linked_meter_id'])
+            if len(rates)!=1:raise DomainError('tariff_required','Exactly one current approved provider tariff is required before quoting this meter.',503)
+            rate=rates[0]
+        else:rate=one(c,'SELECT * FROM tariffs WHERE version=:version AND effective_from<=now() AND(effective_to IS NULL OR effective_to>now())',version=w['tariff_version'])
         if not rate or rate['day_rate_kobo_per_kwh']<=0:raise DomainError('tariff_required','A current approved tariff is required before quoting electricity.',503)
         if rate['night_rate_kobo_per_kwh'] is not None:raise DomainError('tariff_requires_provider_quote','Time-banded vending must use a compatible provider quote before purchase.',503)
         fee_bps=int(config('PAYMENT_FEE_BPS'));fixed=int(config('PAYMENT_FIXED_FEE_KOBO'));markup_bps=int(config('PLATFORM_MARKUP_BPS'))
@@ -35,11 +47,11 @@ def quote():
         markup=int((Decimal(amount)*markup_bps/10000).quantize(Decimal('1'),rounding=ROUND_HALF_UP));value=amount-fee-markup
         if value<=0:raise DomainError('amount_too_small','The amount must be greater than the itemized fees.')
         units=value*1000000//rate['day_rate_kobo_per_kwh']
-        q=one(c,"INSERT INTO quotes(wallet_id,destination_token,amount_kobo,wallet_value_kobo,markup_kobo,fee_kobo,units_mwh,tariff_version,expires_at) VALUES(:wallet,:dest,:amount,:value,:markup,:fee,:units,:rate,now()+interval '15 minutes') RETURNING *",wallet=w['id'],dest=d['destination_token'],amount=amount,value=value,markup=markup,fee=fee,units=units,rate=rate['version'])
-    return jsonify({k:q[k] for k in('id','expires_at','amount_kobo','wallet_value_kobo','markup_kobo','fee_kobo','units_mwh','tariff_version')}),201
+        q=one(c,"INSERT INTO quotes(wallet_id,destination_token,amount_kobo,wallet_value_kobo,markup_kobo,fee_kobo,units_mwh,tariff_version,expires_at,destination_meter_id,destination_meter_number,destination_service_id) VALUES(:wallet,:dest,:amount,:value,:markup,:fee,:units,:rate,now()+interval '15 minutes',:meter,:number,:service) RETURNING *",wallet=w['id'],dest=d['destination_token'],amount=amount,value=value,markup=markup,fee=fee,units=units,rate=rate['version'],meter=meter['id'],number=meter['meter_number'],service=meter['disco_name'])
+    return jsonify({**{k:q[k] for k in('id','expires_at','amount_kobo','wallet_value_kobo','markup_kobo','fee_kobo','units_mwh','tariff_version')},'units_are_estimate':True,'meter_hint':meter['meter_number'][-4:],'service_id':meter['disco_name']}),201
 
 def public_payment(p):
-    return {k:p[k] for k in('id','payment_state','vending_state','credit_state','amount_kobo','units_mwh','version')}
+    return {k:p[k] for k in('id','payment_state','vending_state','credit_state','amount_kobo','units_mwh','delivered_units_mwh','version')}
 
 @bp.post('/api/v1/payments/checkout')
 @authenticated
@@ -51,15 +63,18 @@ def checkout():
     if urlparse(origin).scheme!='https' and not current_app.testing:raise DomainError('invalid_site_origin','A secure site origin is required.',503)
     # The quote ID is the immutable external idempotency identity. Commit it BEFORE the HTTP call.
     with transaction() as c:
-        q=quote_lookup(c,d.get('quote_id'))
-        query(c,'SELECT pg_advisory_xact_lock(hashtextextended(:key,0))',key='checkout:'+str(q['id']))
-        previous=one(c,'SELECT * FROM payments WHERE quote_id=:id FOR UPDATE',id=q['id'])
+        qid=uuid_string(d.get('quote_id'))
+        query(c,'SELECT pg_advisory_xact_lock(hashtextextended(:key,0))',key='checkout:'+qid)
+        previous=one(c,'SELECT * FROM payments WHERE quote_id=:id FOR UPDATE',id=qid)
         if previous:
             if str(previous['payer_id'])!=g.actor['id']:raise DomainError('not_found','Payment not found.',404)
-            return jsonify({**public_payment(previous),'checkout_url':previous['checkout_url'],'status_token':previous['status_token'],'status':'checkout_pending' if previous['checkout_url'] else 'outcome_unknown'}),202
+            resumable=previous['payment_state']=='pending'
+            return jsonify({**public_payment(previous),'checkout_url':previous['checkout_url'] if resumable else None,'status_token':previous['status_token'],'status':('checkout_pending' if previous['checkout_url'] else 'outcome_unknown') if resumable else previous['payment_state']}),202
+        q=quote_lookup(c,qid)
         pid=str(uuid.uuid4());reference='SC_'+uuid.UUID(str(q['id'])).hex
         token=secrets.token_urlsafe(32)
         query(c,"INSERT INTO payments(id,quote_id,payer_id,provider_reference,gateway_ref,status_token,payment_state,vending_state,amount_kobo,units_mwh) VALUES(:id,:quote,:uid,:ref,:ref,:token,'pending','pending',:amount,:units)",id=pid,quote=q['id'],uid=g.actor['id'],ref=reference,token=token,amount=q['amount_kobo'],units=q['units_mwh'])
+        query(c,"INSERT INTO outbox(aggregate_type,aggregate_id,event_type,payload,next_attempt_at) VALUES('payment',:id,'payment_reconcile',CAST(:payload AS jsonb),now()+interval '15 seconds')",id=pid,payload=json_text({'payment_id':pid}))
     callback=origin+path+('?' if '?' not in path else '&')+urlencode({'payment_id':pid,'status_token':token})
     try:
         result=paystack('transaction/initialize','POST',{'email':email,'amount':q['amount_kobo'],'currency':'NGN','reference':reference,'callback_url':callback,'metadata':{'payment_id':pid}})
@@ -71,28 +86,50 @@ def checkout():
     with transaction() as c:query(c,'UPDATE payments SET checkout_url=:url,provider_response=CAST(:provider AS jsonb),version=version+1,updated_at=now() WHERE id=:id',id=pid,url=url,provider=json_text({'reference':reference}));audit(c,g.actor['id'],'checkout_initialized',pid)
     return jsonify(id=pid,status='checkout_pending',checkout_url=url,status_token=token),202
 
+def payment_receipt(c,p):
+    # Original tokens remain scoped to the payer or opaque receipt holder.
+    attempt=one(c,"SELECT token,status,response_payload FROM vending_attempts WHERE payment_id=:id ORDER BY created_at DESC LIMIT 1",id=p['id'])
+    changes=[]
+    if attempt and p['vending_state'] in ('token_pending_entry','confirmed'):
+        for key in ('kct1','kct2'):
+            token=(attempt['response_payload'] or {}).get(key)
+            if isinstance(token,(str,int)) and re.fullmatch(r'[\d\s-]+',str(token)) and len(re.sub(r'\D','',str(token)))==20:changes.append({'kind':key,'token':str(token)})
+    return {**public_payment(p),'meter_token':attempt['token'] if attempt and p['vending_state'] in ('token_pending_entry','confirmed') else None,'key_change_tokens':changes}
+
 @bp.get('/api/v1/payments/<payment_id>')
 @authenticated
 def payment_status(payment_id):
     with transaction() as c:
         p=one(c,'SELECT * FROM payments WHERE id=:id AND payer_id=:uid',id=uuid_string(payment_id),uid=g.actor['id'])
         if not p:raise DomainError('not_found','Payment not found.',404)
-        return jsonify(public_payment(p))
+        return jsonify(payment_receipt(c,p))
 
 @bp.get('/api/v1/public/payments/<status_token>')
 def payment_public(status_token):
     with transaction() as c:
         p=one(c,'SELECT * FROM payments WHERE status_token=:token',token=status_token)
         if not p:raise DomainError('not_found','Payment not found.',404)
-        # Token delivery is limited to its opaque receipt holder, no owner identity.
-        attempt=one(c,"SELECT token,status FROM vending_attempts WHERE payment_id=:id ORDER BY created_at DESC LIMIT 1",id=p['id'])
-        return jsonify({**public_payment(p),'meter_token':attempt['token'] if attempt and p['vending_state']=='token_pending_entry' else None})
+        return jsonify(payment_receipt(c,p))
+
+def reserve_verified_payment(c,p,data,source):
+    if data.get('reference')!=p['provider_reference'] or type(data.get('amount')) is not int or data['amount']!=p['amount_kobo'] or data.get('currency')!='NGN' or data.get('status')!='success':
+        raise DomainError('payment_mismatch','The verified transaction does not match the persisted checkout.',409)
+    if p['payment_state']=='verified':return
+    if p['payment_state'] in ('refunded','chargeback') or p['credit_state']!='none':raise DomainError('payment_review_required','This payment requires a reviewed financial reconciliation.',409)
+    reference=p['provider_reference']
+    query(c,"UPDATE payments SET payment_state='verified',vending_state='pending',credit_state='reserved',version=version+1,updated_at=now() WHERE id=:id",id=p['id'])
+    q=one(c,'SELECT * FROM quotes WHERE id=:id',id=p['quote_id']);query(c,'UPDATE wallets SET reserved_mwh=reserved_mwh+:units,reserved_kobo=reserved_kobo+:cash,ledger_version=ledger_version+1,updated_at=now() WHERE id=:id',id=q['wallet_id'],units=q['units_mwh'],cash=q['wallet_value_kobo'])
+    tx=one(c,"INSERT INTO ledger_transactions(wallet_id,kind,provider_reference,created_by) VALUES(:wallet,'recharge',:ref,:uid) RETURNING id",wallet=q['wallet_id'],ref='money:'+reference,uid=p['payer_id'])
+    for account,direction,amount in [('provider_cash','debit',p['amount_kobo']),('reserved_customer_liability','credit',q['wallet_value_kobo']),('platform_fee_revenue','credit',q['fee_kobo']),('platform_markup_revenue','credit',q['markup_kobo'])]:
+        if amount:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,amount_kobo) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=q['wallet_id'],account=account,direction=direction,amount=amount)
+    outbox(c,'payment_verified',p['id'],{'payment_id':str(p['id'])});audit(c,p['payer_id'],'payment_verified',p['id'])
+    audit(c,p['payer_id'],'payment_reconciled',p['id'],{'source':source})
 
 @bp.post('/api/v1/webhooks/payment')
 def webhook():
-    secret=config('PAYSTACK_SECRET_KEY');raw=request.get_data();signature=request.headers.get('x-paystack-signature','')
-    expected=hmac.new(secret.encode(),raw,hashlib.sha512).hexdigest()
-    if not hmac.compare_digest(expected,signature):raise DomainError('webhook_unauthorized','Payment webhook authentication failed.',401)
+    from .webhook_auth import verify_paystack
+    raw=request.get_data()
+    verify_paystack(raw,request.headers)
     payload=request.get_json(silent=True) or {}
     if payload.get('event')!='charge.success':return jsonify(status='ignored_non_success_event')
     reference=payload.get('data',{}).get('reference')
@@ -110,13 +147,7 @@ def webhook():
             if prior['body_hash']!=digest:raise DomainError('webhook_conflict','A conflicting event already exists for this reference.',409)
             return jsonify(status='already_processed')
         query(c,"INSERT INTO provider_events(provider,reference,kind,body_hash,payload) VALUES('paystack',:ref,'charge.success',:hash,CAST(:payload AS jsonb))",ref=reference,hash=digest,payload=json_text(payload))
-        if p['payment_state']!='verified':
-            query(c,"UPDATE payments SET payment_state='verified',vending_state='pending',credit_state='reserved',version=version+1,updated_at=now() WHERE id=:id",id=p['id'])
-            q=one(c,'SELECT * FROM quotes WHERE id=:id',id=p['quote_id']);query(c,'UPDATE wallets SET reserved_mwh=reserved_mwh+:units,reserved_kobo=reserved_kobo+:cash,ledger_version=ledger_version+1,updated_at=now() WHERE id=:id',id=q['wallet_id'],units=q['units_mwh'],cash=q['wallet_value_kobo'])
-            tx=one(c,"INSERT INTO ledger_transactions(wallet_id,kind,provider_reference,created_by) VALUES(:wallet,'recharge',:ref,:uid) RETURNING id",wallet=q['wallet_id'],ref='money:'+reference,uid=p['payer_id'])
-            for account,direction,amount in [('provider_cash','debit',p['amount_kobo']),('reserved_customer_liability','credit',q['wallet_value_kobo']),('platform_fee_revenue','credit',q['fee_kobo']),('platform_markup_revenue','credit',q['markup_kobo'])]:
-                if amount:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,amount_kobo) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=q['wallet_id'],account=account,direction=direction,amount=amount)
-            outbox(c,'payment_verified',p['id'],{'payment_id':str(p['id'])});audit(c,p['payer_id'],'payment_verified',p['id'])
+        reserve_verified_payment(c,p,data,'authenticated_webhook')
     return jsonify(status='recorded_pending_fulfillment')
 
 @bp.post('/api/v1/payments/<payment_id>/confirm-meter-entry')

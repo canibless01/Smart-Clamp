@@ -4,22 +4,28 @@ from decimal import Decimal,InvalidOperation
 import hashlib,re
 from flask import current_app
 from .db import transaction,one,rows,query,scalar,DomainError,json_text,outbox,audit
-from .providers import vtpass,config
+from .providers import vtpass,paystack,config
 
 def notify(c,uid,key,message,dedupe,episode=None):
     if uid:query(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id) VALUES(:uid,:key,'in_app','delivered',CAST(:payload AS jsonb),:dedupe,:episode) ON CONFLICT(dedupe_key) DO NOTHING",uid=uid,key=key,payload=json_text({'message':message}),dedupe=dedupe,episode=episode)
+    if uid:
+        from .notifications import queue_sms
+        queue_sms(c,uid,key,message,dedupe,episode)
 
 def release_credit(c,payment_id,source='provider_confirmed'):
     p=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
     if not p or p['payment_state']!='verified':raise DomainError('payment_not_verified','A verified payment is required.',409)
     if p['credit_state']=='available':return
+    actual=p['delivered_units_mwh']
+    if actual is None:raise DomainError('units_reconciliation_required','The meter provider must confirm actual vended units before room credit can be released.',503)
     q=one(c,'SELECT * FROM quotes WHERE id=:id',id=p['quote_id']);w=one(c,'SELECT * FROM wallets WHERE id=:id FOR UPDATE',id=q['wallet_id'])
     if not w:raise DomainError('wallet_missing','The destination wallet requires reconciliation.',409)
     if w['reserved_mwh']<p['units_mwh'] or w['reserved_kobo']<q['wallet_value_kobo']:raise DomainError('reservation_mismatch','The wallet reservation requires reconciliation.',409)
     tx=one(c,"INSERT INTO ledger_transactions(wallet_id,kind,provider_reference,created_by) VALUES(:wallet,'recharge',:ref,:uid) RETURNING id",wallet=w['id'],ref='credit:'+str(p['id']),uid=p['payer_id'])
-    for account,direction in[('vended_energy','debit'),('customer_available_energy','credit')]:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,energy_mwh) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=w['id'],account=account,direction=direction,amount=p['units_mwh'])
+    for account,direction in[('vended_energy','debit'),('customer_available_energy','credit')]:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,energy_mwh) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=w['id'],account=account,direction=direction,amount=actual)
     for account,direction in [('reserved_customer_liability','debit'),('available_customer_liability','credit')]:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,amount_kobo) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=w['id'],account=account,direction=direction,amount=q['wallet_value_kobo'])
-    query(c,'UPDATE wallets SET available_mwh=available_mwh+:units,reserved_mwh=reserved_mwh-:units,available_kobo=available_kobo+:cash,reserved_kobo=reserved_kobo-:cash,ledger_version=ledger_version+1,updated_at=now() WHERE id=:id',id=w['id'],units=p['units_mwh'],cash=q['wallet_value_kobo'])
+    query(c,'UPDATE wallets SET available_mwh=available_mwh+:actual,reserved_mwh=reserved_mwh-:units,available_kobo=available_kobo+:cash,reserved_kobo=reserved_kobo-:cash,ledger_version=ledger_version+1,updated_at=now() WHERE id=:id',id=w['id'],units=p['units_mwh'],actual=actual,cash=q['wallet_value_kobo'])
+    query(c,'INSERT INTO energy_credit_lots(wallet_id,payment_id,credited_mwh,cost_kobo,remaining_mwh,remaining_cost_kobo) VALUES(:wallet,:payment,:units,:cost,:units,:cost)',wallet=w['id'],payment=p['id'],units=actual,cost=q['wallet_value_kobo'])
     query(c,"UPDATE payments SET credit_state='available',vending_state='confirmed',credited_at=now(),version=version+1,updated_at=now() WHERE id=:id",id=p['id'])
     # Clear exactly one reason. Protection/manual/budget/etc. are preserved.
     if w['device_id']:query(c,"UPDATE off_reasons SET active=false WHERE device_id=:id AND reason='wallet_zero'",id=w['device_id'])
@@ -29,9 +35,9 @@ def process_vending(payment_id):
     with transaction() as c:
         p=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
         if not p or p['payment_state']!='verified':raise DomainError('payment_unverified','Payment is not verified.',409)
-        if p['credit_state']=='available' or p['vending_state']=='token_pending_entry':return
+        if p['credit_state']=='available' or(p['vending_state']=='token_pending_entry' and p['delivered_units_mwh'] is not None):return
         q=one(c,'SELECT * FROM quotes WHERE id=:id',id=p['quote_id'])
-        m=one(c,'SELECT m.meter_number,m.disco_name FROM wallets w JOIN devices d ON d.id=w.device_id JOIN linked_meters m ON m.id=d.linked_meter_id WHERE w.id=:id',id=q['wallet_id'])
+        m={'meter_number':q['destination_meter_number'],'disco_name':q['destination_service_id']} if q['destination_meter_number'] and q['destination_service_id'] else None
         payer=one(c,'SELECT phone FROM profiles WHERE id=:id',id=p['payer_id'])
         if not m or not payer:raise DomainError('vending_destination_missing','The meter destination requires reconciliation.',409)
         prior=one(c,'SELECT * FROM vending_attempts WHERE payment_id=:id ORDER BY created_at DESC LIMIT 1',id=payment_id)
@@ -44,18 +50,67 @@ def process_vending(payment_id):
     if requery:result=vtpass('requery',{'request_id':ref})
     else:result=vtpass('pay',{'request_id':ref,'serviceID':m['disco_name'],'billersCode':m['meter_number'],'variation_code':'prepaid','amount':str(Decimal(q['wallet_value_kobo'])/100),'phone':payer['phone'].lstrip('+')})
     content=result.get('content') or {};tx=content.get('transactions') or {};delivered=str(result.get('code'))=='000' and tx.get('status')=='delivered'
+    # Official VTPass electricity responses identify the vend and report actual kWh.
+    # Tariff-derived quote units are an estimate, never proof of meter delivery.
+    actual=None
+    units=result.get('units')
+    if isinstance(units,str):
+        match=re.fullmatch(r'\s*(\d+(?:\.\d{1,6})?)\s*kWh\s*',units,re.IGNORECASE)
+        if match:
+            value=Decimal(match.group(1))*1000000
+            if 0<value<=9000000000000000:actual=int(value)
+    try:identity_ok=result.get('requestId')==ref and Decimal(str(result.get('amount')))==Decimal(q['wallet_value_kobo'])/100
+    except (InvalidOperation,TypeError,ValueError):identity_ok=False
+    delivered=delivered and identity_ok
     with transaction() as c:
         query(c,'SELECT id FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
         if not delivered:
             query(c,"UPDATE vending_attempts SET status='unknown',response_payload=CAST(:payload AS jsonb) WHERE payment_id=:id AND provider_reference=:ref",id=payment_id,ref=ref,payload=json_text(result));query(c,"UPDATE payments SET vending_state='unknown',version=version+1,updated_at=now() WHERE id=:id",id=payment_id);notify(c,p['payer_id'],'vending.delayed','Your payment was received. The meter top-up is still being reconciled; please do not pay again.','vending-delayed:'+str(payment_id))
         else:
-            token=result.get('purchased_code') or content.get('token') or tx.get('token')
+            token=result.get('purchased_code') or result.get('token') or content.get('token') or tx.get('token')
+            if token is not None:
+                text=str(token)
+                if len(text)>200 or not re.fullmatch(r'(?:Token\s*:\s*)?[\d\s-]+',text,re.IGNORECASE) or len(re.sub(r'\D','',text))!=20:token=None
+            query(c,'UPDATE payments SET delivered_units_mwh=:actual WHERE id=:id',id=payment_id,actual=actual)
             # Preserve exact provider token. Its entry into a physical meter is a separate user step.
             query(c,"UPDATE vending_attempts SET status='confirmed',token=:token,response_payload=CAST(:payload AS jsonb) WHERE payment_id=:id AND provider_reference=:ref",id=payment_id,ref=ref,token=str(token) if token else None,payload=json_text(result))
             if token:
                 query(c,"UPDATE payments SET vending_state='token_pending_entry',version=version+1,updated_at=now() WHERE id=:id",id=payment_id);notify(c,p['payer_id'],'vending.token_ready','Your meter token is ready. Enter it on the meter, then confirm the meter accepted it.','vending-token:'+str(payment_id))
-            else:release_credit(c,payment_id)
+            else:query(c,"UPDATE payments SET vending_state='unknown',version=version+1 WHERE id=:id",id=payment_id)
     if not delivered:raise DomainError('vending_pending','The provider has not confirmed fulfillment.',503)
+    if actual is None:raise DomainError('units_reconciliation_required','The provider has not supplied confirmed vended kWh. Credit remains reserved.',503)
+    if not token:raise DomainError('token_reconciliation_required','The prepaid provider did not supply the meter token. Credit remains reserved.',503)
+
+def reconcile_payment(payment_id):
+    with transaction() as c:
+        p=one(c,'SELECT * FROM payments WHERE id=:id',id=payment_id)
+        if not p or p['payment_state'] not in ('pending','unknown'):return
+        reference=p['provider_reference']
+    response=paystack('transaction/verify/'+reference);data=response.get('data') or {}
+    if response.get('status') is not True or data.get('reference')!=reference:raise DomainError('payment_outcome_unknown','The provider has not resolved this checkout.',503)
+    with transaction() as c:
+        current=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
+        if current['payment_state'] not in ('pending','unknown'):return
+        if type(data.get('amount')) is not int or data['amount']!=current['amount_kobo'] or data.get('currency')!='NGN':raise DomainError('payment_mismatch','The provider transaction requires financial review.',409)
+        if data.get('status')=='success':
+            from .live_payments import reserve_verified_payment
+            reserve_verified_payment(c,current,data,'provider_requery')
+        elif data.get('status') in ('failed','abandoned'):
+            query(c,"UPDATE payments SET payment_state='failed',vending_state='failed',version=version+1,updated_at=now() WHERE id=:id",id=payment_id)
+            notify(c,current['payer_id'],'payment.failed','The provider reports that this payment did not complete. No electricity credit was released.','payment-failed:'+str(payment_id))
+        else:raise DomainError('payment_outcome_unknown','The provider has not resolved this checkout.',503)
+
+def consume_lots(c,wallet,funded):
+    remaining=funded;cost=0
+    lots=rows(c,'SELECT * FROM energy_credit_lots WHERE wallet_id=:id AND remaining_mwh>0 ORDER BY created_at,id FOR UPDATE',id=wallet['id'])
+    for lot in lots:
+        if not remaining:break
+        take=min(remaining,lot['remaining_mwh'])
+        value=lot['remaining_cost_kobo'] if take==lot['remaining_mwh'] else take*lot['remaining_cost_kobo']//lot['remaining_mwh']
+        query(c,'UPDATE energy_credit_lots SET remaining_mwh=remaining_mwh-:units,remaining_cost_kobo=remaining_cost_kobo-:cost WHERE id=:id',id=lot['id'],units=take,cost=value)
+        remaining-=take;cost+=value
+    if remaining or cost>wallet['available_kobo']:raise DomainError('credit_lots_reconciliation_required','Existing wallet credit needs an attributable funding-lot reconciliation.',409)
+    return cost
 
 def process_reading(c,reading_id):
     r=one(c,'SELECT r.*,i.boot_id FROM readings r JOIN device_inbox i ON i.id=r.inbox_id WHERE r.id=:id',id=reading_id)
@@ -74,8 +129,7 @@ def process_reading(c,reading_id):
     w=one(c,'SELECT * FROM wallets WHERE device_id=:id FOR UPDATE',id=r['device_id']);funded=min(consumed,w['available_mwh']) if w else 0
     query(c,'INSERT INTO usage_postings(reading_id,wallet_id,consumed_mwh,funded_mwh,interval_start_ms,accounting_quality) VALUES(:rid,:wallet,:used,:funded,:start,:quality)',rid=r['id'],wallet=w['id'] if w else None,used=consumed,funded=funded,start=checkpoint['accounted_at_ms'] if eligible else None,quality='measured' if eligible else 'unavailable')
     if w and consumed:
-        rate=one(c,'SELECT day_rate_kobo_per_kwh FROM tariffs WHERE version=:version',version=w['tariff_version'])
-        cost=min(w['available_kobo'],funded*rate['day_rate_kobo_per_kwh']//1000000) if rate else 0
+        cost=consume_lots(c,w,funded)
         query(c,'UPDATE wallets SET available_mwh=available_mwh-:funded,unpaid_mwh=unpaid_mwh+:debt,available_kobo=available_kobo-:cost,ledger_version=ledger_version+1,updated_at=now() WHERE id=:id',id=w['id'],funded=funded,debt=consumed-funded,cost=cost)
         if funded:
             tx=one(c,"INSERT INTO ledger_transactions(wallet_id,kind,provider_reference) VALUES(:wallet,'consumption',:ref) RETURNING id",wallet=w['id'],ref='reading:'+str(r['id']))
@@ -106,6 +160,10 @@ def run_once():
     if not job:return False
     try:
         if job['event_type']=='payment_verified':process_vending(job['payload']['payment_id'])
+        elif job['event_type']=='payment_reconcile':reconcile_payment(job['payload']['payment_id'])
+        elif job['event_type']=='sms_queued':
+            from .notifications import process_sms
+            process_sms(job['payload']['notification_id'])
         else:
             with transaction() as c:
                 if job['event_type']=='reading_committed':process_reading(c,job['payload']['reading_id'])

@@ -96,6 +96,7 @@ export default function Page() {
               </select>
             </label>
             <Readings id={selected || data.devices[0].id} />
+            <div className="resource-actions"><a className="btn btn-secondary" href="/reports">Create a signed report or CSV export</a></div>
           </>
         ) : (
           <div className="workspace-empty">
