@@ -1904,6 +1904,16 @@ tr:last-child td {
   font-size: 11px;
   color: #9aad88;
 }
+.usage-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  font-size: 11px;
+  color: #5e6b52;
+}
+.usage-axis span { max-width: 32%; }
+.usage-axis span:last-child { text-align: right; }
 .usage-data summary {
   cursor: pointer;
   min-height: 36px;

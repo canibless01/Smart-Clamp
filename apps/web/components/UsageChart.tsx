@@ -40,9 +40,11 @@ export default function UsageChart({
                   style={{ height: `${(p.kwh / max) * 120}px` }}
                   title={`${p.time}: ${p.kwh.toFixed(2)} kWh`}
                 />
-                <span>{p.time}</span>
               </div>
             ))}
+          </div>
+          <div className="usage-axis" aria-hidden="true">
+            {Array.from(new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])).map(i => <span key={i}>{points[i].time}</span>)}
           </div>
           <details className="usage-data">
             <summary>View exact readings</summary>
