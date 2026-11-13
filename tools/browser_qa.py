@@ -4,7 +4,8 @@ Requires an isolated qa_services.py config in SMARTCLAMP_QA_CONFIG.
 import argparse,sys,pathlib,json,tempfile
 from datetime import datetime,timezone,timedelta
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa,ec
+from cryptography.fernet import Fernet
 root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'apps/api/tests'))
 from test_api import LiveIntegration
 from app.db import transaction,query
@@ -22,6 +23,10 @@ report_key=rsa.generate_private_key(public_exponent=65537,key_size=3072)
 reportfile=tempfile.NamedTemporaryFile(prefix='smartclamp-browser-report-',suffix='.pem',delete=False)
 reportfile.write(report_key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()));reportfile.close()
 t.app.config.update(OTA_ENABLED='true',OTA_SIGNING_KEY_FILE=keyfile.name,REPORT_SIGNING_KEY_FILE=reportfile.name)
+push_key=ec.generate_private_key(ec.SECP256R1())
+pushfile=tempfile.NamedTemporaryFile(prefix='smartclamp-browser-vapid-',suffix='.pem',delete=False)
+pushfile.write(push_key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()));pushfile.close()
+t.app.config.update(WEB_PUSH_ENABLED='true',VAPID_PRIVATE_KEY_FILE=pushfile.name,VAPID_SUBJECT='mailto:qa@example.test',PUSH_ENCRYPTION_KEY=Fernet.generate_key().decode())
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET ota_qualified=true WHERE id=:id',id=d['id'])
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET owner_id=NULL WHERE id=:id',id=d['id'])
 response=t.client.post('/api/v1/ops/devices/'+d['id']+'/claim-code',json={},headers=t.headers(ops))
@@ -41,4 +46,4 @@ a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:
-    pathlib.Path(keyfile.name).unlink(missing_ok=True);pathlib.Path(reportfile.name).unlink(missing_ok=True)
+    pathlib.Path(keyfile.name).unlink(missing_ok=True);pathlib.Path(reportfile.name).unlink(missing_ok=True);pathlib.Path(pushfile.name).unlink(missing_ok=True)

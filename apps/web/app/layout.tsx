@@ -2,12 +2,16 @@ import "@fontsource-variable/manrope";
 import "@fontsource-variable/dm-sans";
 import "./globals.css";
 import type { Metadata } from "next";
+import PwaRegistration from '@/components/PwaRegistration';
 
 export const metadata: Metadata = {
   title: "SmartClamp — Electricity you can verify",
   description:
     "See what you use. Understand what you pay. Control power where your device supports it.",
   robots: { index: true, follow: true },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable:true,title:'SmartClamp',statusBarStyle:'default' },
+  icons: {apple:'/pwa-icons/192'},
 };
 
 export default function RootLayout({
@@ -21,6 +25,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body>
+        <PwaRegistration/>
         <a
           href="#main"
           className="skip-link"

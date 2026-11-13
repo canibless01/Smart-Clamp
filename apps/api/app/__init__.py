@@ -73,5 +73,6 @@ def create_app(settings=None):
     from .firmware import bp as firmware
     from .reports import bp as reports
     from .prepaid import bp as prepaid
-    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid):app.register_blueprint(bp)
+    from .web_push import bp as web_push
+    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push):app.register_blueprint(bp)
     return app

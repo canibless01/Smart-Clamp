@@ -7,13 +7,14 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa,ec
 root=Path(__file__).resolve().parents[1]
 
 def validate(values):
     required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
     if values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
+    if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
     required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
     missing=[name for name in required if not values.get(name)];invalid=[]
     for name in ('LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION'):
@@ -51,7 +52,18 @@ def validate(values):
             fingerprints.append(key.public_key().public_bytes(serialization.Encoding.DER,serialization.PublicFormat.SubjectPublicKeyInfo))
         except (OSError,ValueError,TypeError):invalid.append(name+' must identify a readable private RSA key of at least 3072 bits')
     if len(fingerprints)==2 and fingerprints[0]==fingerprints[1]:invalid.append('Report and firmware signing keys must be distinct')
-    for name in ('OTA_ENABLED','SMS_ENABLED'):
+    if values.get('PUSH_ENCRYPTION_KEY'):
+        try:Fernet(values['PUSH_ENCRYPTION_KEY'].encode())
+        except (ValueError,TypeError):invalid.append('PUSH_ENCRYPTION_KEY is not a Fernet key')
+        if values['PUSH_ENCRYPTION_KEY']==values.get('DEVICE_HMAC_ENCRYPTION_KEY'):invalid.append('Push and device encryption keys must be distinct')
+    if values.get('VAPID_SUBJECT') and not values['VAPID_SUBJECT'].startswith(('mailto:','https://')):invalid.append('VAPID_SUBJECT must identify an actual mailto or HTTPS operator contact')
+    if values.get('VAPID_PRIVATE_KEY_FILE'):
+        try:
+            path=Path(values['VAPID_PRIVATE_KEY_FILE']);key=serialization.load_pem_private_key(path.read_bytes(),password=None)
+            if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1):raise ValueError()
+            if path.stat().st_mode&0o077:invalid.append('VAPID_PRIVATE_KEY_FILE must be private to its owner')
+        except (OSError,ValueError,TypeError):invalid.append('VAPID_PRIVATE_KEY_FILE must identify a readable P-256 private key')
+    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED'):
         if values.get(name) not in (None,'','true','false'):invalid.append(name+' must be lowercase true or false')
     return missing,invalid
 

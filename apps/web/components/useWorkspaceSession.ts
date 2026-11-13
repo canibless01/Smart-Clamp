@@ -34,7 +34,8 @@ export function useWorkspaceSession() {
     window.addEventListener("smartclamp:session-ended", ended); window.addEventListener("storage", changed);
     const resumed = () => { if (document.visibilityState === "visible" && !hasSession()) ended(); };
     document.addEventListener("visibilitychange", resumed);
-    return () => { window.removeEventListener("smartclamp:session-ended", ended); window.removeEventListener("storage", changed); document.removeEventListener("visibilitychange", resumed); };
+    const restored=(event:PageTransitionEvent)=>{if(event.persisted)location.reload();};window.addEventListener('pageshow',restored);
+    return () => { window.removeEventListener("smartclamp:session-ended", ended); window.removeEventListener("storage", changed); document.removeEventListener("visibilitychange", resumed);window.removeEventListener('pageshow',restored); };
   }, []);
   return { status, role, retry: verify };
 }

@@ -11,6 +11,8 @@ def notify(c,uid,key,message,dedupe,episode=None):
     if uid:
         from .notifications import queue_sms
         queue_sms(c,uid,key,message,dedupe,episode)
+        from .web_push import queue_push
+        queue_push(c,uid,key,dedupe,episode)
 
 def release_credit(c,payment_id,source='provider_confirmed'):
     p=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
@@ -164,6 +166,9 @@ def run_once():
         elif job['event_type']=='sms_queued':
             from .notifications import process_sms
             process_sms(job['payload']['notification_id'])
+        elif job['event_type']=='push_queued':
+            from .web_push import process_push
+            process_push(job['payload']['delivery_id'])
         else:
             with transaction() as c:
                 if job['event_type']=='reading_committed':process_reading(c,job['payload']['reading_id'])

@@ -47,7 +47,7 @@ def process_sms(notification_id):
             query(c,"UPDATE notifications SET status='failed',last_error='recipient_opted_out' WHERE id=:id",id=notification_id);return
         if not sms_configured():raise DomainError('sms_not_configured','SMS delivery requires an activated provider.',503)
         user=one(c,'SELECT phone FROM profiles WHERE id=:id',id=n['recipient_id'])
-        if not user or not re.fullmatch(r'\+[1-9]\d{7,14}',user['phone']):
+        if not user or not re.fullmatch(r'\+[1-9]\d{7,14}',user['phone'] or ''):
             query(c,"UPDATE notifications SET status='failed',last_error='recipient_invalid' WHERE id=:id",id=notification_id);return
         url,headers,data=sms_request(user['phone'],n['payload']['message'])
         # AT does not document a caller-supplied idempotency key for standard SMS.

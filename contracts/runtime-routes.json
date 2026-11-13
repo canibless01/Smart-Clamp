@@ -515,6 +515,21 @@
     "handler": "live_auth.preferences"
   },
   {
+    "method": "DELETE",
+    "path": "/api/v1/users/me/push-subscriptions",
+    "handler": "web_push.subscriptions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/users/me/push-subscriptions",
+    "handler": "web_push.subscriptions"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/users/me/push-subscriptions",
+    "handler": "web_push.subscriptions"
+  },
+  {
     "method": "PATCH",
     "path": "/api/v1/users/me/report-preferences",
     "handler": "live_auth.report_preferences"

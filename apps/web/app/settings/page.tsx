@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch, logout } from "@/lib/api";
 import PhoneEnrollment from '@/components/PhoneEnrollment';
+import PwaControls from '@/components/PwaControls';
 export default function Page() {
   const [prefs, setPrefs] = useState<any>(null),
     [smsAvailable, setSmsAvailable] = useState(false),
@@ -49,7 +50,7 @@ export default function Page() {
                   try {
                     await apiFetch("/users/me/preferences", {
                       method: "PATCH",
-                      body: JSON.stringify(prefs),
+                      body: JSON.stringify({language:prefs.language || 'en',sms_enabled:prefs.sms_enabled === true}),
                     });
                     setMessage("Preferences saved.");
                   } catch (e) {
@@ -72,7 +73,7 @@ export default function Page() {
                   </select>
                 </label>
                 <p>
-                  In-app notifications are available. {smsAvailable ? "SMS is available for account events. Provider acceptance does not confirm handset delivery." : "SMS is unavailable until the delivery provider is activated."} Push and email delivery remain unavailable.
+                  In-app notifications are available. {smsAvailable ? "SMS is available for account events. Provider acceptance does not confirm handset delivery." : "SMS is unavailable until the delivery provider is activated."} Email event delivery remains unavailable. Browser notifications are managed below.
                 </p>
                 <label><input type="checkbox" checked={prefs.sms_enabled === true} disabled={!smsAvailable} onChange={e => setPrefs({ ...prefs, sms_enabled: e.target.checked })} /> Send account events to my phone by SMS</label>
                 <button className="btn btn-primary">Save preferences</button>
@@ -80,6 +81,7 @@ export default function Page() {
             )}
             {message && <p role="status">{message}</p>}
           </section>
+          <PwaControls/>
           <div className="resource-actions">
             <a className="btn btn-secondary" href="/devices/link">
               Link another SmartClamp

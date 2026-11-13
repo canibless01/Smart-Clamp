@@ -2,7 +2,7 @@
 import argparse,os,pathlib
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa,ec
 
 def write_private(path,content):
     fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
@@ -15,6 +15,9 @@ def bootstrap(path):
         write_private(path/(name+'-private.pem'),key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
         write_private(path/(name+'-public.pem'),key.public_key().public_bytes(serialization.Encoding.PEM,serialization.PublicFormat.SubjectPublicKeyInfo))
     env='DEVICE_HMAC_ENCRYPTION_KEY='+Fernet.generate_key().decode()+'\nOTA_SIGNING_KEY_FILE='+str((path/'firmware-private.pem').resolve())+'\nREPORT_SIGNING_KEY_FILE='+str((path/'reports-private.pem').resolve())+'\nOTA_ENABLED=false\nSMS_ENABLED=false\n'
+    vapid=ec.generate_private_key(ec.SECP256R1())
+    write_private(path/'vapid-private.pem',vapid.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
+    env+='PUSH_ENCRYPTION_KEY='+Fernet.generate_key().decode()+'\nVAPID_PRIVATE_KEY_FILE='+str((path/'vapid-private.pem').resolve())+'\nWEB_PUSH_ENABLED=false\n'
     write_private(path/'server-secrets.env',env.encode())
 
 if __name__=='__main__':

@@ -105,7 +105,15 @@ export function getRole(): string | null {
 export async function logout() {
   if (typeof window === "undefined") return;
   try {
-    await apiFetch("/auth/logout", { method: "POST" });
+    const registration=await navigator.serviceWorker?.getRegistration('/');
+    const subscription=await registration?.pushManager.getSubscription();
+    if(subscription){
+      await fetch(`${API_BASE}/users/me/push-subscriptions`,{method:'DELETE',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getAccessToken()}`},body:JSON.stringify({endpoint:subscription.endpoint}),signal:AbortSignal.timeout(2000)}).catch(()=>{});
+      await Promise.race([subscription.unsubscribe(),new Promise(resolve=>setTimeout(resolve,2000))]);
+    }
+  } catch {}
+  try {
+    await apiFetch("/auth/logout", { method: "POST",signal:AbortSignal.timeout(5000) });
   } catch {}
   sessionStorage.clear();
   clearSession();

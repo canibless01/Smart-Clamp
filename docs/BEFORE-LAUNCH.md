@@ -76,3 +76,5 @@ Use [the key/provisioning/update runbook](FIRMWARE-UPDATES.md), `tools/bootstrap
 - PWA install/offline/update/notification behaviour needs Chrome/Android and supported Safari/iOS acceptance. No offline payment/control queues or fake live readings.
 - Capture implemented customer/operations/engineering/installer/utility views from isolated QA records. Label screenshots as simulations. Finance/support and other unbuilt A–M panels must not be illustrated with fabricated operational numbers as if implemented.
 - Complete schedules/budgets/subscriptions, remaining internal workflows and qualified production sensing/actuation/local links before claiming the full requested ecosystem is finished. Keep [the matrix](IMPLEMENTATION-MATRIX.md) current.
+
+PWA/install/offline and opt-in encrypted Web Push are implemented in the continuation; see `PWA-NOTIFICATIONS.md`. Application event email remains unimplemented. Staff audience composition is the next active batch.

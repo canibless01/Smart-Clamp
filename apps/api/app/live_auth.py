@@ -173,13 +173,15 @@ def preferences():
             if set(d)-allowed:raise DomainError('validation_error','Unknown preference field.')
             for key in ('email_enabled','sms_enabled','push_enabled'):
                 if key in d and type(d[key]) is not bool:raise DomainError('validation_error','Notification preferences require explicit booleans.')
+            if d.get('sms_enabled') is True and not g.actor.get('phone'):raise DomainError('phone_verification_required','Verify a phone before enabling SMS.',409)
             if 'language' in d and d['language']!='en':raise DomainError('validation_error','This language is not supported yet.')
             if 'theme' in d and d['theme'] not in ('light','dark','system'):raise DomainError('validation_error','Choose a supported theme.')
             query(c,"INSERT INTO user_preferences(user_id,value) VALUES(:id,CAST(:v AS jsonb)) ON CONFLICT(user_id) DO UPDATE SET value=user_preferences.value||excluded.value,version=user_preferences.version+1,updated_at=now()",id=g.actor['id'],v=json_text(d))
         p=one(c,'SELECT value,version FROM user_preferences WHERE user_id=:id',id=g.actor['id'])
         from .notifications import sms_configured
+        from .web_push import configured as push_configured
         return jsonify({**(dict(p) if p else {'value':{},'version':0}),
-                        'notification_channels':{'sms':bool(sms_configured()),'email':False,'push':False}})
+                        'notification_channels':{'sms':bool(sms_configured()),'email':False,'push':bool(push_configured())}})
 
 @bp.patch('/api/v1/users/me/report-preferences')
 @authenticated

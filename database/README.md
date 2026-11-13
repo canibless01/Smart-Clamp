@@ -47,3 +47,5 @@ See [launch readiness](../docs/LAUNCH-READINESS.md) and [runtime API](../docs/AP
 Pre-018 available credit has no automatically invented funding lot. Reconcile attributable historic payments/provider units before enabling consumption against such balances. Pre-020 quotes lack a pinned destination and require review rather than silently vending against a possibly changed device association. Take a backup and review these pre-release upgrade boundaries before migrating any live project.
 
 Migration 024 adds email-only profiles and immutable legal-consent receipts. It does not infer consent for existing accounts. Run it before deploying the corresponding auth runtime; see `docs/ACCOUNT-ONBOARDING.md`.
+
+Migration 025 adds private encrypted browser subscriptions and durable Web Push dispatch records. See `docs/PWA-NOTIFICATIONS.md`.

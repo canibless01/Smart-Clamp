@@ -22,6 +22,10 @@ class ProviderFixture(BaseHTTPRequestHandler):
         content=json.dumps(data).encode();self.send_response(code);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(content)));self.end_headers();self.wfile.write(content)
     def do_POST(self):
         raw=self.rfile.read(int(self.headers.get('Content-Length','0')))
+        if self.path.startswith('/push/'):
+            type(self).push_requests.append({'raw':raw,'authorization':self.headers.get('Authorization')})
+            if self.push_mode=='unknown':self.close_connection=True;return
+            return self.send({},410 if self.push_mode=='expired' else 201)
         if self.path=='/messaging':
             d={k:v[0] for k,v in parse_qs(raw.decode()).items()};type(self).sms_requests.append(d)
             if self.sms_mode=='unknown':self.close_connection=True;return
@@ -62,6 +66,7 @@ class LiveIntegration(unittest.TestCase):
     def tearDownClass(cls):cls.http.shutdown();cls.http.server_close();cls.app.db_engine.dispose()
     def setUp(self):
         self.client=self.app.test_client();self.users=[];ProviderFixture.token=None;ProviderFixture.vend_units=None;ProviderFixture.omit_token=False;ProviderFixture.key_changes={};ProviderFixture.init_mode="success"
+        ProviderFixture.push_requests=[];ProviderFixture.push_mode='accepted'
     def user(self,role='tenant'):
         phone='+1555'+str(secrets.randbelow(9000000)+1000000);pwd='A-real-QA-password-42'
         from app.live_auth import legal_versions
@@ -152,6 +157,47 @@ class LiveIntegration(unittest.TestCase):
             self.assertEqual(params['redirect_to'],['http://localhost:3000/auth/callback?flow_id='+'b'*64]);self.assertEqual(params['code_challenge_method'],['s256'])
             self.assertEqual(self.client.post('/api/v1/auth/oauth/start',json=body|{'flow_id':'bad'}).status_code,400)
         self.assertEqual(self.client.post('/api/v1/auth/oauth/exchange',json={'code':'x','code_verifier':'bad'}).status_code,400)
+    def test_web_push_encrypts_private_payload_and_handles_unknown_expiry_and_optout(self):
+        import tempfile,base64,http_ece,jwt
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import serialization
+        from app.work import notify
+        from app.web_push import process_push
+        user=self.user('homeowner');other=self.user('homeowner')
+        vapid=ec.generate_private_key(ec.SECP256R1());receiver=ec.generate_private_key(ec.SECP256R1());auth=secrets.token_bytes(16)
+        encode=lambda raw:base64.urlsafe_b64encode(raw).decode().rstrip('=')
+        origin='http://127.0.0.1:'+str(self.http.server_port)
+        sub={'endpoint':origin+'/push/'+uuid.uuid4().hex,'keys':{'p256dh':encode(receiver.public_key().public_bytes(serialization.Encoding.X962,serialization.PublicFormat.UncompressedPoint)),'auth':encode(auth)}}
+        with tempfile.NamedTemporaryFile(suffix='.pem') as file:
+            file.write(vapid.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()));file.flush()
+            settings={'WEB_PUSH_ENABLED':'true','VAPID_PRIVATE_KEY_FILE':file.name,'VAPID_SUBJECT':'mailto:qa@example.test','PUSH_ENCRYPTION_KEY':Fernet.generate_key().decode()}
+            previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+            try:
+                endpoint='/api/v1/users/me/push-subscriptions'
+                bad=sub|{'endpoint':'https://127.0.0.1/private'};self.assertEqual(self.client.post(endpoint,json=bad,headers=self.headers(user)).status_code,400)
+                bad=sub|{'endpoint':'https://fcm.googleapis.com:bad/push'};self.assertEqual(self.client.post(endpoint,json=bad,headers=self.headers(user)).status_code,400)
+                self.assertEqual(self.client.post(endpoint,json=sub,headers=self.headers(user)).status_code,201)
+                self.assertEqual(self.client.post(endpoint,json=sub,headers=self.headers(other)).status_code,409)
+                with self.app.app_context(),transaction() as c:
+                    stored=one(c,'SELECT * FROM push_subscriptions WHERE user_id=:id',id=user['id']);self.assertNotIn(sub['endpoint'],stored['encrypted_subscription'])
+                    notify(c,user['id'],'supply.lost','Private test message must not enter the push payload.',uuid.uuid4().hex)
+                self.drain();self.assertEqual(len(ProviderFixture.push_requests),1)
+                sent=ProviderFixture.push_requests[-1];plain=json.loads(http_ece.decrypt(sent['raw'],private_key=receiver,auth_secret=auth,version='aes128gcm'));self.assertEqual(set(plain),{'id'})
+                token=sent['authorization'].split('t=')[1].split(',')[0]
+                claims=jwt.decode(token,vapid.public_key(),algorithms=['ES256'],audience=origin);self.assertEqual(claims['sub'],'mailto:qa@example.test')
+                with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=plain['id']),'provider_accepted')
+                for mode in ('unknown','expired','optout'):
+                    self.assertEqual(self.client.post(endpoint,json=sub,headers=self.headers(user)).status_code,201)
+                    ProviderFixture.push_mode=mode
+                    with self.app.app_context(),transaction() as c:
+                        notify(c,user['id'],'supply.restored','Private update',uuid.uuid4().hex)
+                        delivery=one(c,"SELECT d.id FROM push_deliveries d JOIN push_subscriptions s ON s.id=d.subscription_id WHERE s.user_id=:id AND d.status='queued'",id=user['id'])
+                    if mode=='optout':self.assertEqual(self.client.delete(endpoint,json={'endpoint':sub['endpoint']},headers=self.headers(user)).status_code,200)
+                    before=len(ProviderFixture.push_requests);self.drain()
+                    with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM push_deliveries WHERE id=:id',id=delivery['id']),{'unknown':'unknown','expired':'expired','optout':'opted_out'}[mode])
+                    with self.app.app_context():process_push(delivery['id'])
+                    self.assertEqual(len(ProviderFixture.push_requests),before+(0 if mode=='optout' else 1))
+            finally:self.app.config.update(previous)
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)
