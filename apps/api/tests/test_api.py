@@ -31,6 +31,14 @@ class ProviderFixture(BaseHTTPRequestHandler):
             if self.sms_mode=='unknown':self.close_connection=True;return
             return self.send({'SMSMessageData':{'Recipients':[{'number':d['to'],'statusCode':101,'messageId':'test-sms-'+str(len(self.sms_requests))}]}})
         d=json.loads(raw or b'{}')
+        if self.path=='/emails':
+            key=self.headers.get('Idempotency-Key');type(self).email_requests.append({'key':key,'body':d})
+            prior=self.email_records.get(key)
+            if prior and prior['body']!=d:return self.send({},409)
+            if self.email_mode=='rejected':return self.send({},422)
+            if not prior:type(self).email_records[key]={'body':d,'id':str(uuid.uuid4())}
+            if self.email_mode=='unknown':self.close_connection=True;return
+            return self.send({'id':self.email_records[key]['id']})
         if self.path=='/transaction/initialize':
             type(self).initializations+=1
             self.records[d['reference']]={'reference':d['reference'],'amount':d['amount'],'currency':'NGN','status':'pending' if self.init_mode=='pending' else 'success'}
@@ -67,6 +75,7 @@ class LiveIntegration(unittest.TestCase):
     def setUp(self):
         self.client=self.app.test_client();self.users=[];ProviderFixture.token=None;ProviderFixture.vend_units=None;ProviderFixture.omit_token=False;ProviderFixture.key_changes={};ProviderFixture.init_mode="success"
         ProviderFixture.push_requests=[];ProviderFixture.push_mode='accepted'
+        ProviderFixture.email_requests=[];ProviderFixture.email_records={};ProviderFixture.email_mode='accepted'
     def user(self,role='tenant'):
         phone='+1555'+str(secrets.randbelow(9000000)+1000000);pwd='A-real-QA-password-42'
         from app.live_auth import legal_versions
@@ -103,6 +112,76 @@ class LiveIntegration(unittest.TestCase):
     def attest(self,u,p):
         result=self.client.post('/api/v1/payments/'+str(p['id'])+'/confirm-meter-entry',json={'confirmed':True},headers=self.headers(u))
         self.assertEqual(result.status_code,200,result.json)
+    def test_staff_email_uses_frozen_request_and_same_idempotency_key_after_lost_response(self):
+        from app.live_auth import legal_versions
+        from app.providers import auth_request
+        from app.email_delivery import process_email
+        with self.app.app_context():
+            if not (auth_request('settings').get('external') or {}).get('email'):self.skipTest('Requires isolated email-enabled GoTrue')
+            versions=legal_versions()
+        body={'email':'notice-'+uuid.uuid4().hex+'@example.test','password':'QA-email-password-42','role':'homeowner','full_name':'Email notice QA','accepted_terms':True,**versions}
+        created=self.client.post('/api/v1/auth/signup',json=body);self.assertEqual(created.status_code,200,created.json)
+        user={'id':created.json['user_id'],'token':created.json['access_token']};dev=self.provision(user);ops=self.promote(self.user('homeowner'),'internal_ops')
+        self.assertEqual(self.client.patch('/api/v1/users/me/preferences',json={'email_enabled':True},headers=self.headers(user)).status_code,200)
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'SmartClamp QA <notices@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'fixture-email-key','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails'}
+        previous={key:self.app.config.get(key) for key in settings};self.app.config.update(settings)
+        try:
+            p=self.client.post('/api/v1/communications/previews',json={'title':'QA account update','message':'Review the saved account observation securely.','device_ids':[dev['id']],'channels':['in_app','email']},headers=self.headers(ops));self.assertEqual(p.status_code,201,p.json);self.assertEqual(p.json['email_recipients'],1)
+            sent=self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops));self.assertEqual(sent.status_code,201,sent.json)
+            ProviderFixture.email_mode='unknown';self.drain();self.assertEqual(len(ProviderFixture.email_requests),1)
+            with self.app.app_context(),transaction() as c:
+                email=one(c,"SELECT * FROM notifications WHERE recipient_id=:id AND channel='email'",id=user['id']);self.assertEqual(email['status'],'unknown')
+                frozen=one(c,'SELECT encrypted_request FROM email_dispatches WHERE notification_id=:id',id=email['id']);self.assertNotIn(body['email'],frozen['encrypted_request'])
+                query(c,"UPDATE outbox SET next_attempt_at=now() WHERE event_type='email_queued' AND aggregate_id=:id",id=email['id'])
+            # Sender configuration changes cannot change the already submitted body.
+            self.app.config['EMAIL_FROM']='Changed sender <changed@example.test>';ProviderFixture.email_mode='accepted';self.drain()
+            self.assertEqual(len(ProviderFixture.email_records),1);self.assertEqual(len(ProviderFixture.email_requests),2);self.assertEqual(ProviderFixture.email_requests[0],ProviderFixture.email_requests[1])
+            with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=email['id']),'provider_accepted')
+            with self.app.app_context():process_email(email['id'])
+            self.assertEqual(len(ProviderFixture.email_requests),2)
+            self.app.config['EMAIL_FROM']='bad\nheader@example.test'
+            from app.work import notify
+            with self.app.app_context(),transaction() as c:
+                dedupe=uuid.uuid4().hex;notify(c,user['id'],'service.notice','Configuration failure must preserve the in-app record.',dedupe,channels=['email'])
+                self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE dedupe_key=:key',key=dedupe),'delivered')
+                failed=one(c,'SELECT status,last_error FROM notifications WHERE dedupe_key=:key',key='email:'+dedupe);self.assertEqual(failed['status'],'failed');self.assertEqual(failed['last_error'],'email_configuration_invalid')
+        finally:self.app.config.update(previous)
+
+    def test_uncertain_email_stops_on_optout_changed_credentials_or_expired_window(self):
+        from app.live_auth import legal_versions
+        from app.providers import auth_request
+        from app.work import notify
+        from app.email_delivery import process_email
+        from unittest.mock import patch
+        with self.app.app_context():
+            if not (auth_request('settings').get('external') or {}).get('email'):self.skipTest('Requires isolated email-enabled GoTrue')
+            versions=legal_versions()
+        created=self.client.post('/api/v1/auth/signup',json={'email':'expiry-'+uuid.uuid4().hex+'@example.test','password':'QA-email-password-42','role':'homeowner','full_name':'Email expiry QA','accepted_terms':True,**versions})
+        self.assertEqual(created.status_code,200,created.json);uid=created.json['user_id'];user={'id':uid,'token':created.json['access_token']}
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'QA <notice@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'fixture-original','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails'}
+        previous={key:self.app.config.get(key) for key in settings};self.app.config.update(settings)
+        try:
+            for mode in ('expired','credentials','optout'):
+                self.client.patch('/api/v1/users/me/preferences',json={'email_enabled':True},headers=self.headers(user));ProviderFixture.email_mode='unknown';self.app.config['RESEND_API_KEY']='fixture-original'
+                with self.app.app_context(),transaction() as c:
+                    dedupe=uuid.uuid4().hex;notify(c,uid,'service.notice','QA uncertain send '+mode,dedupe,channels=['email'])
+                    nid=scalar(c,"SELECT id FROM notifications WHERE dedupe_key=:key",key='email:'+dedupe)
+                self.drain();before=len(ProviderFixture.email_requests)
+                if mode=='credentials':self.app.config['RESEND_API_KEY']='different-provider-key'
+                if mode=='optout':self.client.patch('/api/v1/users/me/preferences',json={'email_enabled':False},headers=self.headers(user))
+                later=datetime.now(timezone.utc)+timedelta(hours=24)
+                class Clock:
+                    @staticmethod
+                    def now(tz):return later
+                with self.app.app_context():
+                    if mode=='expired':
+                        with patch('app.email_delivery.datetime',Clock):process_email(nid)
+                    else:process_email(nid)
+                self.assertEqual(len(ProviderFixture.email_requests),before)
+                with self.app.app_context(),transaction() as c:
+                    row=one(c,'SELECT status,last_error FROM notifications WHERE id=:id',id=nid);self.assertEqual(row['status'],'unknown');self.assertEqual(row['last_error'],{'expired':'idempotency_window_expired','credentials':'provider_credentials_changed','optout':'recipient_opted_out'}[mode])
+        finally:self.app.config.update(previous)
+
     def test_real_auth_rejects_wrong_password_and_persists_restart(self):
         u=self.user();bad=self.client.post('/api/v1/auth/login',json={'phone':u['phone'],'password':'wrong-password'});self.assertEqual(bad.status_code,401)
         other=create_app(self.settings);r=other.test_client().post('/api/v1/auth/login',json={'phone':u['phone'],'password':u['password']});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['user_id'],u['id']);other.db_engine.dispose()

@@ -18,6 +18,7 @@ def bootstrap(path):
     vapid=ec.generate_private_key(ec.SECP256R1())
     write_private(path/'vapid-private.pem',vapid.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()))
     env+='PUSH_ENCRYPTION_KEY='+Fernet.generate_key().decode()+'\nVAPID_PRIVATE_KEY_FILE='+str((path/'vapid-private.pem').resolve())+'\nWEB_PUSH_ENABLED=false\n'
+    env+='EMAIL_ENCRYPTION_KEY='+Fernet.generate_key().decode()+'\nEMAIL_ENABLED=false\n'
     write_private(path/'server-secrets.env',env.encode())
 
 if __name__=='__main__':

@@ -13,6 +13,7 @@ root=Path(__file__).resolve().parents[1]
 def validate(values):
     required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
     if values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
+    if values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
     if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
     required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
@@ -63,7 +64,16 @@ def validate(values):
             if not isinstance(key,ec.EllipticCurvePrivateKey) or not isinstance(key.curve,ec.SECP256R1):raise ValueError()
             if path.stat().st_mode&0o077:invalid.append('VAPID_PRIVATE_KEY_FILE must be private to its owner')
         except (OSError,ValueError,TypeError):invalid.append('VAPID_PRIVATE_KEY_FILE must identify a readable P-256 private key')
-    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED'):
+    if values.get('EMAIL_ENCRYPTION_KEY'):
+        try:Fernet(values['EMAIL_ENCRYPTION_KEY'].encode())
+        except (ValueError,TypeError):invalid.append('EMAIL_ENCRYPTION_KEY is not a Fernet key')
+        if values['EMAIL_ENCRYPTION_KEY'] in (values.get('PUSH_ENCRYPTION_KEY'),values.get('DEVICE_HMAC_ENCRYPTION_KEY')):invalid.append('Email encryption key must be distinct')
+    if values.get('EMAIL_FROM'):
+        from email.utils import parseaddr
+        import re
+        address=parseaddr(values['EMAIL_FROM'])[1]
+        if '\r' in values['EMAIL_FROM'] or '\n' in values['EMAIL_FROM'] or not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',address):invalid.append('EMAIL_FROM must contain one verified sender address')
+    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED','EMAIL_ENABLED'):
         if values.get(name) not in (None,'','true','false'):invalid.append(name+' must be lowercase true or false')
     return missing,invalid
 

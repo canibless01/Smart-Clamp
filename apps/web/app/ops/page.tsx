@@ -91,11 +91,12 @@ export default function Page() {
             </form>
           </section>
           <section className="card" style={{ marginTop: 24 }}>
-            <h2>SMS delivery review</h2>
-            <p>Unknown dispatches need provider reconciliation before any resend. Queued records may be waiting for quiet hours or provider configuration.</p>
-            <RecordTable items={data.sms_delivery_issues} columns={[
+            <h2>Notification delivery review</h2>
+            <p>Queued notices need the worker and configured providers. Unknown outcomes follow channel-specific reconciliation; do not create a new send to recover an uncertain one.</p>
+            <RecordTable items={data.notification_delivery_issues || data.sms_delivery_issues} columns={[
               { key: "id", label: "Delivery reference" },
               { key: "template_key", label: "Event" },
+              { key: "channel", label: "Channel" },
               { key: "status", label: "Status" },
               { key: "last_error", label: "Review reason" },
             ]} />

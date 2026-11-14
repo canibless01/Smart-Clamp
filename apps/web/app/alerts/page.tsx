@@ -16,7 +16,7 @@ export default function Page() {
                 <p>
                   {r.payload?.message || "An event was recorded for review."}
                 </p>
-                <p>{['sms','push'].includes(r.channel) ? `${r.channel === 'sms' ? 'SMS' : 'Browser push'} · ${r.status.replace(/_/g, " ")}${r.status === "provider_accepted" ? " (device display unconfirmed)" : ""}` : "In-app record"}</p>
+                <p>{['sms','push','email'].includes(r.channel) ? `${r.channel === 'sms' ? 'SMS' : r.channel==='email'?'Email':'Browser push'} · ${r.status.replace(/_/g, " ")}${r.status === "provider_accepted" ? (r.channel==='email'?" (inbox delivery unconfirmed)":" (device display unconfirmed)") : ""}` : "In-app record"}</p>
                 <time dateTime={r.created_at}>
                   {new Date(r.created_at).toLocaleString()}
                 </time>

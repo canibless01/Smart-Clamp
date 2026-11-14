@@ -6,6 +6,7 @@ from .live_auth import authenticated,staff
 from .idempotency import idempotent
 from .work import notify
 from .notifications import sms_configured
+from .email_delivery import configured as email_configured
 from .web_push import configured as push_configured
 
 bp=Blueprint('communications',__name__)
@@ -35,7 +36,8 @@ def audience(c,device_ids,org):
 def summary(c,recipients,channels):
     push=scalar(c,"SELECT count(*) FROM push_subscriptions s JOIN user_preferences p ON p.user_id=s.user_id WHERE s.enabled AND s.user_id=ANY(CAST(:ids AS uuid[])) AND p.value->'push_enabled'='true'::jsonb",ids=recipients) if push_configured() and 'push' in channels else 0
     sms=scalar(c,"SELECT count(*) FROM profiles p JOIN user_preferences pref ON pref.user_id=p.id WHERE p.id=ANY(CAST(:ids AS uuid[])) AND p.phone IS NOT NULL AND pref.value->'sms_enabled'='true'::jsonb",ids=recipients) if sms_configured() and 'sms' in channels else 0
-    return {'in_app_recipients':len(recipients),'push_subscriptions':push,'sms_recipients':sms}
+    email=scalar(c,"SELECT count(*) FROM profiles p JOIN user_preferences pref ON pref.user_id=p.id WHERE p.id=ANY(CAST(:ids AS uuid[])) AND p.email IS NOT NULL AND pref.value->'email_enabled'='true'::jsonb",ids=recipients) if email_configured() and 'email' in channels else 0
+    return {'in_app_recipients':len(recipients),'push_subscriptions':push,'sms_recipients':sms,'email_recipients':email}
 
 @bp.get('/api/v1/communications/context')
 @authenticated
@@ -49,7 +51,7 @@ def context():
         for device in devices:device['organization_ids']=[str(s['organization_id']) for s in scopes if s['device_id']==device['id']]
         grants=rows(c,'SELECT n.organization_id,o.name,n.enabled,n.expires_at,n.version FROM organization_notice_grants n JOIN organizations o ON o.id=n.organization_id ORDER BY o.name') if g.actor['role']=='internal_superadmin' else None
         audit(c,g.actor['id'],'service_messaging_context_viewed')
-    return jsonify(organizations=orgs,devices=devices,history=history,notice_grants=grants,can_review_grants=g.actor['role']=='internal_superadmin',firmware_access=g.actor['role']=='internal_superadmin',utility=g.actor['role']=='nepa_staff',channels={'push':bool(push_configured()),'sms':bool(sms_configured())})
+    return jsonify(organizations=orgs,devices=devices,history=history,notice_grants=grants,can_review_grants=g.actor['role']=='internal_superadmin',firmware_access=g.actor['role']=='internal_superadmin',utility=g.actor['role']=='nepa_staff',channels={'push':bool(push_configured()),'sms':bool(sms_configured()),'email':bool(email_configured())})
 
 @bp.post('/api/v1/communications/previews')
 @authenticated
@@ -57,9 +59,9 @@ def context():
 def preview():
     sender();d=request.get_json() or {};title=d.get('title','');message=d.get('message','');channels=d.get('channels',['in_app']);ids=d.get('device_ids')
     if not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(message,str) or not 10<=len(message.strip())<=2000:raise DomainError('validation_error','Enter a title and a service message of 10–2,000 characters.')
-    if not isinstance(channels,list) or any(x not in ('in_app','push','sms') for x in channels):raise DomainError('validation_error','Choose supported notification channels.')
+    if not isinstance(channels,list) or any(x not in ('in_app','push','sms','email') for x in channels):raise DomainError('validation_error','Choose supported notification channels.')
     channels=sorted(set(channels)|{'in_app'})
-    if 'push' in channels and not push_configured() or 'sms' in channels and not sms_configured():raise DomainError('channel_unavailable','A selected notification channel is not configured.',503)
+    if 'push' in channels and not push_configured() or 'sms' in channels and not sms_configured() or 'email' in channels and not email_configured():raise DomainError('channel_unavailable','A selected notification channel is not configured.',503)
     if not isinstance(ids,list) or not 1<=len(ids)<=50:raise DomainError('validation_error','Select 1–50 devices.')
     ids=sorted(set(uuid_string(i) for i in ids))
     with transaction() as c:
@@ -81,7 +83,7 @@ def send():
         if not p:raise DomainError('not_found','Notice preview not found.',404)
         prior=one(c,'SELECT id,recipient_count FROM service_notice_dispatches WHERE preview_id=:id',id=p['id'])
         if prior:return jsonify(id=prior['id'],recipient_count=prior['recipient_count'],status='in_app_committed')
-        if 'push' in p['channels'] and not push_configured() or 'sms' in p['channels'] and not sms_configured():raise DomainError('channel_unavailable','A selected channel is unavailable. Prepare another preview or restore its configuration.',503)
+        if 'push' in p['channels'] and not push_configured() or 'sms' in p['channels'] and not sms_configured() or 'email' in p['channels'] and not email_configured():raise DomainError('channel_unavailable','A selected channel is unavailable. Prepare another preview or restore its configuration.',503)
         if p['expires_at']<=datetime.now(timezone.utc):raise DomainError('preview_expired','Prepare a fresh audience preview.',409)
         org=organization(c,str(p['organization_id']) if p['organization_id'] else None)
         recipients=audience(c,[str(i) for i in p['device_ids']],org)

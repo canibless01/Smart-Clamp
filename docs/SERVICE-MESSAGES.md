@@ -20,7 +20,7 @@ marketing broadcasts. Engineering's signed ESP update flow remains at
   the application cannot certify that legal review. Membership alone is not a
   messaging grant, and this grants no utility relay or firmware control.
 - Utility recipients additionally opt into utility service notices in Settings.
-  The default is off. Browser push/SMS require their separate channel opt-ins.
+  The default is off. Browser push/SMS/email require their separate channel opt-ins.
 
 ## Preview, commit and recovery
 
@@ -31,7 +31,7 @@ audience. Editing content/selection clears the UI preview. A sender can prepare
 ten previews per minute and commit one notice per minute.
 
 The send transaction records one immutable dispatch and one in-app notice per
-recipient, plus optional configured push/SMS outbox work. Repeating send—even with
+recipient, plus optional configured push/SMS/email outbox work. Repeating send—even with
 a new HTTP idempotency key—returns the original dispatch instead of resending.
 SMS respects quiet hours for these noncritical notices. Queued optional delivery
 rechecks channel opt-out and utility opt-out before dispatch. Dispatch acceptance

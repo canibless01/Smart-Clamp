@@ -13,6 +13,8 @@ def notify(c,uid,key,message,dedupe,episode=None,channels=None):
         if channels is None or 'sms' in channels:queue_sms(c,uid,key,message,dedupe,episode)
         from .web_push import queue_push
         if channels is None or 'push' in channels:queue_push(c,uid,key,dedupe,episode)
+        from .email_delivery import queue_email
+        if channels is None or 'email' in channels:queue_email(c,uid,key,message,dedupe,episode)
 
 def release_credit(c,payment_id,source='provider_confirmed'):
     p=one(c,'SELECT * FROM payments WHERE id=:id FOR UPDATE',id=payment_id)
@@ -166,6 +168,9 @@ def run_once():
         elif job['event_type']=='sms_queued':
             from .notifications import process_sms
             process_sms(job['payload']['notification_id'])
+        elif job['event_type']=='email_queued':
+            from .email_delivery import process_email
+            process_email(job['payload']['notification_id'])
         elif job['event_type']=='push_queued':
             from .web_push import process_push
             process_push(job['payload']['delivery_id'])

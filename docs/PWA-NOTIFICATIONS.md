@@ -44,7 +44,7 @@ Opt-out cancels queued sends; it cannot recall a notification already dispatched
   OS versions) for opt-in, receipt while backgrounded, opening a logged-out app,
   opt-out/logout, expiry, key rotation and installed-app updates. An installable
   manifest and local encrypted HTTP fixture do not prove handset delivery.
-- Application email event delivery remains unimplemented. Supabase SMTP handles
+- Application email event delivery is now implemented separately through Resend; see `EMAIL-NOTIFICATIONS.md`. Supabase SMTP handles
   identity emails only. SMS uses the separate Africa's Talking adapter and needs
   activated sender/handset acceptance. None of these replaces ESP command/OTA
   delivery; see `FIRMWARE-UPDATES.md` for that signed channel.

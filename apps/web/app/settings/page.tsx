@@ -7,10 +7,11 @@ import PwaControls from '@/components/PwaControls';
 export default function Page() {
   const [prefs, setPrefs] = useState<any>(null),
     [smsAvailable, setSmsAvailable] = useState(false),
+    [emailAvailable,setEmailAvailable]=useState(false),
     [message, setMessage] = useState("");
   useEffect(() => {
     apiFetch("/users/me/preferences")
-      .then((d) => { setPrefs(d.value); setSmsAvailable(d.notification_channels?.sms === true); })
+      .then((d) => { setPrefs(d.value); setSmsAvailable(d.notification_channels?.sms === true);setEmailAvailable(d.notification_channels?.email===true); })
       .catch((e) => setMessage(e.message));
   }, []);
   return (
@@ -50,7 +51,7 @@ export default function Page() {
                   try {
                     await apiFetch("/users/me/preferences", {
                       method: "PATCH",
-                      body: JSON.stringify({language:prefs.language || 'en',sms_enabled:prefs.sms_enabled === true,utility_notices_enabled:prefs.utility_notices_enabled === true}),
+                      body: JSON.stringify({language:prefs.language || 'en',sms_enabled:prefs.sms_enabled === true,email_enabled:prefs.email_enabled === true,utility_notices_enabled:prefs.utility_notices_enabled === true}),
                     });
                     setMessage("Preferences saved.");
                   } catch (e) {
@@ -73,10 +74,12 @@ export default function Page() {
                   </select>
                 </label>
                 <p>
-                  In-app notifications are available. {smsAvailable ? "SMS is available for account events. Provider acceptance does not confirm handset delivery." : "SMS is unavailable until the delivery provider is activated."} Email event delivery remains unavailable. Browser notifications are managed below.
+                  In-app notifications are available. {smsAvailable ? "SMS is available for account events. Provider acceptance does not confirm handset delivery." : "SMS is unavailable until the delivery provider is activated."} {emailAvailable?"Optional account email notices are available; provider acceptance does not confirm inbox delivery.":"Email notices are awaiting provider configuration."} Browser notifications are managed below.
                 </p>
                 <label><input type="checkbox" checked={prefs.sms_enabled === true} disabled={!smsAvailable} onChange={e => setPrefs({ ...prefs, sms_enabled: e.target.checked })} /> Send account events to my phone by SMS</label>
                 <label><input type="checkbox" checked={prefs.utility_notices_enabled === true} onChange={e=>setPrefs({...prefs,utility_notices_enabled:e.target.checked})}/> Allow service notices from the reviewed utility organization assigned to my device</label>
+                <label><input type="checkbox" checked={prefs.email_enabled === true} disabled={!emailAvailable || !data.authorized_context.email} onChange={e=>setPrefs({...prefs,email_enabled:e.target.checked})}/> Send account events to my verified email</label>
+                {!data.authorized_context.email && <p>A verified account email is needed for email notices.</p>}
                 <button className="btn btn-primary">Save preferences</button>
               </form>
             )}

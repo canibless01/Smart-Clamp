@@ -35,6 +35,7 @@ push_key=ec.generate_private_key(ec.SECP256R1())
 pushfile=tempfile.NamedTemporaryFile(prefix='smartclamp-browser-vapid-',suffix='.pem',delete=False)
 pushfile.write(push_key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()));pushfile.close()
 t.app.config.update(WEB_PUSH_ENABLED='true',VAPID_PRIVATE_KEY_FILE=pushfile.name,VAPID_SUBJECT='mailto:qa@example.test',PUSH_ENCRYPTION_KEY=Fernet.generate_key().decode())
+t.app.config.update(EMAIL_ENABLED='true',EMAIL_FROM='SmartClamp QA <notices@example.test>',EMAIL_ENCRYPTION_KEY=Fernet.generate_key().decode(),RESEND_API_KEY='local-email-fixture',RESEND_API_URL=t.settings['PAYSTACK_API_URL']+'/emails')
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET ota_qualified=true WHERE id=:id',id=d['id'])
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET owner_id=NULL WHERE id=:id',id=d['id'])
 response=t.client.post('/api/v1/ops/devices/'+d['id']+'/claim-code',json={},headers=t.headers(ops))
@@ -45,12 +46,20 @@ for counter,at in [(0,past),(1000000,past+60000),(1000000,int(datetime.now(timez
     t.drain()
 t.drain()
 pending_email=None
+email_recipient=None
+email_device=None
 with t.app.app_context():
     if (auth_request('settings').get('external') or {}).get('email'):
         import uuid
         pending_email={'email':'browser-external-'+uuid.uuid4().hex+'@example.test','password':'QA-external-password-42'}
         auth_request('signup','POST',pending_email)
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+        from app.live_auth import legal_versions
+        email_recipient={'email':'browser-notices-'+uuid.uuid4().hex+'@example.test','password':'QA-email-notice-password-42'}
+        response_email=t.client.post('/api/v1/auth/signup',json={**email_recipient,'full_name':'Browser email recipient','role':'homeowner','accepted_terms':True,**legal_versions()})
+        if response_email.status_code!=200:raise RuntimeError('Could not create isolated email notice account')
+        email_recipient.update(id=response_email.json['user_id'],token=response_email.json['access_token'])
+        email_device=t.provision(email_recipient)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

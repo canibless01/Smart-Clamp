@@ -51,3 +51,5 @@ Migration 024 adds email-only profiles and immutable legal-consent receipts. It 
 Migration 025 adds private encrypted browser subscriptions and durable Web Push dispatch records. See `docs/PWA-NOTIFICATIONS.md`.
 
 Migration 026 adds reviewed expiring utility messaging authority, immutable audience previews and dispatch receipts. No production grants are seeded. See `docs/SERVICE-MESSAGES.md`.
+
+Migration 027 adds immutable encrypted email request identities and bounded retry windows. API and worker require the same preserved email encryption key; see `docs/EMAIL-NOTIFICATIONS.md`.
