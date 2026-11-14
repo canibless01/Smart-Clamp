@@ -37,6 +37,8 @@ def summary(c,recipients,channels):
     push=scalar(c,"SELECT count(*) FROM push_subscriptions s JOIN user_preferences p ON p.user_id=s.user_id WHERE s.enabled AND s.user_id=ANY(CAST(:ids AS uuid[])) AND p.value->'push_enabled'='true'::jsonb",ids=recipients) if push_configured() and 'push' in channels else 0
     sms=scalar(c,"SELECT count(*) FROM profiles p JOIN user_preferences pref ON pref.user_id=p.id WHERE p.id=ANY(CAST(:ids AS uuid[])) AND p.phone IS NOT NULL AND pref.value->'sms_enabled'='true'::jsonb",ids=recipients) if sms_configured() and 'sms' in channels else 0
     email=scalar(c,"SELECT count(*) FROM profiles p JOIN user_preferences pref ON pref.user_id=p.id WHERE p.id=ANY(CAST(:ids AS uuid[])) AND p.email IS NOT NULL AND pref.value->'email_enabled'='true'::jsonb",ids=recipients) if email_configured() and 'email' in channels else 0
+    from .onesignal_push import selected,device_count
+    if selected():push=device_count(c,recipients) if 'push' in channels else 0
     return {'in_app_recipients':len(recipients),'push_subscriptions':push,'sms_recipients':sms,'email_recipients':email}
 
 @bp.get('/api/v1/communications/context')

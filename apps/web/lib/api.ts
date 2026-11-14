@@ -104,6 +104,7 @@ export function getRole(): string | null {
 }
 export async function logout() {
   if (typeof window === "undefined") return;
+  try {const {stopOneSignalOnLogout}=await import('./onesignal');await stopOneSignalOnLogout();}catch{}
   try {
     const registration=await navigator.serviceWorker?.getRegistration('/');
     const subscription=await registration?.pushManager.getSubscription();

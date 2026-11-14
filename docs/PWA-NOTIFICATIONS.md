@@ -58,3 +58,7 @@ Storage, failed offline account fetch, offline navigation and reconnection.
 failure to reach browser infrastructure is reported rather than treated as success.
 
 13 November QA browser subscription attempt: Chromium returned **Registration failed - permission denied**, even in the isolated notification-permission test context. No browser subscription/handset receipt success is claimed from that attempt. The encrypted adapter/expiry/opt-out HTTP integration tests passed; live supported-browser receipt remains an acceptance gate.
+
+## Owner-selected OneSignal provider
+
+Migration030 adds OneSignal Web Push as a selected provider with a separate worker scope, encrypted opaque aliases, explicit SDK setup/permission, scoped browser registrations, logout cleanup and idempotent delivery. Native queued jobs remain pinned. Read `ONESIGNAL-PROVIDERS.md`, including current Web SDK identity verification limits and real-provider acceptance gates.

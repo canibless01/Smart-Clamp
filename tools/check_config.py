@@ -17,6 +17,7 @@ def validate(values):
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
     if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
     if values.get('ONESIGNAL_EMAIL_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY']
+    if values.get('ONESIGNAL_PUSH_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY','PUSH_ENCRYPTION_KEY']
     required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
     missing=[name for name in required if not values.get(name)];invalid=[]
     for name in ('LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION'):
@@ -83,7 +84,7 @@ def validate(values):
         import uuid
         try:uuid.UUID(values['ONESIGNAL_APP_ID'])
         except (ValueError,TypeError):invalid.append('ONESIGNAL_APP_ID must be an app UUID')
-    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED','EMAIL_ENABLED','ONESIGNAL_EMAIL_ENABLED'):
+    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED','EMAIL_ENABLED','ONESIGNAL_EMAIL_ENABLED','ONESIGNAL_PUSH_ENABLED'):
         if values.get(name) not in (None,'','true','false'):invalid.append(name+' must be lowercase true or false')
     return missing,invalid
 

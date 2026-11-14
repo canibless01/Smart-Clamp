@@ -10,7 +10,7 @@ root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'app
 from test_api import LiveIntegration
 from app.db import transaction,query,one
 from app.providers import auth_request
-parser=argparse.ArgumentParser();parser.add_argument('--fixture',type=pathlib.Path,required=True);parser.add_argument('--port',type=int,default=5000);a=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('--fixture',type=pathlib.Path,required=True);parser.add_argument('--port',type=int,default=5000);parser.add_argument('--onesignal',action='store_true');a=parser.parse_args()
 LiveIntegration.setUpClass();t=LiveIntegration();t.setUp()
 owner=t.user('landlord');tenant=t.user();ops=t.promote(t.user('homeowner'),'internal_ops');d=t.provision(owner)
 installer=t.promote(t.user('homeowner'),'installer');engineer=t.promote(t.user('homeowner'),'internal_engineering')
@@ -36,6 +36,7 @@ pushfile=tempfile.NamedTemporaryFile(prefix='smartclamp-browser-vapid-',suffix='
 pushfile.write(push_key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()));pushfile.close()
 t.app.config.update(WEB_PUSH_ENABLED='true',VAPID_PRIVATE_KEY_FILE=pushfile.name,VAPID_SUBJECT='mailto:qa@example.test',PUSH_ENCRYPTION_KEY=Fernet.generate_key().decode())
 t.app.config.update(EMAIL_ENABLED='true',EMAIL_FROM='SmartClamp QA <notices@example.test>',EMAIL_ENCRYPTION_KEY=Fernet.generate_key().decode(),RESEND_API_KEY='local-email-fixture',RESEND_API_URL=t.settings['PAYSTACK_API_URL']+'/emails')
+if a.onesignal:t.app.config.update(ONESIGNAL_PUSH_ENABLED='true',ONESIGNAL_APP_ID=str(uuid.uuid4()),ONESIGNAL_REST_API_KEY='local-onesignal-fixture',ONESIGNAL_API_URL=t.settings['PAYSTACK_API_URL']+'/onesignal')
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET ota_qualified=true WHERE id=:id',id=d['id'])
 with t.app.app_context(),transaction() as c:query(c,'UPDATE devices SET owner_id=NULL WHERE id=:id',id=d['id'])
 response=t.client.post('/api/v1/ops/devices/'+d['id']+'/claim-code',json={},headers=t.headers(ops))
@@ -59,7 +60,7 @@ with t.app.app_context():
         if response_email.status_code!=200:raise RuntimeError('Could not create isolated email notice account')
         email_recipient.update(id=response_email.json['user_id'],token=response_email.json['access_token'])
         email_device=t.provision(email_recipient)
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

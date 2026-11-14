@@ -128,3 +128,7 @@ Opt-in application email is implemented through Resend, separately from Supabase
 ## Owner-selected Resend/OneSignal routing — migrations 028–029
 
 Owner confirmed 100 Resend emails per UTC day. Atomic reservations at actual send, monthly limit, rollover, prior-send backfill, OneSignal overflow, original-provider retries and immutable submitted payloads are implemented. Verification: 47 API integration tests (including 105 concurrent sends → 100 Resend + 5 OneSignal), 29 production-browser checks, web build. Official provider docs were fetched with TLS verification. Native Web Push remains until the next OneSignal web-push checkpoint; Web SDK JWT verification is currently unsupported by OneSignal. No live email, push account or external database was configured.
+
+## OneSignal Web Push — migration030
+
+Owner-selected OneSignal browser push is implemented with a separate service worker, encrypted random aliases, private registrations, generic frozen payloads, opt-out checks, provider-pinned retry and logout-race protection. No Web SDK JWT support is invented: the official SDK currently lacks it. API tests:49 pass; main browser:29 pass; separate vendor SDK contract browser tests:2 pass; web build passes. Actual OneSignal account setup and handset/browser receipt remain external acceptance gates. User authorized applying SQL to new Supabase ref fmjzskjkvdbffwkiujnu; no management/database credentials were available at this checkpoint and external SQL has not been applied.

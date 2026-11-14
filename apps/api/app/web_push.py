@@ -17,7 +17,11 @@ from .live_auth import authenticated
 
 bp=Blueprint('web_push',__name__)
 HOSTS={'fcm.googleapis.com','updates.push.services.mozilla.com','web.push.apple.com'}
-def configured():return current_app.config.get('WEB_PUSH_ENABLED')=='true' and all(current_app.config.get(k) for k in ('VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY'))
+def native_configured():return current_app.config.get('WEB_PUSH_ENABLED')=='true' and all(current_app.config.get(k) for k in ('VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY'))
+
+def configured():
+    from .onesignal_push import selected,configured as onesignal_ready
+    return bool(onesignal_ready()) if selected() else bool(native_configured())
 
 def public_key():
     with open(config('VAPID_PRIVATE_KEY_FILE'),'rb') as file:key=serialization.load_pem_private_key(file.read(),password=None)
@@ -47,6 +51,8 @@ def validate_subscription(d):
 @authenticated
 def subscriptions():
     if request.method=='GET':
+        from .onesignal_push import selected,configured as onesignal_ready
+        if selected():return jsonify(provider='onesignal',available=bool(onesignal_ready()),app_id=current_app.config.get('ONESIGNAL_APP_ID') if onesignal_ready() else None,items=[])
         with transaction() as c:items=rows(c,'SELECT id,created_at FROM push_subscriptions WHERE user_id=:id AND enabled',id=g.actor['id'])
         return jsonify(available=bool(configured()),vapid_public_key=public_key() if configured() else None,items=items)
     d=request.get_json() or {}
@@ -55,7 +61,9 @@ def subscriptions():
         if not isinstance(endpoint,str) or not 1<=len(endpoint)<=4096:raise DomainError('validation_error','A push endpoint is required.')
         with transaction() as c:query(c,'UPDATE push_subscriptions SET enabled=false,updated_at=now() WHERE endpoint_hash=:hash AND user_id=:uid',hash=hashlib.sha256(endpoint.encode()).hexdigest(),uid=g.actor['id'])
         return jsonify(status='disabled')
-    if not configured():raise DomainError('push_not_configured','Web Push is awaiting provider configuration.',503)
+    from .onesignal_push import selected
+    if selected():raise DomainError('push_provider_changed','Use the OneSignal browser setup for new registrations.',409)
+    if not native_configured():raise DomainError('push_not_configured','Web Push is awaiting provider configuration.',503)
     subscription=validate_subscription(d);digest=hashlib.sha256(subscription['endpoint'].encode()).hexdigest()
     encrypted=Fernet(config('PUSH_ENCRYPTION_KEY').encode()).encrypt(json_text(subscription).encode()).decode()
     with transaction() as c:
@@ -67,6 +75,12 @@ def subscriptions():
     return jsonify(id=row['id'],status='enabled'),201
 
 def queue_push(c,uid,key,dedupe,episode):
+    from .onesignal_push import selected,queue
+    if selected():
+        try:return queue(c,uid,key,dedupe,episode)
+        except (DomainError,ValueError,TypeError,InvalidToken):
+            query(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id,last_error) VALUES(:uid,:key,'push','failed','{}'::jsonb,:dedupe,:episode,'onesignal_configuration_invalid') ON CONFLICT(dedupe_key) DO UPDATE SET status='failed',last_error='onesignal_configuration_invalid'",uid=uid,key=key,dedupe='push:'+dedupe,episode=episode)
+            return
     if not configured():return
     pref=one(c,'SELECT value FROM user_preferences WHERE user_id=:id',id=uid)
     if not pref or pref['value'].get('push_enabled') is not True:return
@@ -92,7 +106,7 @@ def process_push(delivery_id):
         if not d['enabled'] or not pref or pref['value'].get('push_enabled') is not True or notice['template_key']=='utility.notice' and pref['value'].get('utility_notices_enabled') is not True:
             query(c,"UPDATE push_deliveries SET status='opted_out' WHERE id=:id",id=delivery_id)
             query(c,"UPDATE notifications SET status='failed' WHERE id=:id AND NOT EXISTS(SELECT 1 FROM push_deliveries WHERE notification_id=:id AND status IN('queued','unknown','provider_accepted'))",id=d['notification_id']);return
-        if not configured():raise DomainError('push_not_configured','Web Push is not configured.',503)
+        if not native_configured():raise DomainError('push_not_configured','Web Push is not configured.',503)
         try:subscription=validate_subscription(json.loads(Fernet(config('PUSH_ENCRYPTION_KEY').encode()).decrypt(d['encrypted_subscription'].encode())))
         except (InvalidToken,ValueError):raise DomainError('push_configuration_invalid','Push subscription decryption requires the original key.',503)
         query(c,"UPDATE push_deliveries SET status='unknown',dispatched_at=now(),last_error='dispatch_outcome_unknown' WHERE id=:id",id=delivery_id)

@@ -254,6 +254,52 @@ class LiveIntegration(unittest.TestCase):
                 self.assertTrue(reserve_resend(c,ids[3],datetime(2026,12,1,tzinfo=timezone.utc)))
         finally:self.app.config.update(previous)
 
+    def test_onesignal_push_opaque_identity_scope_and_idempotent_delivery(self):
+        from app.work import notify
+        from app.onesignal_push import process
+        owner=self.user('homeowner');other=self.user('homeowner')
+        settings={'ONESIGNAL_PUSH_ENABLED':'true','ONESIGNAL_APP_ID':str(uuid.uuid4()),'ONESIGNAL_REST_API_KEY':'qa-push-key','PUSH_ENCRYPTION_KEY':Fernet.generate_key().decode(),'ONESIGNAL_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/onesignal'}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            meta=self.client.get('/api/v1/users/me/push-subscriptions',headers=self.headers(owner));self.assertEqual(meta.status_code,200);self.assertEqual(meta.json['provider'],'onesignal');self.assertNotIn('qa-push-key',json.dumps(meta.json))
+            session=self.client.post('/api/v1/users/me/onesignal/session',json={'external_id':other['id']},headers=self.headers(owner));self.assertEqual(session.status_code,200,session.json);alias=session.json['external_alias'];registration=session.json['registration_id']
+            self.assertTrue(len(alias)>=64 and owner['id'] not in alias and other['id'] not in alias)
+            repeat=self.client.post('/api/v1/users/me/onesignal/session',json={'registration_id':registration},headers=self.headers(owner));self.assertTrue(repeat.json['external_alias']==alias)
+            self.assertEqual(self.client.post('/api/v1/users/me/onesignal/session',json={'registration_id':registration},headers=self.headers(other)).status_code,403)
+            self.assertEqual(self.client.post('/api/v1/users/me/onesignal/devices/'+registration,json={'enabled':True},headers=self.headers(other)).status_code,403)
+            self.assertEqual(self.client.post('/api/v1/users/me/onesignal/devices/'+registration,json={'enabled':True},headers=self.headers(owner)).status_code,200)
+            with self.app.app_context(),transaction() as c:
+                account=one(c,'SELECT encrypted_alias FROM onesignal_push_accounts WHERE user_id=:id',id=owner['id']);self.assertFalse(alias in account['encrypted_alias'])
+                dedupe=uuid.uuid4().hex;notify(c,owner['id'],'service.notice','PRIVATE message not for lock screens',dedupe,channels=['push']);nid=scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='push:'+dedupe)
+            ProviderFixture.onesignal_mode='unknown';self.drain();self.assertEqual(len(ProviderFixture.onesignal_requests),1)
+            with self.app.app_context(),transaction() as c:query(c,"UPDATE outbox SET next_attempt_at=now() WHERE event_type='onesignal_push_queued' AND aggregate_id=:id",id=nid)
+            ProviderFixture.onesignal_mode='accepted';self.drain()
+            self.assertEqual(len(ProviderFixture.onesignal_records),1);self.assertEqual(len(ProviderFixture.onesignal_requests),2);self.assertEqual(ProviderFixture.onesignal_requests[0],ProviderFixture.onesignal_requests[1]);self.assertEqual(len(ProviderFixture.push_requests),0)
+            payload=ProviderFixture.onesignal_requests[0];self.assertTrue(payload['include_aliases']['external_id']==[alias]);self.assertEqual(payload['target_channel'],'push');self.assertNotIn('PRIVATE',json.dumps(payload));self.assertNotIn(owner['id'],json.dumps(payload))
+            with self.app.app_context():process(nid)
+            self.assertEqual(len(ProviderFixture.onesignal_requests),2)
+            with self.app.app_context(),transaction() as c:
+                dedupe=uuid.uuid4().hex;notify(c,owner['id'],'service.notice','Opt-out before dispatch',dedupe,channels=['push']);cancelled=scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='push:'+dedupe)
+            self.client.post('/api/v1/users/me/onesignal/devices/'+registration,json={'enabled':False},headers=self.headers(owner));self.drain()
+            self.assertEqual(len(ProviderFixture.onesignal_requests),2)
+            with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=cancelled),'failed')
+        finally:self.app.config.update(previous)
+
+    def test_onesignal_optional_configuration_failure_preserves_account_event(self):
+        from app.work import notify
+        owner=self.user('homeowner')
+        settings={'ONESIGNAL_PUSH_ENABLED':'true','ONESIGNAL_APP_ID':str(uuid.uuid4()),'ONESIGNAL_REST_API_KEY':'qa-push-key','PUSH_ENCRYPTION_KEY':Fernet.generate_key().decode()}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            session=self.client.post('/api/v1/users/me/onesignal/session',json={},headers=self.headers(owner));self.assertEqual(session.status_code,200,session.json)
+            self.client.post('/api/v1/users/me/onesignal/devices/'+session.json['registration_id'],json={'enabled':True},headers=self.headers(owner))
+            self.app.config['PUSH_ENCRYPTION_KEY']=Fernet.generate_key().decode()
+            with self.app.app_context(),transaction() as c:
+                dedupe=uuid.uuid4().hex;notify(c,owner['id'],'service.notice','Keep the original account event',dedupe,channels=['push'])
+                self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE dedupe_key=:key',key=dedupe),'delivered')
+                self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE dedupe_key=:key',key='push:'+dedupe),'failed')
+        finally:self.app.config.update(previous)
+
     def test_real_auth_rejects_wrong_password_and_persists_restart(self):
         u=self.user();bad=self.client.post('/api/v1/auth/login',json={'phone':u['phone'],'password':'wrong-password'});self.assertEqual(bad.status_code,401)
         other=create_app(self.settings);r=other.test_client().post('/api/v1/auth/login',json={'phone':u['phone'],'password':u['password']});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['user_id'],u['id']);other.db_engine.dispose()

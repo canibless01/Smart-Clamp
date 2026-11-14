@@ -168,6 +168,9 @@ def run_once():
         elif job['event_type']=='sms_queued':
             from .notifications import process_sms
             process_sms(job['payload']['notification_id'])
+        elif job['event_type']=='onesignal_push_queued':
+            from .onesignal_push import process
+            process(job['payload']['notification_id'])
         elif job['event_type']=='email_queued':
             from .email_delivery import process_email
             process_email(job['payload']['notification_id'])

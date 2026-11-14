@@ -525,6 +525,16 @@
     "handler": "live_auth.context"
   },
   {
+    "method": "POST",
+    "path": "/api/v1/users/me/onesignal/devices/{registration_id}",
+    "handler": "onesignal_push.preference"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/users/me/onesignal/session",
+    "handler": "onesignal_push.session"
+  },
+  {
     "method": "GET",
     "path": "/api/v1/users/me/preferences",
     "handler": "live_auth.preferences"

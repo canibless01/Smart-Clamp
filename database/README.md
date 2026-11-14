@@ -55,3 +55,5 @@ Migration 026 adds reviewed expiring utility messaging authority, immutable audi
 Migration 027 adds immutable encrypted email request identities and bounded retry windows. API and worker require the same preserved email encryption key; see `docs/EMAIL-NOTIFICATIONS.md`.
 
 028–029 add provider-pinned email, UTC quota reservations/backfill and immutable encrypted submitted provider bodies. See `docs/ONESIGNAL-PROVIDERS.md`.
+
+030 adds encrypted OneSignal aliases, private browser registration and immutable idempotent push requests. See `docs/ONESIGNAL-PROVIDERS.md`.

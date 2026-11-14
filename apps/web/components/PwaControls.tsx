@@ -1,14 +1,16 @@
 "use client";
-import { useEffect,useState } from 'react';
+import { useEffect,useState,useRef } from 'react';
 import { apiFetch } from '@/lib/api';
+import {onesignalSession,setOneSignalEnabled} from '@/lib/onesignal';
 export default function PwaControls(){
-  const [install,setInstall]=useState(false),[installed,setInstalled]=useState(false),[update,setUpdate]=useState<ServiceWorker|null>(null),[push,setPush]=useState<any>(null),[enabled,setEnabled]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[supported,setSupported]=useState(false);
+  const provider=useRef('');
+  const [onesignalReady,setOnesignalReady]=useState(false),[install,setInstall]=useState(false),[installed,setInstalled]=useState(false),[update,setUpdate]=useState<ServiceWorker|null>(null),[push,setPush]=useState<any>(null),[enabled,setEnabled]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[supported,setSupported]=useState(false);
   useEffect(()=>{
     const sync=()=>{setInstall(!!(window as any).smartclampInstallPrompt);setInstalled(matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone===true);};sync();window.addEventListener('smartclamp:pwa-ready',sync);window.addEventListener('appinstalled',sync);
     setSupported('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
-    void apiFetch('/users/me/push-subscriptions').then(setPush).catch(()=>{});
+    void apiFetch('/users/me/push-subscriptions').then(async d=>{provider.current=d.provider || 'native';setPush(d);if(d.provider==='onesignal' && d.available){try{const active=await onesignalSession(d.app_id,false);setOnesignalReady(!!active.OneSignal);setEnabled(active.session.enabled && !!active.OneSignal?.User.PushSubscription.optedIn);}catch(e){setMessage(e instanceof Error?e.message:'OneSignal setup is unavailable.');}}}).catch(()=>{});
     if('serviceWorker' in navigator)void navigator.serviceWorker.getRegistration('/').then(async registration=>{
-      if(!registration)return;setUpdate(registration.waiting);setEnabled(!!await registration.pushManager.getSubscription());
+      if(!registration)return;setUpdate(registration.waiting);const nativeEnabled=!!await registration.pushManager.getSubscription();if(provider.current!=='onesignal')setEnabled(nativeEnabled);
       registration.addEventListener('updatefound',()=>{const worker=registration.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed' && navigator.serviceWorker.controller)setUpdate(registration.waiting);});});
     });
     return()=>{window.removeEventListener('smartclamp:pwa-ready',sync);window.removeEventListener('appinstalled',sync);};
@@ -24,6 +26,7 @@ export default function PwaControls(){
     {!supported?<p>This browser does not currently support Web Push. On iPhone/iPad, install the app first and open it from the Home Screen.</p>:!push?.available?<p>Web Push is awaiting operator configuration.</p>:<button className="btn btn-secondary" disabled={busy} onClick={async()=>{
       setBusy(true);setMessage('');let created:PushSubscription|null=null;
       try {
+        if(push.provider==='onesignal'){if(!onesignalReady){await onesignalSession(push.app_id);setOnesignalReady(true);setMessage('Setup is ready. Select Enable notifications to choose browser permission.');return;}await setOneSignalEnabled(!enabled);setEnabled(!enabled);setMessage(enabled?'Notifications disabled on this device.':'OneSignal notifications enabled on this device.');return;}
         const registration=await navigator.serviceWorker.ready;
         const prior=await registration.pushManager.getSubscription();
         if(enabled && prior){await apiFetch('/users/me/push-subscriptions',{method:'DELETE',body:JSON.stringify({endpoint:prior.endpoint})});await prior.unsubscribe();setEnabled(false);setMessage('Notifications disabled on this device.');}
@@ -34,7 +37,7 @@ export default function PwaControls(){
         }
       }catch(e){if(created)await created.unsubscribe().catch(()=>{});setMessage(e instanceof Error?e.message:'Unable to update browser notifications.');}
       finally{setBusy(false);}
-    }}>{busy?'Please wait…':enabled?'Disable notifications on this device':'Enable notifications on this device'}</button>}
+    }}>{busy?'Please wait…':enabled?'Disable notifications on this device':push.provider==='onesignal' && !onesignalReady?'Set up browser notifications':'Enable notifications on this device'}</button>}
     {message && <p role="status">{message}</p>}
   </section>;
 }

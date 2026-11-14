@@ -44,16 +44,48 @@ with `email_fallback_not_configured`; it does not exceed the cap or pretend it s
 Changing API credentials after an uncertain send requires review rather than
 silently retrying against a potentially different provider account.
 
-## OneSignal web push integration boundary
+## OneSignal web push (030)
 
-OneSignal web push is the next integration checkpoint. It needs its own public
-worker path under `/push/onesignal/`, separate from the installed-app `/sw.js`.
-Current OneSignal documentation explicitly says JWT identity verification is
-**not supported by the Web SDK**. Do not implement an imaginary JWT login flow or
-use a predictable Supabase user ID as an unprotected alias. The intended adapter
-uses authenticated server-issued random aliases and generic lock-screen payloads.
-The existing native Web Push implementation remains until that checkpoint is
-implemented/tested. No live provider account was configured by the local tests.
+Set `ONESIGNAL_PUSH_ENABLED=true`, `ONESIGNAL_APP_ID`, server-only
+`ONESIGNAL_REST_API_KEY`, preserved `PUSH_ENCRYPTION_KEY` and HTTPS `APP_ORIGIN`
+on API/worker. Configure the OneSignal Web app for the exact site using Custom
+Code setup. Our SDK initializes its own worker at
+`/push/onesignal/OneSignalSDKWorker.js`, scoped `/push/onesignal/`; the installed
+app keeps root `/sw.js`. Do not mix dashboard worker paths with this custom-code
+initialization. Verify domain, supported browsers and sender/account permissions.
+
+The Web SDK currently does **not** support JWT identity verification. Leave its
+Token Identity Verification toggle off for this Web app, as OneSignal instructs.
+The adapter never passes a predictable account UUID, phone or email as a Web SDK
+alias. An authenticated server issues a random 256-bit alias per account/app,
+encrypted at rest and returned only to its owner. Treat these opaque aliases as
+secrets, including in the SDK's local storage; this is not a claim that OneSignal
+provides cryptographic Web SDK identity verification. Review/revoke subscriptions
+and rotate the alias if compromised. App REST keys never reach browser code.
+
+Browser registrations are server-issued and account-scoped. Before first opt-in,
+the SDK is not loaded until the user selects Setup. A second explicit Enable
+click chooses browser permission. Automatic prompts, welcome messages and auto
+resubscription are disabled. Existing opt-ins restore their own SDK context.
+Logout disables the browser registration, opts out/unlinks the SDK and removes its
+underlying subscription where available. A session-generation guard cancels an
+in-progress old-account SDK login when logout starts.
+
+New push events use OneSignal exclusively when selected; existing native Web Push
+jobs retain their original provider. The first OneSignal opt-in removes the
+browser's legacy native subscription. Generic frozen lock-screen payloads target
+the opaque account alias, not public segments. Delivery is durable, encrypted,
+opt-in checked and idempotent, with a conservative 23-hour retry limit and original
+app/credentials checks. Staff/utility previews count enabled browser registrations;
+this is not proof of reachability or display. Utility consent still applies.
+
+Local API tests verify encrypted aliases, owner-only registration, generic
+payloads, provider-side deduplication, opt-out and nonblocking configuration errors.
+The separate browser tests use a **vendor SDK stand-in** with actual local
+Auth/API/PostgreSQL: they verify explicit setup/permission, scope and logout,
+including logout during SDK login. No live OneSignal app was configured, and no
+real browser receipt is claimed. Supported-browser registration/background receipt,
+OneSignal suppression and account-switch/logout acceptance remain operator checks.
 
 Official references inspected with TLS verification on 14 November 2026:
 
@@ -64,3 +96,5 @@ Official references inspected with TLS verification on 14 November 2026:
 - https://documentation.onesignal.com/docs/onesignal-service-worker
 
 Verification: 47 API integration tests, including 105 concurrent dispatches yielding exactly 100 Resend and 5 OneSignal messages, plus 29 production-browser checks and the web production build. These provider sends target isolated HTTP fixtures, not real inboxes.
+
+OneSignal checkpoint verification: 49 API tests, 29 main production-browser checks and 2 separate vendor-SDK contract browser checks; web production build and contract/native checks.
