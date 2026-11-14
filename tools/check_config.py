@@ -16,6 +16,7 @@ def validate(values):
     if values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
     if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
+    if values.get('ONESIGNAL_EMAIL_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY']
     required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
     missing=[name for name in required if not values.get(name)];invalid=[]
     for name in ('LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION'):
@@ -73,7 +74,16 @@ def validate(values):
         import re
         address=parseaddr(values['EMAIL_FROM'])[1]
         if '\r' in values['EMAIL_FROM'] or '\n' in values['EMAIL_FROM'] or not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',address):invalid.append('EMAIL_FROM must contain one verified sender address')
-    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED','EMAIL_ENABLED'):
+    for name,maximum in [('RESEND_DAILY_EMAIL_LIMIT',100),('RESEND_MONTHLY_EMAIL_LIMIT',3000)]:
+        if values.get(name):
+            try:
+                if not 1<=int(values[name])<=maximum:raise ValueError()
+            except (ValueError,TypeError):invalid.append(name+' must fit the configured free allowance')
+    if values.get('ONESIGNAL_APP_ID'):
+        import uuid
+        try:uuid.UUID(values['ONESIGNAL_APP_ID'])
+        except (ValueError,TypeError):invalid.append('ONESIGNAL_APP_ID must be an app UUID')
+    for name in ('OTA_ENABLED','SMS_ENABLED','WEB_PUSH_ENABLED','EMAIL_ENABLED','ONESIGNAL_EMAIL_ENABLED'):
         if values.get(name) not in (None,'','true','false'):invalid.append(name+' must be lowercase true or false')
     return missing,invalid
 

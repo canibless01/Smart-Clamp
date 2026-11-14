@@ -54,3 +54,7 @@ Official references reviewed with certificate verification on 13 November 2026:
 
 - https://resend.com/docs/api-reference/emails/send-email
 - https://resend.com/docs/dashboard/emails/idempotency-keys
+
+## Provider routing extension (028–029)
+
+New email uses Resend within the owner-approved 100/day UTC budget and documented monthly allowance, then OneSignal. Counters reserve at actual dispatch and preserve prior local sends across migration. Both provider-specific bodies are frozen on submission. See `ONESIGNAL-PROVIDERS.md`, including the shared-account/Supabase SMTP quota boundary and OneSignal setup requirements.

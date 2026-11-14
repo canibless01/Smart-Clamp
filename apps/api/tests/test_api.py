@@ -31,6 +31,12 @@ class ProviderFixture(BaseHTTPRequestHandler):
             if self.sms_mode=='unknown':self.close_connection=True;return
             return self.send({'SMSMessageData':{'Recipients':[{'number':d['to'],'statusCode':101,'messageId':'test-sms-'+str(len(self.sms_requests))}]}})
         d=json.loads(raw or b'{}')
+        if self.path.startswith('/onesignal?'):
+            key=d.get('idempotency_key');type(self).onesignal_requests.append(d)
+            if key not in self.onesignal_records:type(self).onesignal_records[key]={'body':d,'id':str(uuid.uuid4())}
+            elif self.onesignal_records[key]['body']!=d:return self.send({},409)
+            if self.onesignal_mode=='unknown':self.close_connection=True;return
+            return self.send({'id':self.onesignal_records[key]['id'],'recipients':1})
         if self.path=='/emails':
             key=self.headers.get('Idempotency-Key');type(self).email_requests.append({'key':key,'body':d})
             prior=self.email_records.get(key)
@@ -76,6 +82,7 @@ class LiveIntegration(unittest.TestCase):
         self.client=self.app.test_client();self.users=[];ProviderFixture.token=None;ProviderFixture.vend_units=None;ProviderFixture.omit_token=False;ProviderFixture.key_changes={};ProviderFixture.init_mode="success"
         ProviderFixture.push_requests=[];ProviderFixture.push_mode='accepted'
         ProviderFixture.email_requests=[];ProviderFixture.email_records={};ProviderFixture.email_mode='accepted'
+        ProviderFixture.onesignal_requests=[];ProviderFixture.onesignal_records={};ProviderFixture.onesignal_mode='accepted'
     def user(self,role='tenant'):
         phone='+1555'+str(secrets.randbelow(9000000)+1000000);pwd='A-real-QA-password-42'
         from app.live_auth import legal_versions
@@ -180,6 +187,71 @@ class LiveIntegration(unittest.TestCase):
                 self.assertEqual(len(ProviderFixture.email_requests),before)
                 with self.app.app_context(),transaction() as c:
                     row=one(c,'SELECT status,last_error FROM notifications WHERE id=:id',id=nid);self.assertEqual(row['status'],'unknown');self.assertEqual(row['last_error'],{'expired':'idempotency_window_expired','credentials':'provider_credentials_changed','optout':'recipient_opted_out'}[mode])
+        finally:self.app.config.update(previous)
+
+    def test_resend_100_daily_reservations_are_atomic_and_overflow_uses_onesignal(self):
+        from app.work import notify
+        from app.email_delivery import process_email
+        from app.email_routing import quota_summary
+        user=self.user('homeowner');email='qa-routing-'+uuid.uuid4().hex+'@example.test'
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'QA <notices@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'routing-resend-key','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails','ONESIGNAL_EMAIL_ENABLED':'true','ONESIGNAL_APP_ID':str(uuid.uuid4()),'ONESIGNAL_REST_API_KEY':'routing-onesignal-key','ONESIGNAL_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/onesignal','EMAIL_QUOTA_TEST_SCOPE':'qa-'+uuid.uuid4().hex}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            ids=[]
+            with self.app.app_context(),transaction() as c:
+                # Explicit account-contact test input; identity verification has separate GoTrue tests.
+                query(c,'UPDATE profiles SET email=:email WHERE id=:id',id=user['id'],email=email)
+                query(c,'INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb))',uid=user['id'],value=json.dumps({'email_enabled':True}))
+                for i in range(105):
+                    dedupe=uuid.uuid4().hex;notify(c,user['id'],'service.notice','Quota routing account notice '+str(i),dedupe,channels=['email'])
+                    ids.append(str(scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='email:'+dedupe)))
+            def dispatch(nid):
+                with self.app.app_context():process_email(nid)
+            with ThreadPoolExecutor(max_workers=5) as pool:list(pool.map(dispatch,ids))
+            with self.app.app_context(),transaction() as c:query(c,"UPDATE outbox SET status='done' WHERE event_type='email_queued' AND aggregate_id=ANY(CAST(:ids AS uuid[]))",ids=ids)
+            self.assertEqual(len(ProviderFixture.email_records),100);self.assertEqual(len(ProviderFixture.onesignal_records),5)
+            for payload in ProviderFixture.onesignal_requests:self.assertEqual(payload['email_to'],[email]);self.assertEqual(payload['target_channel'],'email')
+            with self.app.app_context(),transaction() as c:
+                summary=quota_summary(c,datetime.now(timezone.utc));self.assertEqual(summary['resend_day_reserved'],100);self.assertEqual(summary['resend_month_reserved'],100)
+                self.assertEqual(scalar(c,"SELECT count(*) FROM notifications WHERE recipient_id=:id AND channel='email' AND status='provider_accepted'",id=user['id']),105)
+            for nid in ids:
+                with self.app.app_context():process_email(nid)
+            self.assertEqual(len(ProviderFixture.email_requests),100);self.assertEqual(len(ProviderFixture.onesignal_requests),5)
+        finally:self.app.config.update(previous)
+
+    def test_email_quota_utc_reset_month_limit_and_pinned_unknown_resend(self):
+        from app.work import notify
+        from app.email_delivery import process_email
+        from app.email_routing import reserve_resend
+        from unittest.mock import patch
+        user=self.user('homeowner');scope='qa-'+uuid.uuid4().hex
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'QA <notices@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'pinned-resend-key','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails','ONESIGNAL_EMAIL_ENABLED':'true','ONESIGNAL_APP_ID':str(uuid.uuid4()),'ONESIGNAL_REST_API_KEY':'pinned-onesignal-key','ONESIGNAL_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/onesignal','EMAIL_QUOTA_TEST_SCOPE':scope,'RESEND_DAILY_EMAIL_LIMIT':'1','RESEND_MONTHLY_EMAIL_LIMIT':'2'}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            with self.app.app_context(),transaction() as c:
+                query(c,'UPDATE profiles SET email=:email WHERE id=:id',id=user['id'],email='qa-pin-'+uuid.uuid4().hex+'@example.test')
+                query(c,'INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb))',uid=user['id'],value=json.dumps({'email_enabled':True}))
+                ids=[]
+                for i in range(4):
+                    dedupe=uuid.uuid4().hex;notify(c,user['id'],'service.notice','UTC window example '+str(i),dedupe,channels=['email']);ids.append(str(scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='email:'+dedupe)))
+            base=datetime(2026,11,1,23,59,tzinfo=timezone.utc)
+            class Clock:
+                @staticmethod
+                def now(tz):return base
+            ProviderFixture.email_mode='unknown'
+            from app.db import DomainError
+            with self.app.app_context(),patch('app.email_delivery.datetime',Clock):
+                with self.assertRaises(DomainError) as caught:process_email(ids[0])
+                self.assertEqual(caught.exception.code,'email_retry_pending')
+                process_email(ids[1])
+            self.assertEqual(len(ProviderFixture.onesignal_records),1)
+            ProviderFixture.email_mode='accepted'
+            with self.app.app_context(),patch('app.email_delivery.datetime',Clock):process_email(ids[0])
+            self.assertEqual(len(ProviderFixture.onesignal_records),1);self.assertEqual(len(ProviderFixture.email_records),1)
+            with self.app.app_context(),transaction() as c:
+                self.assertTrue(reserve_resend(c,ids[2],base+timedelta(minutes=2)))
+                self.assertFalse(reserve_resend(c,ids[3],base+timedelta(days=2)))
+                self.assertTrue(reserve_resend(c,ids[3],datetime(2026,12,1,tzinfo=timezone.utc)))
         finally:self.app.config.update(previous)
 
     def test_real_auth_rejects_wrong_password_and_persists_restart(self):

@@ -53,3 +53,5 @@ Migration 025 adds private encrypted browser subscriptions and durable Web Push 
 Migration 026 adds reviewed expiring utility messaging authority, immutable audience previews and dispatch receipts. No production grants are seeded. See `docs/SERVICE-MESSAGES.md`.
 
 Migration 027 adds immutable encrypted email request identities and bounded retry windows. API and worker require the same preserved email encryption key; see `docs/EMAIL-NOTIFICATIONS.md`.
+
+028–029 add provider-pinned email, UTC quota reservations/backfill and immutable encrypted submitted provider bodies. See `docs/ONESIGNAL-PROVIDERS.md`.

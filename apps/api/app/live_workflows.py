@@ -103,8 +103,11 @@ def ops_summary():
         jobs=rows(c,'SELECT id,kind,status,priority,device_id,assignee_id,opened_at,completed_at,version FROM jobs ORDER BY opened_at DESC LIMIT 100')
         deliveries=rows(c,"SELECT id,template_key,channel,status,attempts,last_error,created_at FROM notifications WHERE channel IN ('sms','push','email') AND status IN ('queued','failed','unknown') ORDER BY created_at DESC LIMIT 100")
         recovery=rows(c,"SELECT id,event_type,status,attempts,last_error,next_attempt_at,created_at,payload->>'payment_id' AS payment_id FROM outbox WHERE event_type IN ('payment_reconcile','payment_verified') AND status IN ('failed','dead_letter') ORDER BY created_at DESC LIMIT 100")
+        from .email_routing import quota_summary
+        from datetime import datetime,timezone
+        email_budget=quota_summary(c,datetime.now(timezone.utc))
         audit(c,g.actor['id'],'ops_summary_viewed')
-    return jsonify(fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
+    return jsonify(email_routing=email_budget,fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
 
 @bp.post('/api/v1/ops/jobs')
 @authenticated

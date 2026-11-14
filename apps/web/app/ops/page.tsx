@@ -90,6 +90,7 @@ export default function Page() {
               </button>
             </form>
           </section>
+          {data.email_routing && <section className="card" style={{marginTop:24}}><h2>Email routing allowance</h2><p>Resend reservations today: {data.email_routing.resend_day_reserved} / {data.email_routing.daily_limit}. This month: {data.email_routing.resend_month_reserved} / {data.email_routing.monthly_limit}. Calendar: UTC.</p><p>{data.email_routing.onesignal_fallback_configured?'New emails route to OneSignal when either Resend allowance is reserved.':'OneSignal fallback is awaiting configuration.'} Pending or uncertain sends retain their reservation and original provider.</p></section>}
           <section className="card" style={{ marginTop: 24 }}>
             <h2>Notification delivery review</h2>
             <p>Queued notices need the worker and configured providers. Unknown outcomes follow channel-specific reconciliation; do not create a new send to recover an uncertain one.</p>

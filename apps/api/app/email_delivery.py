@@ -12,8 +12,9 @@ from cryptography.fernet import Fernet,InvalidToken
 from flask import current_app
 from .db import transaction,one,query,json_text,DomainError,audit
 from .providers import config
+from .email_routing import onesignal_email_configured,reserve_resend,onesignal_endpoint,onesignal_email_payload
 
-def configured():return current_app.config.get('EMAIL_ENABLED')=='true' and all(current_app.config.get(k) for k in ('RESEND_API_KEY','EMAIL_FROM','EMAIL_ENCRYPTION_KEY','APP_ORIGIN'))
+def configured():return current_app.config.get('EMAIL_ENABLED')=='true' and all(current_app.config.get(k) for k in ('EMAIL_FROM','EMAIL_ENCRYPTION_KEY','APP_ORIGIN')) and (bool(current_app.config.get('RESEND_API_KEY')) or bool(onesignal_email_configured()))
 
 def valid_email(value):return isinstance(value,str) and len(value)<=254 and bool(re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',value))
 
@@ -50,7 +51,7 @@ def queue_email(c,uid,key,message,dedupe,episode):
 def process_email(notification_id):
     now=datetime.now(timezone.utc)
     with transaction() as c:
-        n=one(c,"SELECT n.*,e.encrypted_request,e.request_sha256,e.first_attempt_at,e.retry_until,e.credential_fingerprint FROM notifications n JOIN email_dispatches e ON e.notification_id=n.id WHERE n.id=:id AND n.channel='email' FOR UPDATE OF n,e",id=notification_id)
+        n=one(c,"SELECT n.*,e.encrypted_request,e.request_sha256,e.first_attempt_at,e.retry_until,e.credential_fingerprint,e.provider,e.provider_app_id,e.provider_request_id,e.encrypted_provider_request FROM notifications n JOIN email_dispatches e ON e.notification_id=n.id WHERE n.id=:id AND n.channel='email' FOR UPDATE OF n,e",id=notification_id)
         if not n or n['status'] not in ('queued','unknown'):return
         pref=one(c,'SELECT value FROM user_preferences WHERE user_id=:id',id=n['recipient_id'])
         opted=not pref or pref['value'].get('email_enabled') is not True or n['template_key']=='utility.notice' and pref['value'].get('utility_notices_enabled') is not True
@@ -63,16 +64,38 @@ def process_email(notification_id):
         user=one(c,'SELECT email FROM profiles WHERE id=:id',id=n['recipient_id'])
         if not user or payload['to']!=[user['email']]:
             query(c,"UPDATE notifications SET status=:status,last_error='recipient_changed' WHERE id=:id",id=notification_id,status='unknown' if n['first_attempt_at'] else 'failed');return
-        fingerprint=hashlib.sha256(config('RESEND_API_KEY').encode()).hexdigest()
-        if n['first_attempt_at'] and (now<n['first_attempt_at'] or now>=n['retry_until'] or fingerprint!=n['credential_fingerprint']):
-            query(c,"UPDATE notifications SET status='unknown',last_error=:error WHERE id=:id",id=notification_id,error='clock_rollback' if now<n['first_attempt_at'] else 'idempotency_window_expired' if now>=n['retry_until'] else 'provider_credentials_changed');return
-        url=endpoint()
+        provider=n['provider']
+        if n['first_attempt_at'] and (now<n['first_attempt_at'] or now>=n['retry_until']):
+            query(c,"UPDATE notifications SET status='unknown',last_error=:error WHERE id=:id",id=notification_id,error='clock_rollback' if now<n['first_attempt_at'] else 'idempotency_window_expired');return
+        if not provider:
+            if current_app.config.get('RESEND_API_KEY') and reserve_resend(c,notification_id,now):provider='resend'
+            elif onesignal_email_configured():provider='onesignal'
+            else:raise DomainError('email_fallback_not_configured','Resend allowance is reserved; configure OneSignal fallback before sending more.',503)
+        elif provider=='resend' and not reserve_resend(c,notification_id,now):raise DomainError('email_quota_waiting','The pinned Resend request is awaiting quota; it cannot fail over after an uncertain send.',503)
+        app_id=n['provider_app_id'] if n['first_attempt_at'] else config('ONESIGNAL_APP_ID') if provider=='onesignal' else None
+        api_key=config('ONESIGNAL_REST_API_KEY' if provider=='onesignal' else 'RESEND_API_KEY')
+        fingerprint=hashlib.sha256(api_key.encode()).hexdigest()
+        if n['first_attempt_at'] and fingerprint!=n['credential_fingerprint']:
+            query(c,"UPDATE notifications SET status='unknown',last_error='provider_credentials_changed' WHERE id=:id",id=notification_id);return
+        url=onesignal_endpoint('email') if provider=='onesignal' else endpoint()
         if not n['first_attempt_at']:
-            query(c,'UPDATE email_dispatches SET first_attempt_at=:at,retry_until=:until,credential_fingerprint=:fingerprint WHERE notification_id=:id',id=notification_id,at=now,until=now+timedelta(hours=23),fingerprint=fingerprint)
+            query(c,'UPDATE email_dispatches SET provider=:provider,provider_app_id=:app,first_attempt_at=:at,retry_until=:until,credential_fingerprint=:fingerprint WHERE notification_id=:id',id=notification_id,provider=provider,app=app_id,at=now,until=now+timedelta(hours=23),fingerprint=fingerprint)
+        headers={'Authorization':('Key ' if provider=='onesignal' else 'Bearer ')+api_key}
+        if provider=='onesignal':request_payload=onesignal_email_payload(payload,app_id,n['provider_request_id'])
+        else:
+            headers['Idempotency-Key']='smartclamp-email-'+str(notification_id);request_payload=payload
+        if n['encrypted_provider_request']:
+            try:provider_raw=Fernet(config('EMAIL_ENCRYPTION_KEY').encode()).decrypt(n['encrypted_provider_request'].encode())
+            except InvalidToken:raise DomainError('email_decryption_failed','Restore the original email encryption key before retrying.',503)
+        else:
+            provider_raw=json_text(request_payload).encode()
+            sealed=Fernet(config('EMAIL_ENCRYPTION_KEY').encode()).encrypt(provider_raw).decode()
+            query(c,'UPDATE email_dispatches SET encrypted_provider_request=:sealed WHERE notification_id=:id',id=notification_id,sealed=sealed)
+        headers['Content-Type']='application/json'
         query(c,"UPDATE notifications SET status='unknown',dispatched_at=coalesce(dispatched_at,now()),attempts=attempts+1,last_error='dispatch_outcome_unknown' WHERE id=:id",id=notification_id)
     status='unknown';error='dispatch_outcome_unknown';reference=None
     try:
-        response=requests.post(url,headers={'Authorization':'Bearer '+config('RESEND_API_KEY'),'Idempotency-Key':'smartclamp-email-'+str(notification_id)},json=payload,timeout=(5,20),allow_redirects=False)
+        response=requests.post(url,headers=headers,data=provider_raw,timeout=(5,20),allow_redirects=False)
         if response.status_code in (200,201,202):
             data=response.json()
             if isinstance(data,dict) and isinstance(data.get('id'),str) and data['id']:status='provider_accepted';reference=data['id'];error=None
