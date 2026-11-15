@@ -15,6 +15,11 @@ LiveIntegration.setUpClass();t=LiveIntegration();t.setUp()
 owner=t.user('landlord');tenant=t.user();ops=t.promote(t.user('homeowner'),'internal_ops');d=t.provision(owner)
 installer=t.promote(t.user('homeowner'),'installer');engineer=t.promote(t.user('homeowner'),'internal_engineering')
 message_recipient=t.user('homeowner');message_device=t.provision(message_recipient)
+cohort_ops=t.promote(t.user('homeowner'),'internal_ops');service_region='QA Browser '+uuid.uuid4().hex[:12]
+area=t.client.post('/api/v1/ops/service-areas',json={'name':'Browser QA service area '+uuid.uuid4().hex[:8],'region':service_region},headers=t.headers(ops))
+if area.status_code!=201:raise RuntimeError('Could not create isolated browser service area')
+assigned=t.client.post('/api/v1/ops/devices/'+message_device['id']+'/service-area',json={'area_id':area.json['id']},headers=t.headers(ops))
+if assigned.status_code!=201:raise RuntimeError('Could not assign isolated browser service area')
 utility=t.promote(t.user('homeowner'),'nepa_staff');admin=t.promote(t.user('homeowner'),'internal_superadmin')
 with t.app.app_context(),transaction() as c:
     utility_org=one(c,'INSERT INTO organizations(name,subdomain) VALUES(:name,:sub) RETURNING id',name='Browser QA utility',sub='qa-browser-'+uuid.uuid4().hex[:12])['id']
@@ -60,7 +65,7 @@ with t.app.app_context():
         if response_email.status_code!=200:raise RuntimeError('Could not create isolated email notice account')
         email_recipient.update(id=response_email.json['user_id'],token=response_email.json['access_token'])
         email_device=t.provision(email_recipient)
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

@@ -4117,3 +4117,8 @@ tr:last-child td {
 .data-table-wrap th, .data-table-wrap td { color:#405047; font-size:13px; font-weight:450; }
 .data-table-wrap th { font-weight:700; }
 .plan-comparison td:last-child { color:#526056; }
+
+.notice-category-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.notice-category-grid label { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.notice-category-grid p { grid-column: 1 / -1; }
+@media(max-width:640px) { .notice-category-grid { grid-template-columns: 1fr; } }

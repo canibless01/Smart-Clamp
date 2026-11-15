@@ -1,0 +1,4 @@
+ALTER TABLE service_notice_dispatches DROP CONSTRAINT service_notice_dispatches_recipient_count_check;
+ALTER TABLE service_notice_dispatches ADD CONSTRAINT service_notice_dispatches_recipient_count_check CHECK(recipient_count BETWEEN 1 AND 5000);
+CREATE INDEX notice_work_status ON service_notice_recipient_work(dispatch_id,status);
+CREATE INDEX service_area_device_lookup ON device_service_areas(area_id,device_id);

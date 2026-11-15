@@ -132,3 +132,13 @@ Owner confirmed 100 Resend emails per UTC day. Atomic reservations at actual sen
 ## OneSignal Web Push — migration030
 
 Owner-selected OneSignal browser push is implemented with a separate service worker, encrypted random aliases, private registrations, generic frozen payloads, opt-out checks, provider-pinned retry and logout-race protection. No Web SDK JWT support is invented: the official SDK currently lacks it. API tests:49 pass; main browser:29 pass; separate vendor SDK contract browser tests:2 pass; web build passes. Actual OneSignal account setup and handset/browser receipt remain external acceptance gates. User authorized applying SQL to new Supabase ref fmjzskjkvdbffwkiujnu; no management/database credentials were available at this checkpoint and external SQL has not been applied.
+
+## Automatic audience selection — 15 November 2026, migrations031–032
+
+The composer now defaults to automatic categories instead of requiring manual
+checkbox selection. Regions/areas use explicit reviewed metadata; overdue-bill
+accounts use finance-reviewed responsibility, including former occupants. No
+wallet-zero debt inference or utility financial targeting is allowed. Large sends
+are durable 100-recipient batches, with revalidation, duplicate suppression and
+progress/skipped counts. Verification:52 API tests and30 production-browser checks;
+web production build passed. Existing provider/hardware/external SQL gates remain.

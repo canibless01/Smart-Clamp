@@ -300,6 +300,62 @@ class LiveIntegration(unittest.TestCase):
                 self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE dedupe_key=:key',key='push:'+dedupe),'failed')
         finally:self.app.config.update(previous)
 
+    def test_automatic_notice_selects_more_than_50_devices_and_rechecks_scope(self):
+        ops=self.promote(self.user('homeowner'),'internal_ops');owner=self.user('homeowner');other=self.user('homeowner')
+        area=self.client.post('/api/v1/ops/service-areas',json={'name':'QA Estate '+uuid.uuid4().hex,'region':'QA Region '+uuid.uuid4().hex},headers=self.headers(ops));self.assertEqual(area.status_code,201,area.json)
+        ids=[]
+        for _ in range(55):ids.append(self.provision(owner)['id'])
+        outsider=self.provision(other)
+        with self.app.app_context(),transaction() as c:query(c,'INSERT INTO device_service_areas(device_id,area_id,assigned_by) SELECT id,:area,:uid FROM unnest(CAST(:ids AS uuid[])) id',ids=ids,area=area.json['id'],uid=ops['id'])
+        malformed=self.client.post('/api/v1/communications/previews',json={'title':'Invalid cohort','message':'Reject malformed categories safely.','audience':{'role':[]}},headers=self.headers(ops));self.assertEqual(malformed.status_code,400)
+        body={'title':'Automatic estate notice','message':'This notice selects the whole assigned area automatically.','audience':{'area_id':area.json['id'],'role':'homeowner'}}
+        p=self.client.post('/api/v1/communications/previews',json=body,headers=self.headers(ops));self.assertEqual(p.status_code,201,p.json);self.assertEqual(p.json['matched_devices'],55);self.assertEqual(p.json['in_app_recipients'],1)
+        sent=self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops));self.assertEqual(sent.status_code,201,sent.json);self.assertEqual(sent.json['status'],'audience_queued')
+        self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(owner)).json['items'])
+        self.drain();self.assertEqual(len(self.client.get('/api/v1/alerts',headers=self.headers(owner)).json['items']),1);self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(other)).json['items'])
+        self.assertEqual(self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops)).json['id'],sent.json['id'])
+        fresh=self.client.post('/api/v1/communications/previews',json=body,headers=self.headers(ops));self.assertEqual(fresh.status_code,201)
+        with self.app.app_context(),transaction() as c:query(c,'DELETE FROM device_service_areas WHERE device_id=:id',id=ids[0])
+        changed=self.client.post('/api/v1/communications/send',json={'preview_id':fresh.json['id']},headers=self.headers(ops));self.assertEqual(changed.json['code'],'audience_changed')
+
+    def test_automatic_bill_category_uses_reviewed_responsibility_not_zero_wallet(self):
+        ops=self.promote(self.user('homeowner'),'internal_ops');admin=self.promote(self.user('homeowner'),'internal_superadmin');owner=self.user('homeowner');responsible=self.user('tenant');dev=self.provision(owner)
+        with self.app.app_context(),transaction() as c:bill=one(c,"INSERT INTO bills(subject_type,subject_id,period_start,period_end,tariff_version,amount_kobo,status) VALUES('device',:device,current_date-30,current_date,:tariff,10000,'overdue') RETURNING id",device=dev['id'],tariff=dev['wallet']['tariff_version'])['id']
+        body={'title':'Bill review notice','message':'Please review the issued bill linked to your account.','audience':{'account_state':'overdue_bills'}}
+        # Restrict this test to its device through an explicit service area.
+        area=self.client.post('/api/v1/ops/service-areas',json={'name':'QA Billing '+uuid.uuid4().hex,'region':'QA'},headers=self.headers(ops)).json['id']
+        self.assertEqual(self.client.post('/api/v1/ops/devices/'+dev['id']+'/service-area',json={'area_id':area},headers=self.headers(ops)).status_code,201)
+        body['audience']['area_id']=area
+        empty=self.client.post('/api/v1/communications/previews',json=body,headers=self.headers(ops));self.assertEqual(empty.json['code'],'audience_empty')
+        review={'user_id':responsible['id'],'review_note':'QA supplied bill: reviewed historical account responsibility.'}
+        self.assertEqual(self.client.post('/api/v1/ops/bills/'+str(bill)+'/responsibilities',json=review,headers=self.headers(owner)).status_code,403)
+        self.assertEqual(self.client.post('/api/v1/ops/bills/'+str(bill)+'/responsibilities',json=review,headers=self.headers(admin)).status_code,201)
+        p=self.client.post('/api/v1/communications/previews',json=body,headers=self.headers(ops));self.assertEqual(p.status_code,201,p.json);self.assertEqual(p.json['in_app_recipients'],1)
+        sent=self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops));self.assertEqual(sent.status_code,201,sent.json)
+        # The bill is paid before fanout; stale debt notices must not be delivered.
+        with self.app.app_context(),transaction() as c:query(c,"UPDATE bills SET status='paid' WHERE id=:id",id=bill)
+        self.drain();self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(responsible)).json['items']);self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(owner)).json['items'])
+        with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM service_notice_recipient_work WHERE dispatch_id=:id',id=sent.json['id']),'skipped')
+
+    def test_automatic_501_recipient_fanout_is_bounded_durable_and_duplicate_safe(self):
+        from app.notice_fanout import process
+        ops=self.promote(self.user('homeowner'),'internal_ops');area=self.client.post('/api/v1/ops/service-areas',json={'name':'QA scale '+uuid.uuid4().hex,'region':'QA Scale'},headers=self.headers(ops)).json['id']
+        # Scale-only graph fixture; these are not claimed as verified real signups.
+        users=[str(uuid.uuid4()) for _ in range(501)]
+        with self.app.app_context(),transaction() as c:
+            query(c,'INSERT INTO auth.users(id) SELECT id FROM unnest(CAST(:ids AS uuid[])) id',ids=users)
+            query(c,"INSERT INTO profiles(id,email,full_name,role,onboarding_completed_at) SELECT id,'qa-scale-'||id::text||'@example.test','Bulk QA graph fixture','homeowner',now() FROM unnest(CAST(:ids AS uuid[])) id",ids=users)
+            query(c,"INSERT INTO devices(profile,owner_id) SELECT 'pole_device',id FROM unnest(CAST(:ids AS uuid[])) id",ids=users)
+            query(c,'INSERT INTO device_service_areas(device_id,area_id,assigned_by) SELECT id,:area,:uid FROM devices WHERE owner_id=ANY(CAST(:ids AS uuid[]))',ids=users,area=area,uid=ops['id'])
+        p=self.client.post('/api/v1/communications/previews',json={'title':'QA bulk service update','message':'This is an isolated scale fixture for durable audience fanout.','audience':{'area_id':area}},headers=self.headers(ops));self.assertEqual(p.status_code,201,p.json);self.assertEqual(p.json['in_app_recipients'],501)
+        sent=self.client.post('/api/v1/communications/send',json={'preview_id':p.json['id']},headers=self.headers(ops));self.assertEqual(sent.status_code,201,sent.json)
+        with self.app.app_context(),transaction() as c:
+            jobs=rows(c,"SELECT payload FROM outbox WHERE aggregate_id=:id AND event_type='service_notice_fanout'",id=sent.json['id']);self.assertEqual(len(jobs),6);self.assertTrue(all(len(j['payload']['recipient_ids'])<=100 for j in jobs))
+        self.drain()
+        with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,"SELECT count(*) FROM service_notice_recipient_work WHERE dispatch_id=:id AND status='committed'",id=sent.json['id']),501)
+        with self.app.app_context():process(jobs[0]['payload'])
+        with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,"SELECT count(*) FROM notifications WHERE dedupe_key LIKE :prefix",prefix='notice:'+sent.json['id']+':%'),501)
+
     def test_real_auth_rejects_wrong_password_and_persists_restart(self):
         u=self.user();bad=self.client.post('/api/v1/auth/login',json={'phone':u['phone'],'password':'wrong-password'});self.assertEqual(bad.status_code,401)
         other=create_app(self.settings);r=other.test_client().post('/api/v1/auth/login',json={'phone':u['phone'],'password':u['password']});self.assertEqual(r.status_code,200,r.json);self.assertEqual(r.json['user_id'],u['id']);other.db_engine.dispose()
@@ -427,6 +483,7 @@ class LiveIntegration(unittest.TestCase):
         grant='/api/v1/ops/organizations/'+str(org)+'/notice-grant';review={'enabled':True,'valid_days':30,'review_note':'Isolated QA authority review; no real utility agreement.'}
         self.assertEqual(self.client.post(grant,json=review,headers=self.headers(utility)).status_code,403)
         self.assertEqual(self.client.post(grant,json=review,headers=self.headers(admin)).status_code,201)
+        denied=self.client.post(path+'/previews',json={'organization_id':str(org),'title':'Private bill cohort','message':'A utility account must not select customer financial categories.','audience':{'account_state':'overdue_bills'}},headers=self.headers(utility));self.assertEqual(denied.status_code,403);self.assertEqual(denied.json['code'],'scope_denied')
         empty=self.client.post(path+'/previews',json=body,headers=self.headers(utility));self.assertEqual(empty.json['code'],'audience_empty')
         self.assertEqual(self.client.patch('/api/v1/users/me/preferences',json={'utility_notices_enabled':True},headers=self.headers(owner)).status_code,200)
         self.assertEqual(self.client.post(path+'/previews',json=body|{'device_ids':[out_of_scope['id']]},headers=self.headers(utility)).status_code,403)

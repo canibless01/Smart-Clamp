@@ -59,3 +59,5 @@ Migration 027 adds immutable encrypted email request identities and bounded retr
 030 adds encrypted OneSignal aliases, private browser registration and immutable idempotent push requests. See `docs/ONESIGNAL-PROVIDERS.md`.
 
 For the owner-authorized new hosted project, read `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`. `tools/supabase_migrate.py` generates a transaction/checksum SQL bundle or checks/applies through the official authenticated Management API. External apply was not performed without a management token.
+
+031–032 add explicit service-area metadata, reviewed bill responsibility, frozen automatic notice criteria and bounded durable audience fanout. The hosted bootstrap bundle now includes 001–032; external application still requires authenticated access.

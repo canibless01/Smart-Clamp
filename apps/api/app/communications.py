@@ -21,16 +21,17 @@ def organization(c,org):
     if not grant:raise DomainError('utility_notice_scope_required','Utility messages require an active reviewed organization grant.',403)
     return org
 
-def audience(c,device_ids,org):
-    for did in device_ids:
-        dev=one(c,'SELECT id FROM devices WHERE id=:id',id=did)
-        if not dev:raise DomainError('scope_denied','A selected device is unavailable within this scope.',403)
-        if org and not one(c,'SELECT id FROM utility_device_scopes WHERE organization_id=:org AND device_id=:did AND revoked_at IS NULL',org=org,did=did):raise DomainError('scope_denied','A selected device is unavailable within this scope.',403)
+def audience(c,device_ids,org,maximum=500):
+    visible=rows(c,'SELECT id FROM devices WHERE id=ANY(CAST(:ids AS uuid[]))',ids=device_ids)
+    if len(visible)!=len(set(device_ids)):raise DomainError('scope_denied','A selected device is unavailable within this scope.',403)
+    if org:
+        scoped=rows(c,'SELECT device_id FROM utility_device_scopes WHERE organization_id=:org AND device_id=ANY(CAST(:ids AS uuid[])) AND revoked_at IS NULL',org=org,ids=device_ids)
+        if len(scoped)!=len(set(device_ids)):raise DomainError('scope_denied','A selected device is unavailable within this scope.',403)
     people=rows(c,"""SELECT DISTINCT p.id FROM profiles p WHERE p.onboarding_completed_at IS NOT NULL AND
       (EXISTS(SELECT 1 FROM devices d WHERE d.id=ANY(CAST(:ids AS uuid[])) AND d.owner_id=p.id) OR
        EXISTS(SELECT 1 FROM occupancies o JOIN devices d ON d.room_id=o.room_id WHERE d.id=ANY(CAST(:ids AS uuid[])) AND o.tenant_id=p.id AND o.end_at IS NULL))
       AND (:utility=false OR EXISTS(SELECT 1 FROM user_preferences pref WHERE pref.user_id=p.id AND pref.value->'utility_notices_enabled'='true'::jsonb)) ORDER BY p.id""",ids=device_ids,utility=bool(org))
-    if len(people)>500:raise DomainError('audience_too_large','Select a smaller service audience.',422)
+    if len(people)>maximum:raise DomainError('audience_too_large','Select a smaller service audience.',422)
     return sorted(str(p['id']) for p in people)
 
 def summary(c,recipients,channels):
@@ -48,32 +49,40 @@ def context():
     with transaction() as c:
         orgs=rows(c,"SELECT DISTINCT o.id,o.name FROM organizations o JOIN memberships m ON m.organization_id=o.id JOIN organization_notice_grants n ON n.organization_id=o.id WHERE m.user_id=:uid AND m.role='nepa_staff' AND m.revoked_at IS NULL AND n.enabled AND n.expires_at>now()",uid=g.actor['id']) if g.actor['role']=='nepa_staff' else []
         devices=rows(c,"SELECT d.id,d.profile,d.install_state FROM devices d WHERE :internal OR EXISTS(SELECT 1 FROM utility_device_scopes s JOIN organization_notice_grants n ON n.organization_id=s.organization_id JOIN memberships m ON m.organization_id=s.organization_id WHERE s.device_id=d.id AND s.revoked_at IS NULL AND n.enabled AND n.expires_at>now() AND m.user_id=:uid AND m.role='nepa_staff' AND m.revoked_at IS NULL) ORDER BY d.created_at DESC LIMIT 200",internal=g.actor['role']!='nepa_staff',uid=g.actor['id'])
-        history=rows(c,"SELECT d.id,p.title,d.recipient_count,d.created_at FROM service_notice_dispatches d JOIN service_notice_previews p ON p.id=d.preview_id WHERE d.actor_id=:uid ORDER BY d.created_at DESC LIMIT 50",uid=g.actor['id'])
+        history=rows(c,"SELECT d.id,p.title,p.audience_criteria,p.organization_id,d.recipient_count,d.created_at,CASE WHEN p.audience_criteria IS NULL THEN d.recipient_count ELSE (SELECT count(*) FROM service_notice_recipient_work w WHERE w.dispatch_id=d.id AND w.status='committed') END AS committed_count,(SELECT count(*) FROM service_notice_recipient_work w WHERE w.dispatch_id=d.id AND w.status='queued') AS queued_count,(SELECT count(*) FROM service_notice_recipient_work w WHERE w.dispatch_id=d.id AND w.status='skipped') AS skipped_count FROM service_notice_dispatches d JOIN service_notice_previews p ON p.id=d.preview_id WHERE d.actor_id=:uid ORDER BY d.created_at DESC LIMIT 50",uid=g.actor['id'])
         scopes=rows(c,'SELECT device_id,organization_id FROM utility_device_scopes WHERE organization_id=ANY(CAST(:ids AS uuid[])) AND revoked_at IS NULL',ids=[str(o['id']) for o in orgs]) if orgs else []
         for device in devices:device['organization_ids']=[str(s['organization_id']) for s in scopes if s['device_id']==device['id']]
         grants=rows(c,'SELECT n.organization_id,o.name,n.enabled,n.expires_at,n.version FROM organization_notice_grants n JOIN organizations o ON o.id=n.organization_id ORDER BY o.name') if g.actor['role']=='internal_superadmin' else None
+        from .audiences import options
+        categories=options(c,orgs,g.actor['role']=='nepa_staff')
         audit(c,g.actor['id'],'service_messaging_context_viewed')
-    return jsonify(organizations=orgs,devices=devices,history=history,notice_grants=grants,can_review_grants=g.actor['role']=='internal_superadmin',firmware_access=g.actor['role']=='internal_superadmin',utility=g.actor['role']=='nepa_staff',channels={'push':bool(push_configured()),'sms':bool(sms_configured()),'email':bool(email_configured())})
+    return jsonify(categories=categories,can_manage_areas=g.actor['role'] in ('internal_ops','internal_superadmin'),organizations=orgs,devices=devices,history=history,notice_grants=grants,can_review_grants=g.actor['role']=='internal_superadmin',firmware_access=g.actor['role']=='internal_superadmin',utility=g.actor['role']=='nepa_staff',channels={'push':bool(push_configured()),'sms':bool(sms_configured()),'email':bool(email_configured())})
 
 @bp.post('/api/v1/communications/previews')
 @authenticated
 @idempotent
 def preview():
-    sender();d=request.get_json() or {};title=d.get('title','');message=d.get('message','');channels=d.get('channels',['in_app']);ids=d.get('device_ids')
+    sender();d=request.get_json() or {};title=d.get('title','');message=d.get('message','');channels=d.get('channels',['in_app']);ids=d.get('device_ids');selection=d.get('audience')
     if not isinstance(title,str) or not 1<=len(title.strip())<=120 or not isinstance(message,str) or not 10<=len(message.strip())<=2000:raise DomainError('validation_error','Enter a title and a service message of 10–2,000 characters.')
     if not isinstance(channels,list) or any(x not in ('in_app','push','sms','email') for x in channels):raise DomainError('validation_error','Choose supported notification channels.')
     channels=sorted(set(channels)|{'in_app'})
     if 'push' in channels and not push_configured() or 'sms' in channels and not sms_configured() or 'email' in channels and not email_configured():raise DomainError('channel_unavailable','A selected notification channel is not configured.',503)
-    if not isinstance(ids,list) or not 1<=len(ids)<=50:raise DomainError('validation_error','Select 1–50 devices.')
-    ids=sorted(set(uuid_string(i) for i in ids))
+    if selection is None:
+        if not isinstance(ids,list) or not 1<=len(ids)<=50:raise DomainError('validation_error','Select 1–50 devices or an automatic audience.')
+        ids=sorted(set(uuid_string(i) for i in ids))
+    elif ids is not None:raise DomainError('validation_error','Choose automatic categories or explicit devices, not both.')
     with transaction() as c:
         query(c,"SELECT pg_advisory_xact_lock(hashtextextended(:scope,0))",scope='service-preview:'+g.actor['id'])
         if scalar(c,"SELECT count(*) FROM service_notice_previews WHERE actor_id=:uid AND created_at>now()-interval '1 minute'",uid=g.actor['id'])>=10:raise DomainError('rate_limited','Wait before preparing more service notices.',429)
-        org=organization(c,d.get('organization_id'));recipients=audience(c,ids,org)
+        org=organization(c,d.get('organization_id'))
+        if selection is not None:
+            from .audiences import criteria,resolve
+            selection=criteria(selection);ids,recipients=resolve(c,selection,org)
+        else:recipients=audience(c,ids,org)
         if not recipients:raise DomainError('audience_empty','No current eligible accounts are in this selection. Utility notices require customer opt-in.',409)
-        row=one(c,'INSERT INTO service_notice_previews(actor_id,organization_id,title,message,channels,device_ids,recipient_ids) VALUES(:uid,:org,:title,:message,CAST(:channels AS jsonb),CAST(:ids AS uuid[]),CAST(:recipients AS uuid[])) RETURNING id,expires_at',uid=g.actor['id'],org=org,title=title.strip(),message=message.strip(),channels=json_text(channels),ids=ids,recipients=recipients)
+        row=one(c,'INSERT INTO service_notice_previews(actor_id,organization_id,title,message,channels,device_ids,recipient_ids,audience_criteria) VALUES(:uid,:org,:title,:message,CAST(:channels AS jsonb),CAST(:ids AS uuid[]),CAST(:recipients AS uuid[]),CAST(:criteria AS jsonb)) RETURNING id,expires_at',uid=g.actor['id'],org=org,title=title.strip(),message=message.strip(),channels=json_text(channels),ids=ids,recipients=recipients,criteria=json_text(selection) if selection is not None else None)
         counts=summary(c,recipients,channels);audit(c,g.actor['id'],'service_notice_previewed',row['id'],{'recipient_count':len(recipients)})
-    return jsonify(**dict(row),title=title.strip(),message=message.strip(),channels=channels,**counts),201
+    return jsonify(**dict(row),title=title.strip(),message=message.strip(),channels=channels,matched_devices=len(ids),automatic=selection is not None,**counts),201
 
 @bp.post('/api/v1/communications/send')
 @authenticated
@@ -84,18 +93,27 @@ def send():
         p=one(c,'SELECT * FROM service_notice_previews WHERE id=:id AND actor_id=:uid FOR UPDATE',id=uuid_string(d.get('preview_id')),uid=g.actor['id'])
         if not p:raise DomainError('not_found','Notice preview not found.',404)
         prior=one(c,'SELECT id,recipient_count FROM service_notice_dispatches WHERE preview_id=:id',id=p['id'])
-        if prior:return jsonify(id=prior['id'],recipient_count=prior['recipient_count'],status='in_app_committed')
+        if prior:return jsonify(id=prior['id'],recipient_count=prior['recipient_count'],status='audience_queued' if p['audience_criteria'] is not None else 'in_app_committed')
         if 'push' in p['channels'] and not push_configured() or 'sms' in p['channels'] and not sms_configured() or 'email' in p['channels'] and not email_configured():raise DomainError('channel_unavailable','A selected channel is unavailable. Prepare another preview or restore its configuration.',503)
         if p['expires_at']<=datetime.now(timezone.utc):raise DomainError('preview_expired','Prepare a fresh audience preview.',409)
         org=organization(c,str(p['organization_id']) if p['organization_id'] else None)
-        recipients=audience(c,[str(i) for i in p['device_ids']],org)
+        if p['audience_criteria'] is not None:
+            from .audiences import resolve
+            current_ids,recipients=resolve(c,p['audience_criteria'],org)
+            if current_ids!=sorted(str(i) for i in p['device_ids']):raise DomainError('audience_changed','Matching devices changed. Prepare a fresh preview.',409)
+        else:recipients=audience(c,[str(i) for i in p['device_ids']],org)
         if recipients!=sorted(str(i) for i in p['recipient_ids']):raise DomainError('audience_changed','The current audience changed. Prepare a fresh preview.',409)
         query(c,"SELECT pg_advisory_xact_lock(hashtextextended(:scope,0))",scope='service-notices:'+g.actor['id'])
         if one(c,"SELECT id FROM service_notice_dispatches WHERE actor_id=:uid AND created_at>now()-interval '1 minute'",uid=g.actor['id']):raise DomainError('rate_limited','Wait a minute before sending another service notice.',429)
         row=one(c,'INSERT INTO service_notice_dispatches(preview_id,actor_id,recipient_count) VALUES(:pid,:uid,:count) RETURNING id',pid=p['id'],uid=g.actor['id'],count=len(recipients))
-        for uid in recipients:notify(c,uid,'utility.notice' if org else 'service.notice',p['title']+'\n'+p['message'],'notice:'+str(row['id'])+':'+uid,channels=p['channels'])
+        if p['audience_criteria'] is not None:
+            query(c,'INSERT INTO service_notice_recipient_work(dispatch_id,recipient_id) SELECT :did,id FROM unnest(CAST(:ids AS uuid[])) AS id',did=row['id'],ids=recipients)
+            for start in range(0,len(recipients),100):
+                query(c,"INSERT INTO outbox(aggregate_type,aggregate_id,event_type,payload) VALUES('service_notice',:id,'service_notice_fanout',CAST(:payload AS jsonb))",id=row['id'],payload=json_text({'dispatch_id':str(row['id']),'recipient_ids':recipients[start:start+100]}))
+        else:
+            for uid in recipients:notify(c,uid,'utility.notice' if org else 'service.notice',p['title']+'\n'+p['message'],'notice:'+str(row['id'])+':'+uid,channels=p['channels'])
         counts=summary(c,recipients,p['channels']);audit(c,g.actor['id'],'service_notice_committed',row['id'],{'recipient_count':len(recipients)})
-    return jsonify(id=row['id'],recipient_count=len(recipients),status='in_app_committed',**counts),201
+    return jsonify(id=row['id'],recipient_count=len(recipients),status='audience_queued' if p['audience_criteria'] is not None else 'in_app_committed',**counts),201
 
 @bp.post('/api/v1/ops/organizations/<organization_id>/notice-grant')
 @authenticated

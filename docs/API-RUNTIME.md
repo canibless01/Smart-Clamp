@@ -85,3 +85,10 @@ Migration 023 adds qualified signed room allowance synchronization. `/device/pol
 Migration 026 adds bounded scoped staff service notices: `/communications/context`, `/communications/previews`, `/communications/send` and reviewed superadmin `/ops/organizations/{id}/notice-grant`. The five-minute preview pins content and audience; send rechecks authority/occupancy/utility consent and commits deduplicated in-app records plus selected opt-in channel work. See `SERVICE-MESSAGES.md`.
 
 Application notification channel `email` is supported by service-message previews/send and explicit `email_enabled` preferences for accounts with email. `notification_channels.email` reports configuration availability; operations exposes channel delivery issues. Migration 027 and `EMAIL-NOTIFICATIONS.md` describe frozen requests, bounded idempotency and review boundaries. No new public send-email endpoint was added.
+
+Automatic notice previews accept `audience` instead of `device_ids`, with optional
+`building_id`, `area_id`, `region`, `profile`, `role`, `account_state` (`all` or
+`overdue_bills`). Categories resolve on the server, pin the preview and revalidate
+on send. Category sends return `audience_queued`; worker batches expose actual
+queued/committed/skipped counts in sender history. Operational service-area and
+reviewed bill-responsibility routes are exported in the runtime contract.

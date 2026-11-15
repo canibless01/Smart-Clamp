@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -1866,5 +1866,74 @@ $sc_source_14cf8d68e9ddc749c72912e23d4448be8014bb302b97a6bbe355988b609cff7c$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('030_onesignal_web_push.sql','14cf8d68e9ddc749c72912e23d4448be8014bb302b97a6bbe355988b609cff7c');
   END IF;
 END $sc_step_29$;
+
+DO $sc_step_30$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='031_notice_audiences.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '5196841dbf36a6e06b14fcb5883e033316632feced3fe433dcec66a1d45f1df8' THEN RAISE EXCEPTION 'Migration checksum mismatch: 031_notice_audiences.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_5196841dbf36a6e06b14fcb5883e033316632feced3fe433dcec66a1d45f1df8$
+CREATE TABLE service_areas (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ name text NOT NULL CHECK(length(name) BETWEEN 1 AND 100),
+ region text NOT NULL CHECK(length(region) BETWEEN 1 AND 80),
+ created_by uuid NOT NULL REFERENCES profiles(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(region,name)
+);
+CREATE TABLE device_service_areas (
+ device_id uuid PRIMARY KEY REFERENCES devices(id),
+ area_id uuid NOT NULL REFERENCES service_areas(id),
+ assigned_by uuid NOT NULL REFERENCES profiles(id),
+ version integer NOT NULL DEFAULT 1,
+ updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE bill_responsibilities (
+ bill_id uuid NOT NULL REFERENCES bills(id),
+ user_id uuid NOT NULL REFERENCES profiles(id),
+ assigned_by uuid NOT NULL REFERENCES profiles(id),
+ review_note text NOT NULL CHECK(length(review_note) BETWEEN 10 AND 2000),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(bill_id,user_id)
+);
+ALTER TABLE service_notice_previews ADD COLUMN audience_criteria jsonb;
+CREATE TABLE service_notice_recipient_work (
+ dispatch_id uuid NOT NULL REFERENCES service_notice_dispatches(id),
+ recipient_id uuid NOT NULL REFERENCES profiles(id),
+ status text NOT NULL DEFAULT 'queued' CHECK(status IN('queued','committed','skipped')),
+ reason text,
+ processed_at timestamptz,
+ PRIMARY KEY(dispatch_id,recipient_id)
+);
+ALTER TABLE service_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_service_areas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bill_responsibilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_notice_recipient_work ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON service_areas,device_service_areas,bill_responsibilities,service_notice_recipient_work FROM anon,authenticated;
+
+$sc_source_5196841dbf36a6e06b14fcb5883e033316632feced3fe433dcec66a1d45f1df8$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('031_notice_audiences.sql','5196841dbf36a6e06b14fcb5883e033316632feced3fe433dcec66a1d45f1df8');
+  END IF;
+END $sc_step_30$;
+
+DO $sc_step_31$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='032_notice_batch_capacity.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM 'd61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f' THEN RAISE EXCEPTION 'Migration checksum mismatch: 032_notice_batch_capacity.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_d61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f$
+ALTER TABLE service_notice_dispatches DROP CONSTRAINT service_notice_dispatches_recipient_count_check;
+ALTER TABLE service_notice_dispatches ADD CONSTRAINT service_notice_dispatches_recipient_count_check CHECK(recipient_count BETWEEN 1 AND 5000);
+CREATE INDEX notice_work_status ON service_notice_recipient_work(dispatch_id,status);
+CREATE INDEX service_area_device_lookup ON device_service_areas(area_id,device_id);
+
+$sc_source_d61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('032_notice_batch_capacity.sql','d61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f');
+  END IF;
+END $sc_step_31$;
 
 COMMIT;

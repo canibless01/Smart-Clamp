@@ -300,6 +300,16 @@
     "handler": "spec"
   },
   {
+    "method": "DELETE",
+    "path": "/api/v1/ops/bills/{bill_id}/responsibilities",
+    "handler": "audiences.assign_bill"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/bills/{bill_id}/responsibilities",
+    "handler": "audiences.assign_bill"
+  },
+  {
     "method": "POST",
     "path": "/api/v1/ops/buildings/{building_id}/payment-destination",
     "handler": "live_workflows.configure_building_destination"
@@ -308,6 +318,16 @@
     "method": "POST",
     "path": "/api/v1/ops/devices/{device_id}/claim-code",
     "handler": "live_workflows.create_claim"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/devices/{device_id}/service-area",
+    "handler": "audiences.assign_area"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/devices/{device_id}/service-area",
+    "handler": "audiences.assign_area"
   },
   {
     "method": "POST",
@@ -353,6 +373,11 @@
     "method": "POST",
     "path": "/api/v1/ops/organizations/{organization_id}/notice-grant",
     "handler": "communications.grant"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/service-areas",
+    "handler": "audiences.create_area"
   },
   {
     "method": "GET",

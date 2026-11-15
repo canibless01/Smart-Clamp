@@ -76,5 +76,6 @@ def create_app(settings=None):
     from .web_push import bp as web_push
     from .communications import bp as communications
     from .onesignal_push import bp as onesignal_push
-    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push):app.register_blueprint(bp)
+    from .audiences import bp as audiences
+    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences):app.register_blueprint(bp)
     return app

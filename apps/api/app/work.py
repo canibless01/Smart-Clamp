@@ -163,7 +163,10 @@ def run_once():
         job=one(c,"UPDATE outbox SET status='claimed',claimed_at=now(),lease_until=now()+interval '60 seconds',attempts=attempts+1 WHERE id=(SELECT id FROM outbox WHERE ((status IN('pending','failed') AND next_attempt_at<=now()) OR(status='claimed' AND lease_until<now())) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) RETURNING *")
     if not job:return False
     try:
-        if job['event_type']=='payment_verified':process_vending(job['payload']['payment_id'])
+        if job['event_type']=='service_notice_fanout':
+            from .notice_fanout import process
+            process(job['payload'])
+        elif job['event_type']=='payment_verified':process_vending(job['payload']['payment_id'])
         elif job['event_type']=='payment_reconcile':reconcile_payment(job['payload']['payment_id'])
         elif job['event_type']=='sms_queued':
             from .notifications import process_sms
