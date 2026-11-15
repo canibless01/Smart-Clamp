@@ -13,7 +13,7 @@ root=Path(__file__).resolve().parents[1]
 def validate(values):
     required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
     if values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
-    if values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
+    if values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','RESEND_WEBHOOK_SECRET','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
     if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
     if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
     if values.get('ONESIGNAL_EMAIL_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY']
@@ -70,6 +70,12 @@ def validate(values):
         try:Fernet(values['EMAIL_ENCRYPTION_KEY'].encode())
         except (ValueError,TypeError):invalid.append('EMAIL_ENCRYPTION_KEY is not a Fernet key')
         if values['EMAIL_ENCRYPTION_KEY'] in (values.get('PUSH_ENCRYPTION_KEY'),values.get('DEVICE_HMAC_ENCRYPTION_KEY')):invalid.append('Email encryption key must be distinct')
+    if values.get('RESEND_WEBHOOK_SECRET'):
+        import base64
+        try:
+            secret=values['RESEND_WEBHOOK_SECRET']
+            if not secret.startswith('whsec_') or not 16<=len(base64.b64decode(secret[6:],validate=True))<=128:raise ValueError()
+        except (ValueError,TypeError):invalid.append('RESEND_WEBHOOK_SECRET must be the endpoint signing secret')
     if values.get('EMAIL_FROM'):
         from email.utils import parseaddr
         import re

@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -1978,5 +1978,45 @@ $sc_source_e74a5b384e9cf7af972de9f3ff60922dffe30f4fb86e7a08a39efa9a253ac263$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('034_dispute_review.sql','e74a5b384e9cf7af972de9f3ff60922dffe30f4fb86e7a08a39efa9a253ac263');
   END IF;
 END $sc_step_33$;
+
+DO $sc_step_34$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='035_email_delivery_receipts.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '7fcb33c4bb4328d4f3ebb4e95a37be683c4363fda0e3369397dc820abd8a1f73' THEN RAISE EXCEPTION 'Migration checksum mismatch: 035_email_delivery_receipts.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_7fcb33c4bb4328d4f3ebb4e95a37be683c4363fda0e3369397dc820abd8a1f73$
+-- Provider acceptance and recipient-server delivery are separate facts.
+alter table email_dispatches add column webhook_tag uuid not null default gen_random_uuid() unique;
+alter table email_dispatches add column delivery_state text not null default 'unknown'
+  check(delivery_state in ('unknown','sent','delayed','delivered','failed','suppressed','bounced','complained'));
+alter table email_dispatches add column delivery_event_at timestamptz;
+create table email_delivery_events (
+  event_id text primary key check(char_length(event_id)<=200),
+  body_sha256 text not null,
+  provider_reference text not null,
+  event_type text not null,
+  occurred_at timestamptz not null,
+  recipient_hash text not null,
+  notification_id uuid references notifications(id),
+  disposition text not null default 'unmatched' check(disposition in ('unmatched','matched','recipient_mismatch','reference_mismatch')),
+  received_at timestamptz not null default now()
+);
+create index idx_email_receipt_unmatched on email_delivery_events(provider_reference) where disposition='unmatched';
+create table email_suppressions (
+  address_hash text primary key,
+  reason text not null check(reason in ('bounced','complained','suppressed')),
+  notification_id uuid not null references notifications(id),
+  created_at timestamptz not null default now()
+);
+alter table email_delivery_events enable row level security;
+alter table email_suppressions enable row level security;
+revoke all on email_delivery_events,email_suppressions from anon,authenticated;
+
+$sc_source_7fcb33c4bb4328d4f3ebb4e95a37be683c4363fda0e3369397dc820abd8a1f73$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('035_email_delivery_receipts.sql','7fcb33c4bb4328d4f3ebb4e95a37be683c4363fda0e3369397dc820abd8a1f73');
+  END IF;
+END $sc_step_34$;
 
 COMMIT;

@@ -101,13 +101,14 @@ def ops_summary():
          count(*) FILTER(WHERE last_seen_at IS NULL) AS never_connected FROM devices""")
         jobcounts=rows(c,'SELECT kind,status,count(*) AS count FROM jobs GROUP BY kind,status ORDER BY kind,status')
         jobs=rows(c,'SELECT id,kind,status,priority,device_id,assignee_id,opened_at,completed_at,version FROM jobs ORDER BY opened_at DESC LIMIT 100')
-        deliveries=rows(c,"SELECT id,template_key,channel,status,attempts,last_error,created_at FROM notifications WHERE channel IN ('sms','push','email') AND status IN ('queued','failed','unknown') ORDER BY created_at DESC LIMIT 100")
+        deliveries=rows(c,"SELECT n.id,n.template_key,n.channel,n.status,n.attempts,n.last_error,n.created_at,e.delivery_state,e.delivery_event_at FROM notifications n LEFT JOIN email_dispatches e ON e.notification_id=n.id WHERE n.channel IN ('sms','push','email') AND(n.status IN ('queued','failed','unknown') OR e.delivery_state IN ('failed','bounced','complained','suppressed','delayed')) ORDER BY n.created_at DESC LIMIT 100")
+        feedback=rows(c,"SELECT event_id,notification_id,event_type,disposition,received_at FROM email_delivery_events WHERE disposition<>'matched' ORDER BY received_at DESC LIMIT 100")
         recovery=rows(c,"SELECT id,event_type,status,attempts,last_error,next_attempt_at,created_at,payload->>'payment_id' AS payment_id FROM outbox WHERE event_type IN ('payment_reconcile','payment_verified') AND status IN ('failed','dead_letter') ORDER BY created_at DESC LIMIT 100")
         from .email_routing import quota_summary
         from datetime import datetime,timezone
         email_budget=quota_summary(c,datetime.now(timezone.utc))
         audit(c,g.actor['id'],'ops_summary_viewed')
-    return jsonify(email_routing=email_budget,fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
+    return jsonify(email_feedback_review=feedback,email_routing=email_budget,fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
 
 @bp.post('/api/v1/ops/jobs')
 @authenticated

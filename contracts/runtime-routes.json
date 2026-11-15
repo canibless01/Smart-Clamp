@@ -641,6 +641,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/webhooks/resend",
+    "handler": "email_receipts.resend_receipt"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/webhooks/ussd",
     "handler": "live_payments.unsupported_webhook"
   },

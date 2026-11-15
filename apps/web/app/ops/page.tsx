@@ -98,9 +98,18 @@ export default function Page() {
               { key: "id", label: "Delivery reference" },
               { key: "template_key", label: "Event" },
               { key: "channel", label: "Channel" },
-              { key: "status", label: "Status" },
+              { key: "status", label: "Dispatch status" },
+              { key: "delivery_state", label: "Email delivery feedback", render: (r) => r.delivery_state || "Not reported" },
               { key: "last_error", label: "Review reason" },
             ]} />
+          </section>
+          <section className="card" style={{ marginTop: 24 }}>
+            <h2>Email callback review</h2>
+            <p>Unmatched or conflicting signed callbacks need provider review. They cannot confirm delivery for another recipient.</p>
+            <RecordTable items={data.email_feedback_review || []} columns={[
+              {key:"event_id",label:"Event reference"},{key:"event_type",label:"Event"},{key:"disposition",label:"Review reason"},
+              {key:"received_at",label:"Received",render:(r)=>new Date(r.received_at).toLocaleString()}
+            ]}/>
           </section>
           <section className="card" style={{ marginTop: 24 }}>
             <h2>Payment recovery review</h2>

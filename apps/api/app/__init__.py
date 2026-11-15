@@ -73,9 +73,10 @@ def create_app(settings=None):
     from .firmware import bp as firmware
     from .reports import bp as reports
     from .prepaid import bp as prepaid
+    from .email_receipts import bp as email_receipts
     from .web_push import bp as web_push
     from .communications import bp as communications
     from .onesignal_push import bp as onesignal_push
     from .audiences import bp as audiences
-    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences):app.register_blueprint(bp)
+    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences,email_receipts):app.register_blueprint(bp)
     return app

@@ -37,6 +37,9 @@ def queue_email(c,uid,key,message,dedupe,episode):
     if not user or not valid_email(user['email']):return
     n=one(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id) VALUES(:uid,:key,'email','queued',CAST(:payload AS jsonb),:dedupe,:episode) ON CONFLICT(dedupe_key) DO NOTHING RETURNING id",uid=uid,key=key,payload=json_text({'message':message}),dedupe='email:'+dedupe,episode=episode)
     if not n:return
+    from .email_receipts import address_hash
+    if one(c,'SELECT address_hash FROM email_suppressions WHERE address_hash=:hash',hash=address_hash(user['email'])):
+        query(c,"UPDATE notifications SET status='failed',last_error='recipient_suppressed' WHERE id=:id",id=n['id']);return
     try:
         origin=config('APP_ORIGIN').rstrip('/');parsed=urlparse(origin)
         if parsed.scheme!='https' and not(current_app.testing and parsed.scheme=='http' and parsed.hostname in ('localhost','127.0.0.1')):raise DomainError('email_configuration_invalid','Account email links require HTTPS.',503)
@@ -51,7 +54,7 @@ def queue_email(c,uid,key,message,dedupe,episode):
 def process_email(notification_id):
     now=datetime.now(timezone.utc)
     with transaction() as c:
-        n=one(c,"SELECT n.*,e.encrypted_request,e.request_sha256,e.first_attempt_at,e.retry_until,e.credential_fingerprint,e.provider,e.provider_app_id,e.provider_request_id,e.encrypted_provider_request FROM notifications n JOIN email_dispatches e ON e.notification_id=n.id WHERE n.id=:id AND n.channel='email' FOR UPDATE OF n,e",id=notification_id)
+        n=one(c,"SELECT n.*,e.encrypted_request,e.request_sha256,e.first_attempt_at,e.retry_until,e.credential_fingerprint,e.provider,e.provider_app_id,e.provider_request_id,e.encrypted_provider_request,e.webhook_tag FROM notifications n JOIN email_dispatches e ON e.notification_id=n.id WHERE n.id=:id AND n.channel='email' FOR UPDATE OF n,e",id=notification_id)
         if not n or n['status'] not in ('queued','unknown'):return
         pref=one(c,'SELECT value FROM user_preferences WHERE user_id=:id',id=n['recipient_id'])
         opted=not pref or pref['value'].get('email_enabled') is not True or n['template_key']=='utility.notice' and pref['value'].get('utility_notices_enabled') is not True
@@ -64,6 +67,9 @@ def process_email(notification_id):
         user=one(c,'SELECT email FROM profiles WHERE id=:id',id=n['recipient_id'])
         if not user or payload['to']!=[user['email']]:
             query(c,"UPDATE notifications SET status=:status,last_error='recipient_changed' WHERE id=:id",id=notification_id,status='unknown' if n['first_attempt_at'] else 'failed');return
+        from .email_receipts import address_hash
+        if one(c,'SELECT address_hash FROM email_suppressions WHERE address_hash=:hash',hash=address_hash(payload['to'][0])):
+            query(c,"UPDATE notifications SET status=:status,last_error='recipient_suppressed' WHERE id=:id",id=notification_id,status='unknown' if n['first_attempt_at'] else 'failed');return
         provider=n['provider']
         if n['first_attempt_at'] and (now<n['first_attempt_at'] or now>=n['retry_until']):
             query(c,"UPDATE notifications SET status='unknown',last_error=:error WHERE id=:id",id=notification_id,error='clock_rollback' if now<n['first_attempt_at'] else 'idempotency_window_expired');return
@@ -83,7 +89,7 @@ def process_email(notification_id):
         headers={'Authorization':('Key ' if provider=='onesignal' else 'Bearer ')+api_key}
         if provider=='onesignal':request_payload=onesignal_email_payload(payload,app_id,n['provider_request_id'])
         else:
-            headers['Idempotency-Key']='smartclamp-email-'+str(notification_id);request_payload=payload
+            headers['Idempotency-Key']='smartclamp-email-'+str(notification_id);request_payload={**payload,'tags':[{'name':'smartclamp_dispatch','value':str(n['webhook_tag'])}]}
         if n['encrypted_provider_request']:
             try:provider_raw=Fernet(config('EMAIL_ENCRYPTION_KEY').encode()).decrypt(n['encrypted_provider_request'].encode())
             except InvalidToken:raise DomainError('email_decryption_failed','Restore the original email encryption key before retrying.',503)
@@ -102,6 +108,9 @@ def process_email(notification_id):
         elif 400<=response.status_code<500 and response.status_code not in (408,429):status='failed';error='provider_rejected'
     except (requests.RequestException,ValueError,TypeError):pass
     with transaction() as c:
-        query(c,'UPDATE notifications SET status=:status,provider_reference=:ref,last_error=:error WHERE id=:id',id=notification_id,status=status,ref=reference,error=error)
+        query(c,"UPDATE notifications SET status=:status,provider_reference=coalesce(provider_reference,:ref),last_error=:error WHERE id=:id AND status='unknown'",id=notification_id,status=status,ref=reference,error=error)
+        from .email_receipts import reconcile
+        reconcile(c,notification_id)
+        status=one(c,'SELECT status FROM notifications WHERE id=:id',id=notification_id)['status']
         audit(c,None,'email_dispatch_recorded',notification_id,{'status':status})
     if status=='unknown':raise DomainError('email_retry_pending','The same email request needs idempotent reconciliation.',503)

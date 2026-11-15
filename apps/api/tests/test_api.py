@@ -43,6 +43,8 @@ class ProviderFixture(BaseHTTPRequestHandler):
             if prior and prior['body']!=d:return self.send({},409)
             if self.email_mode=='rejected':return self.send({},422)
             if not prior:type(self).email_records[key]={'body':d,'id':str(uuid.uuid4())}
+            callback=getattr(type(self),'email_callback',None)
+            if callback:callback(d,self.email_records[key]['id'])
             if self.email_mode=='unknown':self.close_connection=True;return
             return self.send({'id':self.email_records[key]['id']})
         if self.path=='/transaction/initialize':
@@ -81,7 +83,7 @@ class LiveIntegration(unittest.TestCase):
     def setUp(self):
         self.client=self.app.test_client();self.users=[];ProviderFixture.token=None;ProviderFixture.vend_units=None;ProviderFixture.omit_token=False;ProviderFixture.key_changes={};ProviderFixture.init_mode="success"
         ProviderFixture.push_requests=[];ProviderFixture.push_mode='accepted'
-        ProviderFixture.email_requests=[];ProviderFixture.email_records={};ProviderFixture.email_mode='accepted'
+        ProviderFixture.email_requests=[];ProviderFixture.email_records={};ProviderFixture.email_mode='accepted';ProviderFixture.email_callback=None
         ProviderFixture.onesignal_requests=[];ProviderFixture.onesignal_records={};ProviderFixture.onesignal_mode='accepted'
     def user(self,role='tenant'):
         phone='+1555'+str(secrets.randbelow(9000000)+1000000);pwd='A-real-QA-password-42'
@@ -119,6 +121,89 @@ class LiveIntegration(unittest.TestCase):
     def attest(self,u,p):
         result=self.client.post('/api/v1/payments/'+str(p['id'])+'/confirm-meter-entry',json={'confirmed':True},headers=self.headers(u))
         self.assertEqual(result.status_code,200,result.json)
+    def test_svix_official_signature_vector_and_replay_window(self):
+        from app.email_receipts import verify
+        from app.db import DomainError
+        raw=b'{"event_type":"ping","data":{"success":true}}'
+        headers={'svix-id':'msg_loFOjxBNrRLzqYUf','svix-timestamp':'1731705121','svix-signature':'v1,rAvfW3dJ/X/qxhsaXPOyyCGmRKsaKWcsNccKXlIktD0='}
+        secret='whsec_plJ3nmyCDGBKInavdOK15jsl'
+        self.assertEqual(verify(raw,headers,secret,now=1731705121),headers['svix-id'])
+        for modified,now in ((raw+b' ',1731705121),(raw,1731705422),(raw,1731704820)):
+            with self.assertRaises(DomainError):verify(modified,headers,secret,now=now)
+        headers['svix-signature']='v2,unsupported '+headers['svix-signature']
+        self.assertEqual(verify(raw,headers,secret,now=1731705121),headers['svix-id'])
+
+    def test_signed_email_feedback_recovers_unknown_and_suppresses_bounces(self):
+        from app.db import DomainError
+        import base64,time
+        from app.email_delivery import process_email
+        from app.work import notify
+        user=self.user('homeowner');email='receipts-'+uuid.uuid4().hex+'@example.test';secret=secrets.token_bytes(32)
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'QA <notice@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'receipts-fixture','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails','RESEND_WEBHOOK_SECRET':'whsec_'+base64.b64encode(secret).decode(),'EMAIL_QUOTA_TEST_SCOPE':'qa-'+uuid.uuid4().hex}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        def event(kind,ref,tag,event_id=None,to=None,stamp=None,created=None):
+            payload={'type':kind,'created_at':created or datetime.now(timezone.utc).isoformat(),'data':{'email_id':ref,'to':[to or email],'tags':{'smartclamp_dispatch':tag} if tag else {}}}
+            raw=json.dumps(payload,separators=(',',':')).encode();eid=event_id or 'msg_'+uuid.uuid4().hex;ts=str(stamp or int(time.time()));sig=base64.b64encode(hmac.new(secret,(eid+'.'+ts+'.').encode()+raw,hashlib.sha256).digest()).decode()
+            return raw,{'svix-id':eid,'svix-timestamp':ts,'svix-signature':'v1,'+sig,'Content-Type':'application/json'}
+        try:
+            with self.app.app_context(),transaction() as c:
+                query(c,'UPDATE profiles SET email=:email WHERE id=:id',id=user['id'],email=email)
+                query(c,'INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb))',uid=user['id'],value=json.dumps({'email_enabled':True}))
+                key=uuid.uuid4().hex;notify(c,user['id'],'service.notice','Receipt fixture',key,channels=['email']);nid=scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='email:'+key)
+            ProviderFixture.email_mode='unknown'
+            with self.app.app_context(),self.assertRaises(DomainError):process_email(nid)
+            record=next(iter(ProviderFixture.email_records.values()));ref=record['id'];tag=record['body']['tags'][0]['value']
+            raw,h=event('email.delivered',ref,tag)
+            self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=raw+b' ',headers=h).status_code,401)
+            stale,sh=event('email.delivered',ref,tag,stamp=int(time.time())-301)
+            self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=stale,headers=sh).status_code,401)
+            wrong,wh=event('email.delivered',ref,tag,to='someone-else@example.test');self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=wrong,headers=wh).status_code,200)
+            with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=nid),'unknown')
+            self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=raw,headers=h).status_code,200)
+            self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=raw,headers=h).json['status'],'already_recorded')
+            changed,ch=event('email.bounced',ref,tag,event_id=h['svix-id']);self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=changed,headers=ch).status_code,409)
+            for kind in ('email.sent','email.bounced','email.delivered','email.complained'):
+                body,headers=event(kind,ref,tag);self.assertEqual(self.client.post('/api/v1/webhooks/resend',data=body,headers=headers).status_code,200)
+            with self.app.app_context(),transaction() as c:
+                self.assertEqual(scalar(c,'SELECT delivery_state FROM email_dispatches WHERE notification_id=:id',id=nid),'complained')
+                self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=nid),'provider_accepted')
+                key=uuid.uuid4().hex;notify(c,user['id'],'service.notice','Do not send to a suppressed address.',key,channels=['email'])
+                failed=one(c,'SELECT status,last_error FROM notifications WHERE dedupe_key=:key',key='email:'+key);self.assertEqual(failed['last_error'],'recipient_suppressed');self.assertEqual(failed['status'],'failed')
+            with self.app.app_context():process_email(nid)
+            self.assertEqual(len(ProviderFixture.email_requests),1)
+            ops=self.promote(self.user(),'internal_ops');review=self.client.get('/api/v1/ops/summary',headers=self.headers(ops));self.assertEqual(review.status_code,200);self.assertIn(str(nid),[r['id'] for r in review.json['notification_delivery_issues'] if r['delivery_state']=='complained']);self.assertIn('recipient_mismatch',[r['disposition'] for r in review.json['email_feedback_review']]);self.assertNotIn(email,json.dumps(review.json))
+        finally:self.app.config.update(previous)
+
+    def test_email_callback_before_http_result_and_untagged_reconciliation(self):
+        import base64,time
+        from app.email_delivery import process_email
+        from app.work import notify
+        user=self.user('homeowner');email='race-'+uuid.uuid4().hex+'@example.test';secret=secrets.token_bytes(32)
+        settings={'EMAIL_ENABLED':'true','EMAIL_FROM':'QA <notice@example.test>','EMAIL_ENCRYPTION_KEY':Fernet.generate_key().decode(),'RESEND_API_KEY':'race-fixture','RESEND_API_URL':'http://127.0.0.1:'+str(self.http.server_port)+'/emails','RESEND_WEBHOOK_SECRET':'whsec_'+base64.b64encode(secret).decode(),'EMAIL_QUOTA_TEST_SCOPE':'qa-'+uuid.uuid4().hex}
+        previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            with self.app.app_context(),transaction() as c:
+                query(c,'UPDATE profiles SET email=:email WHERE id=:id',id=user['id'],email=email)
+                query(c,'INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb))',uid=user['id'],value=json.dumps({'email_enabled':True}))
+            for tagged in (True,False):
+                codes=[]
+                def callback(payload,ref):
+                    raw=json.dumps({'type':'email.delivered','created_at':datetime.now(timezone.utc).isoformat(),'data':{'email_id':ref,'to':[email],'tags':{'smartclamp_dispatch':payload['tags'][0]['value']} if tagged else {}}}).encode()
+                    eid='msg_'+uuid.uuid4().hex;ts=str(int(time.time()));sig=base64.b64encode(hmac.new(secret,(eid+'.'+ts+'.').encode()+raw,hashlib.sha256).digest()).decode()
+                    codes.append(self.app.test_client().post('/api/v1/webhooks/resend',data=raw,headers={'Content-Type':'application/json','svix-id':eid,'svix-timestamp':ts,'svix-signature':'v1,'+sig}).status_code)
+                ProviderFixture.email_callback=callback;ProviderFixture.email_mode='unknown' if tagged else 'accepted'
+                with self.app.app_context(),transaction() as c:
+                    key=uuid.uuid4().hex;notify(c,user['id'],'service.notice','Race recovery fixture',key,channels=['email']);nid=scalar(c,'SELECT id FROM notifications WHERE dedupe_key=:key',key='email:'+key)
+                with self.app.app_context():process_email(nid)
+                self.assertEqual(codes,[200])
+                with self.app.app_context(),transaction() as c:
+                    self.assertEqual(scalar(c,'SELECT delivery_state FROM email_dispatches WHERE notification_id=:id',id=nid),'delivered')
+                    self.assertEqual(scalar(c,'SELECT status FROM notifications WHERE id=:id',id=nid),'provider_accepted')
+                before=len(ProviderFixture.email_requests)
+                with self.app.app_context():process_email(nid)
+                self.assertEqual(len(ProviderFixture.email_requests),before)
+        finally:ProviderFixture.email_callback=None;self.app.config.update(previous)
+
     def test_staff_email_uses_frozen_request_and_same_idempotency_key_after_lost_response(self):
         from app.live_auth import legal_versions
         from app.providers import auth_request

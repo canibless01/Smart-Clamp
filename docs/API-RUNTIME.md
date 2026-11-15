@@ -104,3 +104,7 @@ reviewed bill-responsibility routes are exported in the runtime contract.
 ## Support and dispute handoff
 
 Both workflow endpoints additionally accept `assign` (superadmin only, requiring `assignee_id`) and `release` (current assignee or superadmin). The assignee must be onboarded and hold internal_support/superadmin for support, or internal_finance/superadmin for disputes. Closed cases reject assignment changes. Details return `assigned_to_me`, `can_assign` and an administrator-only `responders` roster. Ownership changes are versioned/audited and notify currently permitted affected staff. No migration after 034 is required.
+
+## Resend delivery feedback (035)
+
+`POST /webhooks/resend` verifies raw-body Svix signatures and bounded attempt timestamps; no bearer authentication substitutes for that signature. It deduplicates events, matches the original pinned Resend dispatch and encrypted recipient, safely reconciles HTTP/callback races and records minimal metadata. Operations review includes delivery feedback separately from dispatch status. Bounce/complaint/suppressed addresses stop future sends across providers. See `EMAIL-DELIVERY-FEEDBACK.md` for provider setup and the mail-server-versus-inbox boundary. Finance login now lands on its implemented `/disputes` workspace instead of the forbidden operations summary.

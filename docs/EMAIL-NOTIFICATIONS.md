@@ -25,14 +25,13 @@ event. API and worker require the same keys/settings.
 
 `provider_accepted` means Resend accepted the request, not inbox delivery or a read
 receipt. The recipient's Alerts and operations delivery review show the channel,
-state and relevant review reason. Bounce/complaint handling and inbox acceptance
-must be monitored in Resend; signed delivery-webhook ingestion is not implemented
-by this increment. Do not present provider acceptance as delivered.
+state and relevant review reason. Signed delivery feedback and suppression are now implemented through 035; read
+`EMAIL-DELIVERY-FEEDBACK.md`. Real inbox/provider acceptance still requires configuration. Do not present provider acceptance as delivered.
 
 ## Configure and accept
 
-1. Apply SQL through 027. Set `EMAIL_ENABLED=true`, `RESEND_API_KEY`, one verified
-   `EMAIL_FROM`, distinct `EMAIL_ENCRYPTION_KEY` and exact HTTPS `APP_ORIGIN`.
+1. Apply SQL through 035. Set `EMAIL_ENABLED=true`, `RESEND_API_KEY`, one verified
+   `EMAIL_FROM`, distinct `EMAIL_ENCRYPTION_KEY`, `RESEND_WEBHOOK_SECRET` and exact HTTPS `APP_ORIGIN`.
    `tools/bootstrap_secrets.py` creates an email key for a **new** secrets directory;
    do not regenerate existing device, report, firmware or push keys.
 2. Verify the real sender domain in Resend, publish its required DNS records,

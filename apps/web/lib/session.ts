@@ -54,5 +54,5 @@ export function loginPath() {
 }
 export const roleHome: Record<string, string> = {
   tenant: "/dashboard/tenant", landlord: "/dashboard/landlord", homeowner: "/dashboard/homeowner", nepa_staff: "/dashboard/utility",
-  installer: "/portal", agent: "/portal", referrer: "/portal", internal_ops: "/ops", internal_finance: "/ops", internal_support: "/support/requests", internal_engineering: "/ops", internal_superadmin: "/ops",
+  installer: "/portal", agent: "/portal", referrer: "/portal", internal_ops: "/ops", internal_finance: "/disputes", internal_support: "/support/requests", internal_engineering: "/ops", internal_superadmin: "/ops",
 };
