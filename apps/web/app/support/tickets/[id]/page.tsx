@@ -8,7 +8,8 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [note, setNote] = useState(""),
-    [action, setAction] = useState("claim");
+    [action, setAction] = useState("claim"),
+    [assignee,setAssignee] = useState("");
   return (
     <RecordWorkspace
       title="Your support request"
@@ -16,12 +17,12 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
       endpoint={`/support/tickets/${id}`}
     >
       {(data, reload) => (
-        <>
+        <div className="resource-list">
           <Link className="text-link" href="/support/requests">All support requests</Link>
           <section className="card">
             <h2>{data.subject}</h2>
             <p>{data.message}</p>
-            <p>Status: {data.status}</p>
+            <p>Status: {data.status}</p><p>{data.assigned_to_me ? "You own this request" : data.assigned_to ? "Assigned to a support colleague" : "Unassigned"}</p>
           </section>
           <div className="resource-list">
             {data.messages.map((m: any, i: number) => (
@@ -33,14 +34,15 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
           </div>
           {(data.can_manage || data.status === "resolved") && <form className="resource-form" onSubmit={async e => {
             e.preventDefault();setBusy(true);setError("");
-            try { await apiFetch(`/support/tickets/${id}/workflow`, {method:"POST",body:JSON.stringify({action:data.status === "resolved" ? "reopen" : action,note,version:data.version})});setNote("");reload(); }
+            try { await apiFetch(`/support/tickets/${id}/workflow`, {method:"POST",body:JSON.stringify({action:data.status === "resolved" ? "reopen" : action,note,version:data.version,...(action==='assign'?{assignee_id:assignee}:{})})});setNote("");reload(); }
             catch(e) {setError(e instanceof Error ? e.message : "Unable to update request.");}
             finally {setBusy(false);}
           }}>
             <h2>{data.status === "resolved" ? "Reopen request" : "Support workflow"}</h2>
             {data.status !== "resolved" && <label>Action<select className="input" value={action} onChange={e=>setAction(e.target.value)}>
-              <option value="claim">Claim request</option><option value="waiting_customer">Waiting for customer</option><option value="waiting_provider">Waiting for provider</option><option value="resolve">Resolve request</option>
+              <option value="claim">Claim request</option>{data.can_assign && <option value="assign">Assign to colleague</option>}{(data.assigned_to_me || data.can_assign) && <option value="release">Release to queue</option>}<option value="waiting_customer">Waiting for customer</option><option value="waiting_provider">Waiting for provider</option><option value="resolve">Resolve request</option>
             </select></label>}
+            {data.status !== "resolved" && action==='assign' && data.can_assign && <label>Assign to reviewer<select className="input" required value={assignee} onChange={e=>setAssignee(e.target.value)}><option value="">Choose an eligible colleague</option>{data.responders.map((u:any)=><option key={u.id} value={u.id}>{u.full_name} · {u.id.slice(0,8)}</option>)}</select></label>}
             <label>{data.status === "resolved" ? "Reason for reopening" : "Update for the customer"}<textarea className="input" required maxLength={4000} value={note} onChange={e=>setNote(e.target.value)} /></label>
             <button className="btn btn-secondary" disabled={busy}>Save request update</button>
           </form>}
@@ -80,7 +82,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             </button>
           </form>}
           {data.status === "resolved" && error && <p role="alert">{error}</p>}
-        </>
+        </div>
       )}
     </RecordWorkspace>
   );

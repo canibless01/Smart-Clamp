@@ -10,4 +10,8 @@ Workflow actions require a current numeric version and a visible note. Stale cha
 
 `/disputes/{id}` shows the discussion and recorded decisions. `/disputes/{id}/meeting` remains read-only and displays the same snapshot and discussion. Decision records retain escalation/closure notes. Generic notifications go to the other participant through the existing transactional in-app and opt-in external-channel paths, without copying private financial content into notification previews. Unassigned cases appear in the queue; no arbitrary staff on-call list is assumed.
 
-Closing without adjustment does not edit bills, wallet entries, payments, credit, debt or relay state. Monetary proposals, independently approved balanced reversals/refunds, attachments, reviewer reassignment policy and live provider acceptance remain separate implementation/acceptance work. This workflow does not claim those are finished.
+Closing without adjustment does not edit bills, wallet entries, payments, credit, debt or relay state. Monetary proposals, independently approved balanced reversals/refunds, attachments and live provider acceptance remain separate implementation/acceptance work. This workflow does not claim those are finished.
+
+## Reviewer handoff
+
+Superadmins can assign an active dispute to an onboarded internal-finance colleague or superadmin. Reviewers can release their own cases, and superadmins can release any assignment. Dispute handoff preserves the review/escalation state. Closed cases must be reopened before changing assignments. The eligible roster is included only for administrators, bounded to 500 staff. Both operations require current versions and visible notes, audit previous/new ownership and notify currently authorised affected staff. A former reviewer remains excluded after role revocation. This does not add financial approval authority to public accounts.

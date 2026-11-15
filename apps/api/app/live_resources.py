@@ -6,6 +6,7 @@ from .db import transaction,one,rows,query,scalar,DomainError,device,building,au
 from .live_auth import authenticated,staff
 from .providers import validate_meter,config,electricity_services
 from .idempotency import idempotent
+from . import case_assignment
 bp=Blueprint('live_resources',__name__)
 
 def body():return request.get_json() or {}
@@ -242,8 +243,8 @@ def ticket_access(c,ticket_id):
 @authenticated
 def ticket_detail(ticket_id):
     with transaction() as c:
-        r=ticket_access(c,ticket_id);messages=rows(c,'SELECT author_id,message,created_at FROM support_messages WHERE ticket_id=:id ORDER BY created_at',id=ticket_id)
-    return jsonify({**dict(r),'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin')})
+        r=ticket_access(c,ticket_id);reviewers=case_assignment.responders(c,('internal_support','internal_superadmin'));messages=rows(c,'SELECT author_id,message,created_at FROM support_messages WHERE ticket_id=:id ORDER BY created_at',id=ticket_id)
+    return jsonify({**dict(r),'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin'),'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'responders':reviewers,'can_assign':g.actor['role']=='internal_superadmin'})
 
 @bp.post('/api/v1/support/tickets/<ticket_id>/messages')
 @authenticated
@@ -276,7 +277,11 @@ def ticket_workflow(ticket_id):
             status='reopened'
         else:
             staff('internal_support','internal_superadmin')
-            if action=='claim':
+            if action in ('assign','release'):
+                if status=='resolved':raise DomainError('invalid_transition','Reopen this request before changing its assignee.',409)
+                assignee=case_assignment.change(c,action,assignee,d.get('assignee_id'),('internal_support','internal_superadmin'))
+                status='open' if action=='release' else 'triaged' if status=='open' else status
+            elif action=='claim':
                 if status=='resolved':raise DomainError('invalid_transition','Reopen this request before claiming it.',409)
                 if assignee and str(assignee)!=g.actor['id']:raise DomainError('already_assigned','Another support colleague owns this request.',409)
                 assignee=g.actor['id'];status='triaged' if status=='open' else status
@@ -289,7 +294,8 @@ def ticket_workflow(ticket_id):
           resolved_at=CASE WHEN :status='resolved' THEN now() ELSE NULL END WHERE id=:id RETURNING id,status,version""",
           id=ticket_id,status=status,assignee=assignee)
         query(c,'INSERT INTO support_messages(ticket_id,author_id,message) VALUES(:id,:uid,:message)',id=ticket_id,uid=g.actor['id'],message=note)
-        audit(c,g.actor['id'],'support_workflow_changed',ticket_id,{'action':action,'from':ticket['status'],'to':status,'version':result['version']})
+        audit(c,g.actor['id'],'support_workflow_changed',ticket_id,{'action':action,'from':ticket['status'],'to':status,'version':result['version'],'previous_assignee':str(ticket['assigned_to']) if ticket['assigned_to'] else None,'assignee':str(assignee) if assignee else None})
+        if action in ('assign','release'):case_assignment.notify_change(c,'support',ticket_id,result['version'],ticket['assigned_to'],assignee)
         recipient=ticket['assigned_to'] if str(ticket['reporter_id'])==g.actor['id'] else ticket['reporter_id']
         if recipient and str(recipient)!=g.actor['id']:
             from .work import notify
@@ -402,7 +408,7 @@ def meeting(dispute_id):
     with transaction() as c:
         r=dispute_access(c,dispute_id)
         return jsonify({**{k:r[k] for k in ('id','status','note','created_at','resolved_at','version','assigned_to','evidence_snapshot','evidence_snapshot_hash')},
-          'can_review':g.actor['role'] in DISPUTE_REVIEWERS,
+          'can_review':g.actor['role'] in DISPUTE_REVIEWERS,'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'can_assign':g.actor['role']=='internal_superadmin','responders':case_assignment.responders(c,DISPUTE_REVIEWERS),
           'messages':rows(c,'SELECT author_id,message,created_at FROM dispute_messages WHERE dispute_id=:id ORDER BY created_at,id',id=dispute_id),
           'decisions':rows(c,'SELECT decision,note,created_at FROM dispute_resolutions WHERE dispute_id=:id ORDER BY created_at,id',id=dispute_id)})
 
@@ -444,7 +450,9 @@ def dispute_workflow(dispute_id):
         else:
             staff(*DISPUTE_REVIEWERS)
             if status in ('resolved','closed_no_adjustment'):raise DomainError('dispute_closed','Reopen this dispute before reviewing it.',409)
-            if action=='claim':
+            if action in ('assign','release'):
+                assignee=case_assignment.change(c,action,assignee,d.get('assignee_id'),DISPUTE_REVIEWERS)
+            elif action=='claim':
                 if assignee and str(assignee)!=g.actor['id']:raise DomainError('already_assigned','Another reviewer owns this dispute.',409)
                 assignee=g.actor['id']
             elif action in ('respond','close_no_adjustment'):
@@ -455,7 +463,8 @@ def dispute_workflow(dispute_id):
           resolved_at=CASE WHEN :status='closed_no_adjustment' THEN now() ELSE NULL END WHERE id=:id RETURNING id,status,version""",id=dispute_id,status=status,assignee=assignee)
         query(c,'INSERT INTO dispute_messages(dispute_id,author_id,message) VALUES(:id,:uid,:note)',id=dispute_id,uid=g.actor['id'],note=note)
         if action in ('escalate','close_no_adjustment'):query(c,'INSERT INTO dispute_resolutions(dispute_id,decision,decided_by,note) VALUES(:id,:action,:uid,:note)',id=dispute_id,action=action,uid=g.actor['id'],note=note)
-        audit(c,g.actor['id'],'dispute_workflow_changed',dispute_id,{'action':action,'from':case['status'],'to':status,'version':result['version']})
+        audit(c,g.actor['id'],'dispute_workflow_changed',dispute_id,{'action':action,'from':case['status'],'to':status,'version':result['version'],'previous_assignee':str(case['assigned_to']) if case['assigned_to'] else None,'assignee':str(assignee) if assignee else None})
+        if action in ('assign','release'):case_assignment.notify_change(c,'dispute',dispute_id,result['version'],case['assigned_to'],assignee)
         dispute_notify(c,case,'dispute-workflow:'+dispute_id+':'+str(result['version']))
     return jsonify(dict(result))
 

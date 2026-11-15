@@ -501,6 +501,36 @@ class LiveIntegration(unittest.TestCase):
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)
+    def test_administrator_handoffs_and_staff_release_preserve_scope(self):
+        owner=self.user('homeowner');admin=self.promote(self.user(),'internal_superadmin');outsider=self.user();dev=self.provision(owner)
+        with self.app.app_context(),transaction() as c:
+            bill=one(c,"INSERT INTO bills(subject_type,subject_id,period_start,period_end,tariff_version,amount_kobo) VALUES('device',:device,current_date-30,current_date,:tariff,10000) RETURNING id",device=dev['id'],tariff=dev['wallet']['tariff_version'])['id']
+        for kind,role in (('support','internal_support'),('dispute','internal_finance')):
+            first=self.promote(self.user(),role);second=self.promote(self.user(),role)
+            created=self.client.post('/api/v1/support/tickets' if kind=='support' else '/api/v1/disputes',json={'category':'device','subject':'Handoff scope','message':'Review handoff'} if kind=='support' else {'bill_id':str(bill),'note':'Review handoff'},headers=self.headers(owner))
+            self.assertEqual(created.status_code,201,created.json);cid=created.json['id'];base='/api/v1/support/tickets/'+cid if kind=='support' else '/api/v1/disputes/'+cid
+            detail=base if kind=='support' else base+'/meeting-view'
+            def act(user,action,version,target=None,key=None):return self.client.post(base+'/workflow',json={'action':action,'version':version,'assignee_id':target,'note':'Reviewed staff handoff.'},headers=self.headers(user,key))
+            self.assertEqual(act(owner,'assign',1,first['id']).status_code,403)
+            self.assertEqual(act(second,'assign',1,first['id']).status_code,403)
+            self.assertEqual(act(admin,'assign',1,outsider['id']).status_code,400)
+            key=str(uuid.uuid4());assigned=act(admin,'assign',1,first['id'],key);self.assertEqual(assigned.status_code,200,assigned.json);self.assertEqual(act(admin,'assign',1,first['id'],key).json,assigned.json)
+            self.assertEqual(act(admin,'assign',1,second['id']).status_code,409)
+            self.assertEqual(act(second,'release',2).status_code,403)
+            self.assertEqual(act(first,'release',2).status_code,200)
+            self.assertEqual(act(admin,'assign',3,first['id']).status_code,200)
+            with self.app.app_context(),transaction() as c:
+                query(c,"UPDATE profiles SET role='tenant' WHERE id=:id",id=first['id'])
+                count=scalar(c,"SELECT count(*) FROM notifications WHERE recipient_id=:id AND template_key=:template",id=first['id'],template=kind+'.assigned')
+            self.assertEqual(self.client.get(detail,headers=self.headers(first)).status_code,404)
+            self.assertEqual(act(admin,'assign',4,first['id']).status_code,400)
+            self.assertEqual(act(admin,'assign',4,second['id']).status_code,200)
+            view=self.client.get(detail,headers=self.headers(admin));self.assertNotIn(first['id'],[u['id'] for u in view.json['responders']]);self.assertEqual(view.json['assigned_to'],second['id'])
+            self.assertEqual(self.client.get(detail,headers=self.headers(second)).json['responders'],[])
+            with self.app.app_context(),transaction() as c:self.assertEqual(scalar(c,"SELECT count(*) FROM notifications WHERE recipient_id=:id AND template_key=:template",id=first['id'],template=kind+'.assigned'),count)
+            self.assertEqual(act(second,'release',5).status_code,200)
+            self.assertIsNone(self.client.get(detail,headers=self.headers(admin)).json['assigned_to'])
+
     def test_tenant_bills_and_disputes_exclude_previous_occupancy(self):
         landlord=self.user('landlord');tenant=self.user();dev=self.provision(landlord)
         bid=self.client.post('/api/v1/buildings',json={'name':'Period privacy','address':'QA only','meter_type':'with_meter'},headers=self.headers(landlord)).json['building_id']

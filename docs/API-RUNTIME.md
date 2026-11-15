@@ -100,3 +100,7 @@ reviewed bill-responsibility routes are exported in the runtime contract.
 ## Dispute review (034)
 
 `GET /disputes` exposes the reporter's cases or the finance/superadmin queue, with bounded limit/offset and next_cursor. `POST /disputes` requires an accessible bill_id and nonempty note; tenant period checks and duplicate-active-case protection apply. `GET /disputes/{id}/meeting-view` includes immutable snapshot/hash, version, messages, decisions and can_review. `POST /disputes/{id}/workflow` requires action, current numeric version and note. Actions: claim, respond, escalate, close_no_adjustment, reopen. Messages and updates notify the other participant via existing opt-in channels. Monetary adjustment is not an action here. See `DISPUTE-REVIEW.md`.
+
+## Support and dispute handoff
+
+Both workflow endpoints additionally accept `assign` (superadmin only, requiring `assignee_id`) and `release` (current assignee or superadmin). The assignee must be onboarded and hold internal_support/superadmin for support, or internal_finance/superadmin for disputes. Closed cases reject assignment changes. Details return `assigned_to_me`, `can_assign` and an administrator-only `responders` roster. Ownership changes are versioned/audited and notify currently permitted affected staff. No migration after 034 is required.

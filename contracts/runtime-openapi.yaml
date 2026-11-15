@@ -4631,6 +4631,8 @@ paths:
                   type: string
                   enum:
                   - claim
+                  - assign
+                  - release
                   - respond
                   - escalate
                   - close_no_adjustment
@@ -4638,6 +4640,7 @@ paths:
                 version:
                   type: integer
                   minimum: 1
+                assignee_id: *id002
                 note:
                   type: string
                   minLength: 1
@@ -10157,6 +10160,8 @@ paths:
                   type: string
                   enum:
                   - claim
+                  - assign
+                  - release
                   - waiting_customer
                   - waiting_provider
                   - resolve
@@ -10164,6 +10169,7 @@ paths:
                 version:
                   type: integer
                   minimum: 1
+                assignee_id: *id002
                 note:
                   type: string
                   minLength: 1
