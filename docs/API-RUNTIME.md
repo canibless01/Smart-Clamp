@@ -92,3 +92,7 @@ Automatic notice previews accept `audience` instead of `device_ids`, with option
 on send. Category sends return `audience_queued`; worker batches expose actual
 queued/committed/skipped counts in sender history. Operational service-area and
 reviewed bill-responsibility routes are exported in the runtime contract.
+
+## Support workflow (033)
+
+`GET /support/tickets` is scoped to reporter, or the support/superadmin queue. It accepts bounded `limit` and numeric `offset`, and returns `next_cursor` as the next offset. `POST /support/tickets/{id}/workflow` requires `action`, current numeric `version`, and a nonempty `note`. Actions: claim, waiting_customer, waiting_provider, resolve, reopen. Status changes require the assigned support colleague; reporter reopening is allowed only from resolved. See `SUPPORT-WORKFLOW.md`.

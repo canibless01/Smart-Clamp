@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -1935,5 +1935,22 @@ $sc_source_d61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('032_notice_batch_capacity.sql','d61913f976ff467b549a397ee7041e1adde31685b6fdd5a378cb4baa4971227f');
   END IF;
 END $sc_step_31$;
+
+DO $sc_step_32$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='033_support_workflow.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '913d12db35e3b5a3f072ca1196f1ce2a8a6168213b8b53b6ac64890e7cdce916' THEN RAISE EXCEPTION 'Migration checksum mismatch: 033_support_workflow.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_913d12db35e3b5a3f072ca1196f1ce2a8a6168213b8b53b6ac64890e7cdce916$
+-- Support status updates serialize against replies and reject stale actions.
+alter table support_tickets add column version bigint not null default 1 check (version > 0);
+create index idx_support_queue on support_tickets(status,opened_at desc);
+
+$sc_source_913d12db35e3b5a3f072ca1196f1ce2a8a6168213b8b53b6ac64890e7cdce916$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('033_support_workflow.sql','913d12db35e3b5a3f072ca1196f1ce2a8a6168213b8b53b6ac64890e7cdce916');
+  END IF;
+END $sc_step_32$;
 
 COMMIT;

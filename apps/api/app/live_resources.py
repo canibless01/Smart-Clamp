@@ -221,7 +221,12 @@ def acknowledge(alert_id):
 @idempotent
 def support():
     with transaction() as c:
-        if request.method=='GET':return page(rows(c,'SELECT * FROM support_tickets WHERE reporter_id=:uid OR assigned_to=:uid ORDER BY opened_at DESC LIMIT :n',uid=g.actor['id'],n=limit()))
+        if request.method=='GET':
+            try:offset=int(request.args.get('offset',0))
+            except ValueError:raise DomainError('validation_error','Use a numeric queue offset.')
+            if not 0<=offset<=100000:raise DomainError('validation_error','Queue offset is outside the supported range.')
+            n=limit();items=rows(c,'SELECT * FROM support_tickets WHERE reporter_id=:uid OR :support ORDER BY opened_at DESC,id DESC LIMIT :n OFFSET :offset',uid=g.actor['id'],support=g.actor['role'] in ('internal_support','internal_superadmin'),n=n+1,offset=offset)
+            return jsonify(items=items[:n],next_cursor=str(offset+n) if len(items)>n else None)
         d=body();category=d.get('category')
         if category not in('payment','device','billing','installation','account','other'):raise DomainError('validation_error','Select a supported category.')
         if d.get('device_id'):device(c,g.actor,d['device_id'])
@@ -229,7 +234,7 @@ def support():
         return jsonify(dict(r)),201
 
 def ticket_access(c,ticket_id):
-    row=one(c,'SELECT * FROM support_tickets WHERE id=:id AND(reporter_id=:uid OR assigned_to=:uid)',id=uuid_string(ticket_id),uid=g.actor['id'])
+    row=one(c,'SELECT * FROM support_tickets WHERE id=:id AND(reporter_id=:uid OR :support) FOR UPDATE',id=uuid_string(ticket_id),uid=g.actor['id'],support=g.actor['role'] in ('internal_support','internal_superadmin'))
     if not row:raise DomainError('not_found','Support request not found.',404)
     return row
 
@@ -238,15 +243,58 @@ def ticket_access(c,ticket_id):
 def ticket_detail(ticket_id):
     with transaction() as c:
         r=ticket_access(c,ticket_id);messages=rows(c,'SELECT author_id,message,created_at FROM support_messages WHERE ticket_id=:id ORDER BY created_at',id=ticket_id)
-    return jsonify({**dict(r),'messages':messages})
+    return jsonify({**dict(r),'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin')})
 
 @bp.post('/api/v1/support/tickets/<ticket_id>/messages')
 @authenticated
 @idempotent
 def ticket_message(ticket_id):
     with transaction() as c:
-        ticket_access(c,ticket_id);r=one(c,'INSERT INTO support_messages(ticket_id,author_id,message) VALUES(:id,:uid,:msg) RETURNING id,created_at',id=ticket_id,uid=g.actor['id'],msg=requested_text(body(),'message'));audit(c,g.actor['id'],'support_message_added',ticket_id)
+        ticket=ticket_access(c,ticket_id)
+        if ticket['status']=='resolved':raise DomainError('ticket_resolved','Reopen this request before replying.',409)
+        r=one(c,'INSERT INTO support_messages(ticket_id,author_id,message) VALUES(:id,:uid,:msg) RETURNING id,created_at',id=ticket_id,uid=g.actor['id'],msg=requested_text(body(),'message'));audit(c,g.actor['id'],'support_message_added',ticket_id)
+        recipient=ticket['assigned_to'] if str(ticket['reporter_id'])==g.actor['id'] else ticket['reporter_id']
+        if recipient and str(recipient)!=g.actor['id']:
+            from .work import notify
+            notify(c,str(recipient),'support.updated','A new reply is saved in your private support request. Open Support requests to review it.','support-message:'+str(r['id']))
     return jsonify(dict(r)),201
+
+@bp.post('/api/v1/support/tickets/<ticket_id>/workflow')
+@authenticated
+@idempotent
+def ticket_workflow(ticket_id):
+    d=body();action=d.get('action');note=requested_text(d,'note')
+    if type(d.get('version')) is not int:raise DomainError('validation_error','Supply the current request version.')
+    with transaction() as c:
+        ticket=ticket_access(c,ticket_id)
+        if ticket['version']!=d['version']:raise DomainError('version_conflict','This request changed. Refresh before continuing.',409)
+        operator=g.actor['role'] in ('internal_support','internal_superadmin')
+        status=ticket['status'];assignee=ticket['assigned_to']
+        if action=='reopen':
+            if status!='resolved':raise DomainError('invalid_transition','Only resolved requests can be reopened.',409)
+            if not operator and str(ticket['reporter_id'])!=g.actor['id']:raise DomainError('forbidden','Only the reporter or support staff can reopen this request.',403)
+            status='reopened'
+        else:
+            staff('internal_support','internal_superadmin')
+            if action=='claim':
+                if status=='resolved':raise DomainError('invalid_transition','Reopen this request before claiming it.',409)
+                if assignee and str(assignee)!=g.actor['id']:raise DomainError('already_assigned','Another support colleague owns this request.',409)
+                assignee=g.actor['id'];status='triaged' if status=='open' else status
+            elif action in ('waiting_customer','waiting_provider','resolve'):
+                if not assignee or str(assignee)!=g.actor['id']:raise DomainError('claim_required','Claim this request before changing its status.',409)
+                if status=='resolved':raise DomainError('invalid_transition','This request is already resolved.',409)
+                status='resolved' if action=='resolve' else action
+            else:raise DomainError('validation_error','Choose a supported workflow action.')
+        result=one(c,"""UPDATE support_tickets SET status=:status,assigned_to=:assignee,version=version+1,
+          resolved_at=CASE WHEN :status='resolved' THEN now() ELSE NULL END WHERE id=:id RETURNING id,status,version""",
+          id=ticket_id,status=status,assignee=assignee)
+        query(c,'INSERT INTO support_messages(ticket_id,author_id,message) VALUES(:id,:uid,:message)',id=ticket_id,uid=g.actor['id'],message=note)
+        audit(c,g.actor['id'],'support_workflow_changed',ticket_id,{'action':action,'from':ticket['status'],'to':status,'version':result['version']})
+        recipient=ticket['assigned_to'] if str(ticket['reporter_id'])==g.actor['id'] else ticket['reporter_id']
+        if recipient and str(recipient)!=g.actor['id']:
+            from .work import notify
+            notify(c,str(recipient),'support.updated','Your private support request has an update. Open Support requests to review it.','support-workflow:'+ticket_id+':'+str(result['version']))
+    return jsonify(dict(result))
 
 @bp.route('/api/v1/orders',methods=['GET','POST'])
 @authenticated

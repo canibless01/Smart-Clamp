@@ -142,3 +142,7 @@ wallet-zero debt inference or utility financial targeting is allowed. Large send
 are durable 100-recipient batches, with revalidation, duplicate suppression and
 progress/skipped counts. Verification:52 API tests and30 production-browser checks;
 web production build passed. Existing provider/hardware/external SQL gates remain.
+
+## Support workflow checkpoint, 15 November
+
+Migration 033 and the support queue/thread complete a locally tested customer submission → support claim → waiting/resolution → customer reopening loop, with version conflicts, scope checks, safe replay and generic participant notifications. The 53 API integration tests, 31 production-browser checks, production web build, four migration replay/checksum tests and policy checks pass. See `SUPPORT-WORKFLOW.md`. This does not complete financial dispute decisions, attachments, staff escalation/reassignment policy or live provider acceptance. External Supabase SQL has still not been applied without admin access.

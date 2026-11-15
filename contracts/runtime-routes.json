@@ -540,6 +540,11 @@
     "handler": "live_resources.ticket_message"
   },
   {
+    "method": "POST",
+    "path": "/api/v1/support/tickets/{ticket_id}/workflow",
+    "handler": "live_resources.ticket_workflow"
+  },
+  {
     "method": "GET",
     "path": "/api/v1/transactions",
     "handler": "live_resources.transactions"

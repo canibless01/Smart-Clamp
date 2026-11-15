@@ -501,6 +501,34 @@ class LiveIntegration(unittest.TestCase):
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)
+    def test_support_claim_resolution_reopen_and_scope(self):
+        owner=self.user('homeowner');stranger=self.user();support=self.user();colleague=self.user()
+        with self.app.app_context(),transaction() as c:
+            for user in (support,colleague):query(c,"UPDATE profiles SET role='internal_support' WHERE id=:id",id=user['id'])
+        created=self.client.post('/api/v1/support/tickets',json={'category':'device','subject':'Intermittent reading','message':'Please investigate'},headers=self.headers(owner))
+        self.assertEqual(created.status_code,201);tid=created.json['id'];url='/api/v1/support/tickets/'+tid
+        self.assertEqual(self.client.get(url,headers=self.headers(stranger)).status_code,404)
+        queue=self.client.get('/api/v1/support/tickets',headers=self.headers(support));self.assertIn(tid,[t['id'] for t in queue.json['items']])
+        def change(user,action,version,key=None):return self.client.post(url+'/workflow',json={'action':action,'version':version,'note':'Reviewed request update'},headers=self.headers(user,key))
+        self.assertEqual(change(owner,'claim',1).status_code,403)
+        self.assertEqual(change(support,'resolve',1).status_code,409)
+        key=str(uuid.uuid4());claimed=change(support,'claim',1,key);self.assertEqual(claimed.status_code,200,claimed.json)
+        self.assertEqual(change(support,'claim',1,key).json,claimed.json)
+        self.assertEqual(change(colleague,'claim',2).status_code,409)
+        self.assertEqual(change(support,'resolve',1).status_code,409)
+        waiting=change(support,'waiting_provider',2);self.assertEqual(waiting.status_code,200,waiting.json)
+        resolved=change(support,'resolve',3);self.assertEqual(resolved.json['status'],'resolved')
+        self.assertEqual(self.client.post(url+'/messages',json={'message':'Extra detail'},headers=self.headers(owner)).status_code,409)
+        reopened=change(owner,'reopen',4);self.assertEqual(reopened.json['status'],'reopened')
+        self.assertEqual(self.client.post(url+'/messages',json={'message':'Extra detail'},headers=self.headers(owner)).status_code,201)
+        detail=self.client.get(url,headers=self.headers(owner));self.assertEqual(detail.json['version'],5);self.assertFalse(detail.json['can_manage']);self.assertEqual(len(detail.json['messages']),5)
+        self.assertEqual(self.client.get('/api/v1/support/tickets?offset=invalid',headers=self.headers(owner)).status_code,400)
+        with self.app.app_context(),transaction() as c:
+            self.assertEqual(scalar(c,"SELECT count(*) FROM notifications WHERE recipient_id=:id AND template_key='support.updated' AND channel='in_app'",id=owner['id']),3)
+            self.assertEqual(scalar(c,"SELECT count(*) FROM notifications WHERE recipient_id=:id AND template_key='support.updated' AND channel='in_app'",id=support['id']),2)
+            query(c,"UPDATE profiles SET role='tenant' WHERE id=:id",id=support['id'])
+        self.assertEqual(self.client.get(url,headers=self.headers(support)).status_code,404)
+
     def test_building_scope_idempotency_and_durable_support(self):
         owner=self.user('landlord');stranger=self.user('landlord');headers=self.headers(owner);body={'name':'Real persistent building','address':'QA fixture address','meter_type':'with_meter'}
         first=self.client.post('/api/v1/buildings',json=body,headers=headers);self.assertEqual(first.status_code,201,first.json)

@@ -59,6 +59,7 @@ export default function Page() {
   return (
     <PublicShell>
       <div className="container marketing-page">
+        <a className="text-link" href="/support/requests">View saved support requests</a>
         <header className="marketing-heading">
           <span className="eyebrow">A LITTLE HELP GOES A LONG WAY</span>
           <h1>
