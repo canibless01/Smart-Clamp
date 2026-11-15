@@ -501,6 +501,51 @@ class LiveIntegration(unittest.TestCase):
     def test_privileged_role_cannot_self_register(self):
         for role in('internal_superadmin','nepa_staff','installer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)
+    def test_tenant_bills_and_disputes_exclude_previous_occupancy(self):
+        landlord=self.user('landlord');tenant=self.user();dev=self.provision(landlord)
+        bid=self.client.post('/api/v1/buildings',json={'name':'Period privacy','address':'QA only','meter_type':'with_meter'},headers=self.headers(landlord)).json['building_id']
+        rid=self.client.post('/api/v1/buildings/'+bid+'/rooms',json={'label':'Period room'},headers=self.headers(landlord)).json['room_id']
+        with self.app.app_context(),transaction() as c:
+            query(c,'UPDATE devices SET room_id=:room,building_id=:building WHERE id=:id',room=rid,building=bid,id=dev['id'])
+            query(c,"INSERT INTO occupancies(room_id,tenant_id,start_at) VALUES(:room,:uid,now()-interval '45 days')",room=rid,uid=tenant['id'])
+            old=one(c,"INSERT INTO bills(subject_type,subject_id,period_start,period_end,tariff_version,amount_kobo) VALUES('device',:device,current_date-90,current_date-60,:tariff,9000) RETURNING id",device=dev['id'],tariff=dev['wallet']['tariff_version'])['id']
+            current=one(c,"INSERT INTO bills(subject_type,subject_id,period_start,period_end,tariff_version,amount_kobo) VALUES('device',:device,current_date-30,current_date,:tariff,10000) RETURNING id",device=dev['id'],tariff=dev['wallet']['tariff_version'])['id']
+        listed=self.client.get('/api/v1/bills',headers=self.headers(tenant));self.assertEqual(listed.status_code,200,listed.json);self.assertEqual([b['id'] for b in listed.json['items']],[str(current)])
+        self.assertEqual(self.client.post('/api/v1/disputes',json={'bill_id':str(old),'note':'Old bill concern'},headers=self.headers(tenant)).status_code,404)
+        self.assertEqual(self.client.post('/api/v1/disputes',json={'bill_id':str(current),'note':'Current bill concern'},headers=self.headers(tenant)).status_code,201)
+
+    def test_dispute_review_freezes_evidence_and_never_adjusts_money(self):
+        owner=self.user('homeowner');stranger=self.user();reviewer=self.user();other=self.user();dev=self.provision(owner)
+        with self.app.app_context(),transaction() as c:
+            for u in (reviewer,other):query(c,"UPDATE profiles SET role='internal_finance' WHERE id=:id",id=u['id'])
+            bill=one(c,"INSERT INTO bills(subject_type,subject_id,period_start,period_end,tariff_version,amount_kobo,status) VALUES('device',:device,current_date-30,current_date,:tariff,10000,'unpaid') RETURNING id",device=dev['id'],tariff=dev['wallet']['tariff_version'])['id']
+        payload={'bill_id':str(bill),'note':'Please review this bill calculation.'}
+        created=self.client.post('/api/v1/disputes',json=payload,headers=self.headers(owner));self.assertEqual(created.status_code,201,created.json);did=created.json['id'];url='/api/v1/disputes/'+did
+        self.assertEqual(self.client.post('/api/v1/disputes',json=payload,headers=self.headers(owner)).status_code,409)
+        self.assertEqual(self.client.get(url+'/meeting-view',headers=self.headers(stranger)).status_code,404)
+        queue=self.client.get('/api/v1/disputes',headers=self.headers(reviewer));self.assertIn(did,[d['id'] for d in queue.json['items']])
+        def act(user,action,version,key=None):return self.client.post(url+'/workflow',json={'action':action,'version':version,'note':'Reviewed calculation and evidence.'},headers=self.headers(user,key))
+        self.assertEqual(act(owner,'claim',1).status_code,403)
+        key=str(uuid.uuid4());claim=act(reviewer,'claim',1,key);self.assertEqual(claim.status_code,200,claim.json);self.assertEqual(act(reviewer,'claim',1,key).json,claim.json)
+        self.assertEqual(act(other,'claim',2).status_code,409)
+        self.assertEqual(act(reviewer,'respond',1).status_code,409)
+        self.assertEqual(act(reviewer,'respond',2).json['status'],'responded')
+        self.assertEqual(act(owner,'escalate',3).json['status'],'escalated')
+        closed=act(reviewer,'close_no_adjustment',4);self.assertEqual(closed.json['status'],'closed_no_adjustment')
+        self.assertEqual(self.client.post(url+'/messages',json={'message':'Additional detail'},headers=self.headers(owner)).status_code,409)
+        self.assertEqual(act(owner,'reopen',5).json['status'],'open')
+        self.assertEqual(self.client.post(url+'/messages',json={'message':'Additional detail'},headers=self.headers(owner)).status_code,201)
+        view=self.client.get(url+'/meeting-view',headers=self.headers(owner));self.assertEqual(view.json['evidence_snapshot']['amount_kobo'],10000);self.assertEqual(len(view.json['decisions']),2);self.assertEqual(len(view.json['messages']),6)
+        with self.app.app_context(),transaction() as c:
+            self.assertEqual(scalar(c,'SELECT amount_kobo FROM bills WHERE id=:id',id=bill),10000)
+            self.assertEqual(scalar(c,'SELECT available_kobo FROM wallets WHERE device_id=:id',id=dev['id']),0)
+            query(c,"UPDATE profiles SET role='tenant' WHERE id=:id",id=reviewer['id'])
+        self.assertEqual(self.client.get(url+'/meeting-view',headers=self.headers(reviewer)).status_code,404)
+        from sqlalchemy.exc import DBAPIError
+        with self.assertRaises(DBAPIError) as rejected:
+            with self.app.app_context(),transaction() as c:query(c,"UPDATE disputes SET evidence_snapshot='{}'::jsonb WHERE id=:id",id=did)
+        self.assertEqual(rejected.exception.orig.sqlstate,'P0001')
+
     def test_support_claim_resolution_reopen_and_scope(self):
         owner=self.user('homeowner');stranger=self.user();support=self.user();colleague=self.user()
         with self.app.app_context(),transaction() as c:

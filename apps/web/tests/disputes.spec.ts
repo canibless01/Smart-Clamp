@@ -1,0 +1,15 @@
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';
+const fixture=process.env.SMARTCLAMP_BROWSER_FIXTURE;
+test('real dispute journey: customer opens bill concern, finance reviews, customer reopens',async({page})=>{
+ test.skip(!fixture,'Requires isolated API/Auth/PostgreSQL');const f=JSON.parse(fs.readFileSync(fixture!,'utf8'));test.skip(!f.dispute_bill_id,'Requires QA-only issued bill');
+ async function login(u:any){await page.goto('/login');await page.evaluate(()=>localStorage.clear());await page.getByLabel('Phone number').fill(u.phone);await page.getByLabel('Password',{exact:true}).fill(u.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page).toHaveURL(/\/(dashboard|ops)/);}
+ await login(f.message_recipient);await page.goto('/disputes');await page.getByRole('combobox',{name:'Bill',exact:true}).selectOption(f.dispute_bill_id);await page.getByLabel('Billing concern').fill('Please review this QA bill calculation.');await page.getByRole('button',{name:'Open dispute',exact:true}).click();
+ await page.locator('a[href^="/disputes/"]').first().click();await expect(page.getByRole('heading',{name:'Status: open',exact:true})).toBeVisible();const detail=page.url();
+ await page.getByLabel('Reply',{exact:true}).fill('Customer detail saved in the case.');await page.getByRole('button',{name:'Send reply',exact:true}).click();await expect(page.getByText('Customer detail saved in the case.',{exact:true})).toBeVisible();
+ await login(f.admin);await page.goto(detail);await page.getByLabel('Review note',{exact:true}).fill('Finance has claimed this review.');await page.getByRole('button',{name:'Save review',exact:true}).click();await expect(page.getByText('Finance has claimed this review.',{exact:true})).toBeVisible();
+ await page.getByRole('combobox',{name:'Review action',exact:true}).selectOption('close_no_adjustment');await page.getByLabel('Review note',{exact:true}).fill('No bill or wallet adjustment was approved.');await page.getByRole('button',{name:'Save review',exact:true}).click();await expect(page.getByRole('heading',{name:'Status: closed_no_adjustment',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Send reply',exact:true})).toHaveCount(0);
+ await login(f.message_recipient);await page.goto(detail);await page.getByLabel('Review note',{exact:true}).fill('Please reconsider with this new detail.');await page.getByRole('button',{name:'Reopen dispute',exact:true}).click();await expect(page.getByRole('heading',{name:'Status: open',exact:true})).toBeVisible();
+ await page.getByRole('link',{name:'Read-only meeting view',exact:true}).click();await expect(page.getByText('Customer detail saved in the case.',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Save review'})).toHaveCount(0);
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});

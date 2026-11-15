@@ -74,6 +74,7 @@ export default function AppShell({
   const items = internal
     ? [
         ...(['internal_support','internal_superadmin'].includes(role) ? [{label:'Support requests',href:'/support/requests',icon:'bell'}] : []),
+        ...(['internal_finance','internal_superadmin'].includes(role) ? [{label:'Billing disputes',href:'/disputes',icon:'wallet'}] : []),
         ...(role !== 'internal_support' ? [{ label: "Operations", href: "/ops", icon: "chart" }] : []),
         ...(['internal_ops','internal_support','internal_superadmin'].includes(role) ? [{label:'Service messages',href:'/communications',icon:'bell'}] : []),
         ...(role === "internal_engineering" || role === "internal_superadmin" ? [{ label: "Firmware", href: "/ops/firmware", icon: "plug" }] : []),

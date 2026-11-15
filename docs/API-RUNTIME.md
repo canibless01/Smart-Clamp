@@ -96,3 +96,7 @@ reviewed bill-responsibility routes are exported in the runtime contract.
 ## Support workflow (033)
 
 `GET /support/tickets` is scoped to reporter, or the support/superadmin queue. It accepts bounded `limit` and numeric `offset`, and returns `next_cursor` as the next offset. `POST /support/tickets/{id}/workflow` requires `action`, current numeric `version`, and a nonempty `note`. Actions: claim, waiting_customer, waiting_provider, resolve, reopen. Status changes require the assigned support colleague; reporter reopening is allowed only from resolved. See `SUPPORT-WORKFLOW.md`.
+
+## Dispute review (034)
+
+`GET /disputes` exposes the reporter's cases or the finance/superadmin queue, with bounded limit/offset and next_cursor. `POST /disputes` requires an accessible bill_id and nonempty note; tenant period checks and duplicate-active-case protection apply. `GET /disputes/{id}/meeting-view` includes immutable snapshot/hash, version, messages, decisions and can_review. `POST /disputes/{id}/workflow` requires action, current numeric version and note. Actions: claim, respond, escalate, close_no_adjustment, reopen. Messages and updates notify the other participant via existing opt-in channels. Monetary adjustment is not an action here. See `DISPUTE-REVIEW.md`.

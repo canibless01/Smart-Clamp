@@ -17,6 +17,8 @@ for rule in sorted(app.url_map.iter_rules(),key=lambda r:r.rule):
 def body(path,method,properties,required):
     paths[path][method]['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','properties':properties,'required':required,'additionalProperties':False}}}}
 string={'type':'string'};uid={'type':'string','format':'uuid'}
+body('/disputes/{dispute_id}/workflow','post',{'action':{'type':'string','enum':['claim','respond','escalate','close_no_adjustment','reopen']},'version':{'type':'integer','minimum':1},'note':{'type':'string','minLength':1,'maxLength':4000}},['action','version','note'])
+body('/disputes','post',{'bill_id':uid,'note':{'type':'string','minLength':1,'maxLength':4000}},['bill_id','note'])
 body('/support/tickets/{ticket_id}/workflow','post',{'action':{'type':'string','enum':['claim','waiting_customer','waiting_provider','resolve','reopen']},'version':{'type':'integer','minimum':1},'note':{'type':'string','minLength':1,'maxLength':4000}},['action','version','note'])
 body('/devices/claim','post',{'claim_code':{'type':'string','minLength':32,'maxLength':128},'room_id':uid},['claim_code'])
 body('/meters/validate','post',{'meter_number':{'type':'string','pattern':'^[0-9]{6,20}$'},'service_id':string,'utility_type':{'type':'string','enum':['electricity']}},['meter_number'])

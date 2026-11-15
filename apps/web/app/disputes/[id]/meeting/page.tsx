@@ -9,7 +9,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
       endpoint={`/disputes/${id}/meeting-view`}
     >
       {(data) => (
-        <section className="card">
+        <div className="resource-list"><a className="text-link" href={`/disputes/${id}`}>Return to dispute discussion</a><section className="card">
           <h2>Status: {data.status}</h2>
           <p>{data.note}</p>
           <dl>
@@ -31,7 +31,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             This is the saved dispute snapshot. It is not a signed public
             verification report.
           </p>
-        </section>
+        </section>{data.messages.map((m:any,i:number)=><article className="card" key={i}><p>{m.message}</p><time>{new Date(m.created_at).toLocaleString()}</time></article>)}</div>
       )}
     </RecordWorkspace>
   );

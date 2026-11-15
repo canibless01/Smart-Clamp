@@ -17,7 +17,7 @@ is missing. No external migration receipt or success is claimed.
 
 ## Prepared migration
 
-[Review the complete 001–033 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
+[Review the complete 001–034 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
 It contains all current migration files, original SHA-256 checksums and a single
 transaction. It refuses untracked public tables or unknown migration history,
 skips matching applied migrations and stops on checksum drift. It creates no

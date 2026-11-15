@@ -245,6 +245,11 @@
     "handler": "live_resources.dispute_message"
   },
   {
+    "method": "POST",
+    "path": "/api/v1/disputes/{dispute_id}/workflow",
+    "handler": "live_resources.dispute_workflow"
+  },
+  {
     "method": "GET",
     "path": "/api/v1/exports/{export_id}",
     "handler": "reports.download_export"

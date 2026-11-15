@@ -146,3 +146,7 @@ web production build passed. Existing provider/hardware/external SQL gates remai
 ## Support workflow checkpoint, 15 November
 
 Migration 033 and the support queue/thread complete a locally tested customer submission → support claim → waiting/resolution → customer reopening loop, with version conflicts, scope checks, safe replay and generic participant notifications. The 53 API integration tests, 31 production-browser checks, production web build, four migration replay/checksum tests and policy checks pass. See `SUPPORT-WORKFLOW.md`. This does not complete financial dispute decisions, attachments, staff escalation/reassignment policy or live provider acceptance. External Supabase SQL has still not been applied without admin access.
+
+## Dispute review checkpoint, 15 November
+
+The actual customer bill selection → frozen dispute → finance claim/review/closure without adjustment → customer reopening → read-only meeting discussion loop is implemented through 034. Tenant bill access now checks occupancy periods. Verification:55 isolated API integration tests, the new production-browser dispute journey, web build, four migration replay/checksum tests and policy checks pass. See `DISPUTE-REVIEW.md`. Monetary adjustments/refunds, bill issuance/import, reassignment and attachment work remain; this checkpoint does not change balances or prove live provider/hardware acceptance. External Supabase migrations remain unapplied without secure administrative access.

@@ -357,43 +357,107 @@ def ledger(wallet_id):
 def bills():
     with transaction() as c:
         ids=[d['id'] for d in owned_device_ids(c)]
-        return page(rows(c,"SELECT * FROM bills WHERE(subject_type='device' AND subject_id=ANY(CAST(:ids AS uuid[]))) OR(subject_type='building' AND subject_id IN(SELECT id FROM buildings WHERE landlord_id=:uid)) ORDER BY created_at DESC LIMIT :n",ids=ids,uid=g.actor['id'],n=limit()))
+        return page(rows(c,"SELECT * FROM bills WHERE(subject_type='device' AND subject_id=ANY(CAST(:ids AS uuid[])) AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o JOIN devices d ON d.room_id=o.room_id WHERE d.id=bills.subject_id AND o.tenant_id=:uid AND o.start_at<=bills.period_start::timestamptz AND(o.end_at IS NULL OR o.end_at>=bills.period_end::timestamptz)))) OR(subject_type='building' AND subject_id IN(SELECT id FROM buildings WHERE landlord_id=:uid)) ORDER BY created_at DESC LIMIT :n",ids=ids,uid=g.actor['id'],role=g.actor['role'],n=limit()))
+
+DISPUTE_REVIEWERS=('internal_finance','internal_superadmin')
+
+def dispute_access(c,dispute_id):
+    r=one(c,'SELECT * FROM disputes WHERE id=:id AND(raised_by=:uid OR :reviewer) FOR UPDATE',id=uuid_string(dispute_id),uid=g.actor['id'],reviewer=g.actor['role'] in DISPUTE_REVIEWERS)
+    if not r:raise DomainError('not_found','Dispute not found.',404)
+    return r
 
 @bp.get('/api/v1/disputes')
 @authenticated
 def disputes():
-    with transaction() as c:return page(rows(c,'SELECT id,bill_id,status,note,created_at,resolved_at FROM disputes WHERE raised_by=:uid OR assigned_to=:uid ORDER BY created_at DESC LIMIT :n',uid=g.actor['id'],n=limit()))
+    try:offset=int(request.args.get('offset',0))
+    except ValueError:raise DomainError('validation_error','Use a numeric queue offset.')
+    if not 0<=offset<=100000:raise DomainError('validation_error','Queue offset is outside the supported range.')
+    with transaction() as c:
+        n=limit();items=rows(c,'SELECT id,bill_id,status,note,created_at,resolved_at,assigned_to,version FROM disputes WHERE raised_by=:uid OR :reviewer ORDER BY created_at DESC,id DESC LIMIT :n OFFSET :offset',uid=g.actor['id'],reviewer=g.actor['role'] in DISPUTE_REVIEWERS,n=n+1,offset=offset)
+        return jsonify(items=items[:n],next_cursor=str(offset+n) if len(items)>n else None,can_review=g.actor['role'] in DISPUTE_REVIEWERS)
 
 @bp.post('/api/v1/disputes')
 @authenticated
 @idempotent
 def dispute_create():
-    d=body()
+    d=body();note=requested_text(d,'note')
     with transaction() as c:
         bill=one(c,'SELECT * FROM bills WHERE id=:id',id=uuid_string(d.get('bill_id')))
         if not bill:raise DomainError('not_found','Bill not found.',404)
-        if bill['subject_type']=='device':device(c,g.actor,bill['subject_id'])
+        if bill['subject_type']=='device':
+            device(c,g.actor,bill['subject_id'])
+            if g.actor['role']=='tenant' and not one(c,"""SELECT o.id FROM occupancies o JOIN devices dev ON dev.room_id=o.room_id
+              WHERE dev.id=:id AND o.tenant_id=:uid AND o.start_at<=CAST(:start AS timestamptz) AND(o.end_at IS NULL OR o.end_at>=CAST(:end AS timestamptz))""",id=bill['subject_id'],uid=g.actor['id'],start=bill['period_start'],end=bill['period_end']):
+                raise DomainError('not_found','Bill not found for your occupancy period.',404)
         elif bill['subject_type']=='building':building(c,g.actor,bill['subject_id'])
         else:raise DomainError('not_found','Bill not found.',404)
-        snapshot=json_text(dict(bill));r=one(c,'INSERT INTO disputes(bill_id,period_start,period_end,raised_by,note,evidence_snapshot_hash,evidence_snapshot) VALUES(:bill,:start,:end,:uid,:note,:hash,CAST(:snapshot AS jsonb)) RETURNING id,status',bill=bill['id'],start=bill['period_start'],end=bill['period_end'],uid=g.actor['id'],note=d.get('note',''),hash=hashlib.sha256(snapshot.encode()).hexdigest(),snapshot=snapshot);audit(c,g.actor['id'],'dispute_opened',r['id'])
+        query(c,'SELECT pg_advisory_xact_lock(hashtext(:scope))',scope='dispute:'+str(bill['id'])+':'+g.actor['id'])
+        if one(c,"SELECT id FROM disputes WHERE bill_id=:bill AND raised_by=:uid AND status NOT IN('resolved','closed_no_adjustment')",bill=bill['id'],uid=g.actor['id']):raise DomainError('dispute_open','You already have an active dispute for this bill.',409)
+        snapshot=json_text(dict(bill));r=one(c,'INSERT INTO disputes(bill_id,period_start,period_end,raised_by,note,evidence_snapshot_hash,evidence_snapshot) VALUES(:bill,:start,:end,:uid,:note,:hash,CAST(:snapshot AS jsonb)) RETURNING id,status',bill=bill['id'],start=bill['period_start'],end=bill['period_end'],uid=g.actor['id'],note=note,hash=hashlib.sha256(snapshot.encode()).hexdigest(),snapshot=snapshot);audit(c,g.actor['id'],'dispute_opened',r['id'])
     return jsonify(dict(r)),201
 
 @bp.get('/api/v1/disputes/<dispute_id>/meeting-view')
 @authenticated
 def meeting(dispute_id):
     with transaction() as c:
-        r=one(c,'SELECT id,status,evidence_snapshot,note,created_at FROM disputes WHERE id=:id AND(raised_by=:uid OR assigned_to=:uid)',id=uuid_string(dispute_id),uid=g.actor['id'])
-        if not r:raise DomainError('not_found','Dispute not found.',404)
-        return jsonify(dict(r))
+        r=dispute_access(c,dispute_id)
+        return jsonify({**{k:r[k] for k in ('id','status','note','created_at','resolved_at','version','assigned_to','evidence_snapshot','evidence_snapshot_hash')},
+          'can_review':g.actor['role'] in DISPUTE_REVIEWERS,
+          'messages':rows(c,'SELECT author_id,message,created_at FROM dispute_messages WHERE dispute_id=:id ORDER BY created_at,id',id=dispute_id),
+          'decisions':rows(c,'SELECT decision,note,created_at FROM dispute_resolutions WHERE dispute_id=:id ORDER BY created_at,id',id=dispute_id)})
+
+def dispute_notify(c,r,key):
+    recipient=r['assigned_to'] if str(r['raised_by'])==g.actor['id'] else r['raised_by']
+    if recipient and str(recipient)!=g.actor['id']:
+        from .work import notify
+        notify(c,str(recipient),'dispute.updated','Your private billing dispute has an update. Open Disputes to review it.',key)
 
 @bp.post('/api/v1/disputes/<dispute_id>/messages')
 @authenticated
 @idempotent
 def dispute_message(dispute_id):
     with transaction() as c:
-        if not one(c,'SELECT id FROM disputes WHERE id=:id AND(raised_by=:uid OR assigned_to=:uid)',id=uuid_string(dispute_id),uid=g.actor['id']):raise DomainError('not_found','Dispute not found.',404)
+        case=dispute_access(c,dispute_id)
+        if case['status'] in ('resolved','closed_no_adjustment'):raise DomainError('dispute_closed','Reopen this dispute before replying.',409)
         r=one(c,"INSERT INTO dispute_messages(dispute_id,author_id,message) VALUES(:id,:uid,:message) RETURNING id,created_at",id=dispute_id,uid=g.actor['id'],message=requested_text(body(),'message'))
+        audit(c,g.actor['id'],'dispute_message_added',dispute_id);dispute_notify(c,case,'dispute-message:'+str(r['id']))
     return jsonify(dict(r)),201
+
+@bp.post('/api/v1/disputes/<dispute_id>/workflow')
+@authenticated
+@idempotent
+def dispute_workflow(dispute_id):
+    d=body();note=requested_text(d,'note');action=d.get('action')
+    if type(d.get('version')) is not int:raise DomainError('validation_error','Supply the current dispute version.')
+    with transaction() as c:
+        case=dispute_access(c,dispute_id)
+        if case['version']!=d['version']:raise DomainError('version_conflict','This dispute changed. Refresh before continuing.',409)
+        status=case['status'];assignee=case['assigned_to']
+        if action=='reopen':
+            if status!='closed_no_adjustment':raise DomainError('invalid_transition','Only a case closed without adjustment can be reopened here.',409)
+            query(c,'SELECT pg_advisory_xact_lock(hashtext(:scope))',scope='dispute:'+str(case['bill_id'])+':'+str(case['raised_by']))
+            if one(c,"SELECT id FROM disputes WHERE bill_id=:bill AND raised_by=:uid AND id<>:id AND status NOT IN('resolved','closed_no_adjustment')",bill=case['bill_id'],uid=case['raised_by'],id=dispute_id):raise DomainError('dispute_open','A newer active dispute already covers this bill.',409)
+            status='open'
+        elif action=='escalate':
+            if status not in ('open','responded'):raise DomainError('invalid_transition','Only an active, un-escalated case can be escalated.',409)
+            status='escalated'
+        else:
+            staff(*DISPUTE_REVIEWERS)
+            if status in ('resolved','closed_no_adjustment'):raise DomainError('dispute_closed','Reopen this dispute before reviewing it.',409)
+            if action=='claim':
+                if assignee and str(assignee)!=g.actor['id']:raise DomainError('already_assigned','Another reviewer owns this dispute.',409)
+                assignee=g.actor['id']
+            elif action in ('respond','close_no_adjustment'):
+                if not assignee or str(assignee)!=g.actor['id']:raise DomainError('claim_required','Claim this dispute before recording a decision.',409)
+                status='responded' if action=='respond' else 'closed_no_adjustment'
+            else:raise DomainError('validation_error','Choose a supported review action.')
+        result=one(c,"""UPDATE disputes SET status=:status,assigned_to=:assignee,version=version+1,
+          resolved_at=CASE WHEN :status='closed_no_adjustment' THEN now() ELSE NULL END WHERE id=:id RETURNING id,status,version""",id=dispute_id,status=status,assignee=assignee)
+        query(c,'INSERT INTO dispute_messages(dispute_id,author_id,message) VALUES(:id,:uid,:note)',id=dispute_id,uid=g.actor['id'],note=note)
+        if action in ('escalate','close_no_adjustment'):query(c,'INSERT INTO dispute_resolutions(dispute_id,decision,decided_by,note) VALUES(:id,:action,:uid,:note)',id=dispute_id,action=action,uid=g.actor['id'],note=note)
+        audit(c,g.actor['id'],'dispute_workflow_changed',dispute_id,{'action':action,'from':case['status'],'to':status,'version':result['version']})
+        dispute_notify(c,case,'dispute-workflow:'+dispute_id+':'+str(result['version']))
+    return jsonify(dict(result))
 
 @bp.get('/api/v1/portal/jobs')
 @bp.get('/api/v1/portal/referrals')
