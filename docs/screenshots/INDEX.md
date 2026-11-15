@@ -1,4 +1,4 @@
-# All 76 captured pages
+# All 86 captured pages
 
 [Open the filterable visual gallery](gallery.html). Every image is an actual browser capture, not a generated design. Read [capture limits and reproduction](README.md).
 
@@ -80,3 +80,13 @@
 | ops | [incident detail unavailable](incident-detail-unavailable.jpg) | Explicitly unavailable incident-detail workflow |
 | support | [support service messages](support-service-messages.jpg) | Implemented service composer; not a complete support case panel |
 | onboarding | [account complete profile](account-complete-profile.jpg) | Real verified email identity awaiting explicit profile/consent |
+| landlord | [workflow customer support requests](workflow-customer-support-requests.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| support | [workflow support queue](workflow-support-queue.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| support | [workflow support case](workflow-support-case.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| support | [workflow support case mobile](workflow-support-case-mobile.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| homeowner | [workflow customer dispute case](workflow-customer-dispute-case.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| homeowner | [workflow customer meeting](workflow-customer-meeting.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| finance | [workflow finance disputes](workflow-finance-disputes.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| finance | [workflow finance dispute case](workflow-finance-dispute-case.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| finance | [workflow finance dispute case mobile](workflow-finance-dispute-case-mobile.jpg) | Actual saved QA workflow, captured 15 November 2026 |
+| ops | [workflow operations feedback](workflow-operations-feedback.jpg) | Actual saved QA workflow, captured 15 November 2026 |

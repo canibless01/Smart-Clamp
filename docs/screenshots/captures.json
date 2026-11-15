@@ -530,5 +530,75 @@
     "file": "account-complete-profile.jpg",
     "state": "Real verified email identity awaiting explicit profile/consent",
     "route": "/account/complete-profile"
+  },
+  {
+    "role": "landlord",
+    "name": "workflow-customer-support-requests",
+    "file": "workflow-customer-support-requests.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/support/requests"
+  },
+  {
+    "role": "support",
+    "name": "workflow-support-queue",
+    "file": "workflow-support-queue.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/support/requests"
+  },
+  {
+    "role": "support",
+    "name": "workflow-support-case",
+    "file": "workflow-support-case.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/support/tickets/[id]"
+  },
+  {
+    "role": "support",
+    "name": "workflow-support-case-mobile",
+    "file": "workflow-support-case-mobile.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/support/tickets/[id]"
+  },
+  {
+    "role": "homeowner",
+    "name": "workflow-customer-dispute-case",
+    "file": "workflow-customer-dispute-case.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/disputes/[id]"
+  },
+  {
+    "role": "homeowner",
+    "name": "workflow-customer-meeting",
+    "file": "workflow-customer-meeting.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/disputes/[id]/meeting"
+  },
+  {
+    "role": "finance",
+    "name": "workflow-finance-disputes",
+    "file": "workflow-finance-disputes.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/disputes"
+  },
+  {
+    "role": "finance",
+    "name": "workflow-finance-dispute-case",
+    "file": "workflow-finance-dispute-case.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/disputes/[id]"
+  },
+  {
+    "role": "finance",
+    "name": "workflow-finance-dispute-case-mobile",
+    "file": "workflow-finance-dispute-case-mobile.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/disputes/[id]"
+  },
+  {
+    "role": "ops",
+    "name": "workflow-operations-feedback",
+    "file": "workflow-operations-feedback.jpg",
+    "state": "Actual saved QA workflow, captured 15 November 2026",
+    "route": "/ops"
   }
 ]

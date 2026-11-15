@@ -1,4 +1,5 @@
 // Actual local production-build captures. Never use against a customer environment.
+import { writeGallery } from './gallery-index.mjs';
 import { chromium } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -51,7 +52,7 @@ try{
     const context=await browser.newContext({viewport:{width:1440,height:1080},timezoneId:'Africa/Lagos'}),page=await context.newPage();
     await page.addInitScript(payment=>sessionStorage.setItem('smartclamp_payment',JSON.stringify(payment)),f.payment);
     if(view.role!=='public'){
-      const user=f.users[view.role];await page.goto(origin+'/login');await page.getByLabel('Phone number').fill(user.phone||user.email);await page.getByLabel('Password',{exact:true}).fill(user.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await page.waitForURL(/\/(dashboard|ops|portal|communications|account\/complete-profile)/);
+      const user=f.users[view.role];await page.goto(origin+'/login');await page.getByLabel('Phone number').fill(user.phone||user.email);await page.getByLabel('Password',{exact:true}).fill(user.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await page.waitForURL(/\/(dashboard|ops|portal|communications|support|disputes|account\/complete-profile)/);
     }
     await page.goto(origin+view.url);await page.waitForLoadState('networkidle');
     if(new URL(page.url()).pathname!==new URL(view.url,origin).pathname)throw new Error('Unexpected route for '+view.name);
@@ -70,11 +71,5 @@ try{
     console.log('Captured '+view.name);await context.close();
   }
 }finally{await browser.close();}
-fs.writeFileSync(path.join(out,'captures.json'),JSON.stringify(captures,null,2)+'\n');
-const escape=value=>value.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const roles=[...new Set(captures.map(c=>c.role))];
-const cards=captures.map(c=>`<article data-role="${escape(c.role)}"><a href="${c.file}"><img loading="lazy" src="${c.file}" alt="${escape(c.name)}"></a><div><small>${escape(c.role)}</small><h2><a href="${c.file}">${escape(c.name.replace(/-/g,' '))}</a></h2><p>${escape(c.state)}</p></div></article>`).join('\n');
-fs.writeFileSync(path.join(out,'gallery.html'),`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SmartClamp actual QA page gallery</title><style>body{margin:0;background:#f8faf4;color:#234b3d;font:16px/1.6 system-ui}header{padding:28px 4vw}h1{font-size:32px}h2{font-size:17px;margin:4px 0}a{color:inherit}select{padding:10px;font:inherit}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;padding:0 4vw 48px}article{background:white;border:1px solid #e3e9dc;border-radius:16px;overflow:hidden}article img{width:100%;height:230px;object-fit:cover;object-position:top;border-bottom:1px solid #e3e9dc}article div{padding:16px}small{text-transform:uppercase}article[hidden]{display:none}</style><header><h1>SmartClamp · ${captures.length} actual page captures</h1><p>Isolated QA only. Signed simulated telemetry, local provider fixtures and explicitly marked unavailable features. No live hardware or merchant success is represented. Click a page to inspect the full screenshot.</p><label>Workspace <select id="role"><option value="workspaces">Dashboards and accounts</option><option value="all">All pages</option>${roles.map(r=>`<option>${r}</option>`).join('')}</select></label></header><main>${cards}</main><script>const filter=()=>{const role=document.querySelector('#role').value;document.querySelectorAll('article').forEach(card=>card.hidden=role==='workspaces'?card.dataset.role==='public':role!=='all'&&card.dataset.role!==role)};document.querySelector('#role').onchange=filter;filter()</script></html>`);
-const rows=captures.map(c=>`| ${c.role} | [${c.name.replace(/-/g,' ')}](${c.file}) | ${c.state} |`).join('\n');
-fs.writeFileSync(path.join(out,'INDEX.md'),`# All ${captures.length} captured pages\n\n[Open the filterable visual gallery](gallery.html). Every image is an actual browser capture, not a generated design. Read [capture limits and reproduction](README.md).\n\n| Workspace | Screenshot | Actual state |\n|---|---|---|\n${rows}\n`);
+writeGallery(captures,out);
 console.log('Gallery complete: '+captures.length+' captures');
