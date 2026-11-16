@@ -43,6 +43,8 @@ for path in ['/auth/signup','/auth/login']:
 body('/auth/onboarding','post',{'full_name':string,'role':string,'accepted_terms':{'type':'boolean','enum':[True]},'terms_version':string,'privacy_version':string},['full_name','accepted_terms','terms_version','privacy_version'])
 body('/auth/oauth/start','post',{'code_challenge':string,'flow_id':string},['code_challenge','flow_id'])
 body('/auth/oauth/exchange','post',{'code':string,'code_verifier':string},['code','code_verifier'])
+for path in ['/auth/email/enroll','/auth/email/verify']:
+    body(path,'post',{'email':{'type':'string','format':'email'},'code':{'type':'string','pattern':r'^\d{6,10}$'}},['email','code'] if path.endswith('verify') else ['email'])
 for path,method,mime in [('/device/firmware/download','post','application/octet-stream'),('/exports/{export_id}','get','text/csv')]:
     paths[path][method]['responses']['200']={'description':'Authenticated stored artifact bytes','content':{mime:{'schema':{'type':'string','format':'binary'}}}}
 spec={'openapi':'3.0.3','info':{'title':'SmartClamp implemented API surface','version':'0.3.0','description':'Implemented route surface. Response objects are intentionally open where typed schemas are not yet reconciled. See docs/API-RUNTIME.md and docs/LAUNCH-READINESS.md. This is not proof that every operation in the broader product contract is implemented.'},'servers':[{'url':'/api/v1'}],'components':{'securitySchemes':{'bearerAuth':{'type':'http','scheme':'bearer'}}},'paths':paths}

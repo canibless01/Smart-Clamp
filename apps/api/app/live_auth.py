@@ -286,3 +286,51 @@ def verify_enrolled_phone():
         query(c,'UPDATE profiles SET phone=:phone,updated_at=now() WHERE id=:id AND phone IS NULL',phone=verified,id=g.actor['id'])
         audit(c,g.actor['id'],'security_phone_verified',g.actor['id'])
     return jsonify(status='verified')
+
+
+def recent_contact_identity():
+    user=auth_request('user',token=g.access_token)
+    try:
+        recent=(datetime.now(timezone.utc)-datetime.fromisoformat(user['last_sign_in_at'].replace('Z','+00:00'))).total_seconds()
+    except (KeyError,ValueError,TypeError):recent=601
+    if user.get('id')!=g.actor['id'] or not 0<=recent<=600:raise DomainError('recent_signin_required','Log in again before adding an account contact.',403)
+    return user
+
+def enrollment_email(d,allow_bound=False):
+    email=str(d.get('email','')).strip().lower()
+    if len(email)>254 or not re.fullmatch(r'[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+',email):raise DomainError('validation_error','Enter one valid email address.')
+    if g.actor.get('email') and not (allow_bound and g.actor['email']==email):raise DomainError('email_already_bound','Changing an existing email requires account recovery support.',409)
+    return email
+
+def bind_verified_email(user,email,result=None):
+    _,confirmed=verified_contacts(user)
+    if user.get('id')!=g.actor['id'] or confirmed!=email:raise DomainError('unauthorized','The verified email does not belong to this account.',401)
+    with transaction() as c:
+        profile=one(c,'SELECT email FROM profiles WHERE id=:id FOR UPDATE',id=g.actor['id'])
+        if profile['email'] and profile['email']!=email:raise DomainError('email_already_bound','An email was already linked. Refresh your profile.',409)
+        query(c,'UPDATE profiles SET email=:email,updated_at=now() WHERE id=:id',email=email,id=g.actor['id'])
+        audit(c,g.actor['id'],'account_email_verified',g.actor['id'])
+        if result and result.get('access_token') and result.get('refresh_token'):return {**session_response(result,c),'status':'verified'}
+    return {'status':'verified'}
+
+@bp.post('/api/v1/auth/email/enroll')
+@authenticated
+def enroll_email():
+    email=enrollment_email(request.get_json() or {});user=recent_contact_identity()
+    _,confirmed=verified_contacts(user)
+    if confirmed==email:return jsonify(bind_verified_email(user,email))
+    auth_request('user','PUT',{'email':email},token=g.access_token)
+    # The provider remains authoritative. Never copy an unconfirmed new_email field.
+    user=auth_request('user',token=g.access_token)
+    _,confirmed=verified_contacts(user)
+    if confirmed==email:return jsonify(bind_verified_email(user,email))
+    return jsonify(status='verification_required',email=email),202
+
+@bp.post('/api/v1/auth/email/verify')
+@authenticated
+def verify_enrolled_email():
+    d=request.get_json() or {};email=enrollment_email(d,allow_bound=True);code=str(d.get('code',''))
+    if not re.fullmatch(r'\d{6,10}',code):raise DomainError('validation_error','Enter the verification code sent to your email.')
+    if g.actor.get('email')==email:return jsonify(status='verified')
+    result=auth_request('verify','POST',{'email':email,'token':code,'type':'email_change'},token=g.access_token)
+    return jsonify(bind_verified_email(result.get('user') or {},email,result))

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch, logout } from "@/lib/api";
+import EmailEnrollment from '@/components/EmailEnrollment';
 import PhoneEnrollment from '@/components/PhoneEnrollment';
 import PwaControls from '@/components/PwaControls';
 export default function Page() {
@@ -41,6 +42,7 @@ export default function Page() {
             </a>
           </section>
           {!data.authorized_context.phone && <PhoneEnrollment/>}
+          {!data.authorized_context.email && <EmailEnrollment/>}
           <section className="card" style={{ marginTop: 24 }}>
             <h2>Preferences</h2>
             {prefs && (

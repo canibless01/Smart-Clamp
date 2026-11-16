@@ -42,7 +42,7 @@ def start(path,port,auth_port):
 def stop(path):
     q=json.loads(path.read_text());name=q['name']
     if not name.startswith('smartclamp-qa-') or len(name)>80:raise RuntimeError('Not a QA stack')
-    for container in [name+'-auth',name]:docker(['rm','-f',container])
+    for container in ([q['smtp_container']] if q.get('smtp_container')==name+'-smtp' else [])+[name+'-auth',name]:docker(['rm','-f',container])
     docker(['network','rm',name+'-network']);path.unlink();print('QA services removed.')
 
 if __name__=='__main__':

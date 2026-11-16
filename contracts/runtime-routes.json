@@ -11,6 +11,16 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/auth/email/enroll",
+    "handler": "live_auth.enroll_email"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/email/verify",
+    "handler": "live_auth.verify_enrolled_email"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/auth/login",
     "handler": "live_auth.login"
   },

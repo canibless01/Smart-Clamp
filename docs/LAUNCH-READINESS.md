@@ -1,5 +1,7 @@
 # SmartClamp implementation and launch dependencies
 
+**Current handoff:** [16 November checkpoint and detailed remaining work](CHECKPOINT-2026-11-16.md). Read it before historical verification notes. Email enrollment is source work in progress; launch is not yet configuration-only.
+
 This report supersedes any suggestion that the UI, API or six firmware builds are already a complete production system. The original source documents describe the intended ecosystem. They are not proof that every feature is implemented. The website now distinguishes implemented workflows from planned and unavailable functionality.
 
 ## What was exercised
