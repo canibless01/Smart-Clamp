@@ -108,3 +108,9 @@ Both workflow endpoints additionally accept `assign` (superadmin only, requiring
 ## Resend delivery feedback (035)
 
 `POST /webhooks/resend` verifies raw-body Svix signatures and bounded attempt timestamps; no bearer authentication substitutes for that signature. It deduplicates events, matches the original pinned Resend dispatch and encrypted recipient, safely reconciles HTTP/callback races and records minimal metadata. Operations review includes delivery feedback separately from dispatch status. Bounce/complaint/suppressed addresses stop future sends across providers. See `EMAIL-DELIVERY-FEEDBACK.md` for provider setup and the mail-server-versus-inbox boundary. Finance login now lands on its implemented `/disputes` workspace instead of the forbidden operations summary.
+
+## Electrical overview and room monitoring —25 November2026
+
+Dashboard/context devices now include `electrical` with voltage_v/current_a, observation time/quality, an optional configured voltage warning band and advisory-only status. Set both `VOLTAGE_WARNING_LOW_MV` and `VOLTAGE_WARNING_HIGH_MV` to reviewed millivolt limits if display advisories are wanted. Missing/invalid limits produce no inferred safety rule. These settings do not change firmware, relay protection, or authorization.
+
+The ownership-scoped building room list now includes `monitoring`: supply_state, power_w, voltage_v, current_a, recorded_today_kwh, fresh and observed_at. Day boundaries use Africa/Lagos; only measured posted intervals are summed. Missing data is null, not fabricated zero, and no private tenant wallet is included. Existing room linking/invitations remain. `/demo` is a separate frontend simulation, not a new real-device API or Auth bypass.

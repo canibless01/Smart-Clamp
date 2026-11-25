@@ -1,0 +1,38 @@
+[
+  {
+    "file": "01-monitoring.jpg",
+    "title": "Supply present, voltage, current, real power and independent room credit"
+  },
+  {
+    "file": "02-no-supply.jpg",
+    "title": "Electricity absent: grid supply and relay position are different"
+  },
+  {
+    "file": "03-low-voltage.jpg",
+    "title": "Low-voltage warning with simulated protection"
+  },
+  {
+    "file": "04-high-voltage.jpg",
+    "title": "High-voltage warning with simulated protection"
+  },
+  {
+    "file": "05-room-monitoring.jpg",
+    "title": "Landlord monitoring of three rooms; no tenant wallet spending or switching authority"
+  },
+  {
+    "file": "06-tenant-purchase.jpg",
+    "title": "An individual tenant purchase credits only that tenant’s SmartClamp"
+  },
+  {
+    "file": "07-joint-purchase-concept.jpg",
+    "title": "Optional joint-purchase allocation concept; production flow not implemented"
+  },
+  {
+    "file": "08-power-control.jpg",
+    "title": "Direct simulated power control with no SMS and no real hardware"
+  },
+  {
+    "file": "09-monitoring-mobile.jpg",
+    "title": "Phone-sized investor walkthrough"
+  }
+]

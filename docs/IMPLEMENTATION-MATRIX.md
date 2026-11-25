@@ -38,3 +38,7 @@ Master 07.1 is explicit: central-meter purchases are recorded to the paying room
 Master 07.2 explicitly leaves settlement cadence unresolved. LOOP-CATALOG L14 proposes per-bill reconciliation; that engineering proposal does not approve a safety-margin percentage, money custody/remittance contract, loss allocation or payment-proof standard. No-meter activation remains blocked until those decisions exist. Master 07.7 explicitly describes human NEPA payment, not an assumed utility payment API.
 
 Device protocol v1 supersedes source rotating-code snippets. True power uses synchronized waveforms, not RMS volts × amps. Source outage/network gaps cannot be converted into exact outage hours. The present work must preserve these corrections while implementing, not reintroduce unsafe shortcuts to make a simulation green.
+
+## Investor walkthrough —25 November2026
+
+The isolated `/demo` demonstrates tenant self-purchases, optional joint-allocation concept, role-separated room views, direct simulated controls and supply/voltage scenarios. Its separate screenshot set is `investor-demo/`. This does not implement production joint allocation or appliance disaggregation. Real dashboard voltage/current, display-only configured advisories and landlord per-room electrical/recorded daily usage are now implemented; physical/provider gates and production step-up control confirmation remain.

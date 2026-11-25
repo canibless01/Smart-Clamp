@@ -121,6 +121,22 @@ class LiveIntegration(unittest.TestCase):
     def attest(self,u,p):
         result=self.client.post('/api/v1/payments/'+str(p['id'])+'/confirm-meter-entry',json={'confirmed':True},headers=self.headers(u))
         self.assertEqual(result.status_code,200,result.json)
+    def test_electrical_projection_reports_units_and_only_fresh_voltage_advisories(self):
+        owner=self.user('homeowner');dev=self.provision(owner)
+        settings={'VOLTAGE_WARNING_LOW_MV':'180000','VOLTAGE_WARNING_HIGH_MV':'250000'};previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            for i,voltage in enumerate((165000,270000)):
+                event=self.envelope(dev,occurred_at_ms=int(datetime.now(timezone.utc).timestamp()*1000)-3000+i*1000,metrics={'voltage_mv':voltage,'current_ma':1200,'real_power_mw':188100,'import_mwh':0,'export_mwh':0})
+                self.assertEqual(self.client.post('/api/v1/device/events',json=event).status_code,200)
+                response=self.client.get('/api/v1/dashboard/homeowner',headers=self.headers(owner));self.assertEqual(response.status_code,200,response.json);electrical=response.json['devices'][0]['electrical'];self.assertEqual(electrical['voltage_v'],voltage/1000);self.assertEqual(electrical['current_a'],1.2);self.assertEqual(electrical['voltage_status'],'low' if i==0 else 'high');self.assertTrue(electrical['advisory_only'])
+            from unittest.mock import patch
+            class FutureClock(datetime):
+                @classmethod
+                def now(cls,tz=None):return datetime.now(tz)+timedelta(minutes=10)
+            with patch('app.live_resources.datetime',FutureClock):
+                response=self.client.get('/api/v1/dashboard/homeowner',headers=self.headers(owner));self.assertEqual(response.json['devices'][0]['electrical']['voltage_status'],'unknown')
+        finally:self.app.config.update(previous)
+
     def test_svix_official_signature_vector_and_replay_window(self):
         from app.email_receipts import verify
         from app.db import DomainError
@@ -766,6 +782,7 @@ class LiveIntegration(unittest.TestCase):
         self.assertEqual(self.client.post('/api/v1/invitations/accept',json={'token':token},headers=self.headers(outsider)).status_code,404)
         event=self.envelope(dev);self.assertEqual(self.client.post('/api/v1/device/events',json=event).status_code,200);self.drain()
         room=self.client.get(f'/api/v1/buildings/{bid}/rooms',headers=self.headers(landlord)).json['items'][0];self.assertEqual(room['tenant_id'],tenant['id']);self.assertEqual(room['device_id'],dev['id'])
+        self.assertEqual(room['monitoring']['power_w'],1150);self.assertEqual(room['monitoring']['voltage_v'],230);self.assertEqual(room['monitoring']['current_a'],5);self.assertTrue(room['monitoring']['fresh']);self.assertNotIn('wallet',room)
         for user in(landlord,tenant):
             context=self.client.get('/api/v1/users/me/context',headers=self.headers(user));self.assertEqual(context.status_code,200,context.json);self.assertIn(dev['id'],[d['id'] for d in context.json['devices']]);self.assertEqual(context.json['devices'][0]['measurement']['value'],1150)
         self.assertEqual(self.client.get('/api/v1/devices/'+dev['id']+'/events',headers=self.headers(outsider)).status_code,404)

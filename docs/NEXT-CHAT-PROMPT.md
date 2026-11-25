@@ -1,3 +1,11 @@
+# Investor-demo continuation — 25 November 2026
+
+Latest owner correction: tenants normally buy units for their own SmartClamp against the shared central meter; do not frame this as landlord distribution of tenant credit. Optional jointly funded allocation is a separate flow. Read `docs/investor-demo/README.md`. `/demo` is an isolated interactive frontend with fictional personas, independent room balances, simulated direct controls, supply/voltage scenarios and a clearly labelled joint-allocation concept. It never signs a user into production, calls production APIs or switches real hardware. Investor images are a **separate** set at `docs/investor-demo/screenshots`, not additions to the earlier 86-image gallery.
+
+Real homeowner/tenant dashboards now expose voltage/current and configured display-only voltage advisories; landlord room pages now show scoped electrical measurements and recorded Lagos-day usage. Missing/stale data is distinct from zero. Production operation-bound SMS control confirmation remains; the demo intentionally needs none. No production joint allocation, appliance disaggregation or qualified hardware is implied. No SQL migration after 035. Local `/demo` server is on 3000; no HTTP preview/public demo URL is configured. Use the verified deployed frontend URL plus `/demo` once deployed, or configure private HTTP preview 3000 for the owner. Verification: 60 real API integration tests, 35 production-browser checks, production build and native policy checks pass. Push verified checkpoints and preserve the older unfinished email-enrollment handoff below.
+
+---
+
 # Current checkpoint — read this first
 
 Read [CHECKPOINT-2026-11-16.md](CHECKPOINT-2026-11-16.md) before the historical continuation prompt below. It supersedes older remaining-work/status paragraphs. The owner requested a full push and detailed handoff at this boundary. The last fully verified provider batch is 2706349, followed by the 86-image gallery at f6a696a. New email-contact enrollment and a draft actual-SMTP QA runner are being preserved as **work in progress**, not accepted functionality. Finish its OTP/security/browser validation first. All numbered SQL is through 035; external Supabase SQL remains unapplied without secure admin access. Do not reapply pushed work, force-push, publish or deploy.

@@ -54,7 +54,7 @@ The implemented control request and phone-confirmation form. No physical relay s
 | Electricity absent / outage | The software has supply-state handling, but this selection does not contain an outage-state capture. Do not rename the present-state image as an outage demonstration. |
 | Appliance using the most electricity | No implemented appliance-disaggregation screen/data pipeline was found. The current clamp view shows aggregate consumption. Appliance estimates would need explicit labels, or measured appliance sensors and a real integration. |
 | Landlord monitoring multiple rooms | Building/room linking exists; the current capture shows one room. The side-by-side multi-room energy dashboard still needs implementation/population. |
-| Load a shared meter and distribute units | Individual room purchases against the configured central meter are implemented. A landlord allocation/transfer interface is not implemented and must follow an approved funding/accounting policy. |
+| Load a shared meter and distribute units | Individual room purchases against the configured central meter are implemented. The intended optional extension is allocation of a newly funded joint tenant purchase, not landlord control of tenants’ existing credit. Production joint allocation remains unimplemented; the separate `/demo` now illustrates it. |
 | Remote power control | Request/confirmation UI exists; physical switching and feedback require qualified connected hardware. |
 
 ## Investor access and SQL

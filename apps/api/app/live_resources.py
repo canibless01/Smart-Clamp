@@ -31,6 +31,19 @@ def projection(c):
         fresh=at and 0<=(datetime.now(timezone.utc)-at).total_seconds()<180
         pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') ORDER BY created_at DESC LIMIT 1",id=d['id'])
         devices.append({'id':str(dev['id']),'role':dev['profile'],'capabilities':dev['capabilities'],'supply_state':dev['supply_state'] if dev['supply_clock_quality']=='trusted' and dev['supply_observed_at_ms'] is not None and 0<=datetime.now(timezone.utc).timestamp()*1000-dev['supply_observed_at_ms']<180000 else 'unknown','connectivity':'online' if dev['last_seen_at'] and (datetime.now(timezone.utc)-dev['last_seen_at']).total_seconds()<180 else 'stale' if dev['last_seen_at'] else 'unknown','relay':{'observed':dev['relay_observed'],'observed_at':dev['relay_observed_at'],'pending_command_id':pending['command_id'] if pending else None,'off_reasons':[x['reason'] for x in rows(c,"SELECT reason FROM off_reasons WHERE device_id=:id AND active AND(expires_at IS NULL OR expires_at>now())",id=d['id'])]},'measurement':{'value':float(Decimal(r['real_power_mw'])/1000) if r and r['real_power_mw'] is not None else None,'unit':'W','observed_at':at,'quality':r['quality'] if r else 'unavailable','coverage':None},'wallet':{'id':wallet['id'],'available':wallet['available_kobo'],'reserved':wallet['reserved_kobo'],'available_mwh':wallet['available_mwh'],'unit':'kobo','ledger_version':wallet['ledger_version'],'updated_at':wallet['updated_at'],'payment_token':wallet['payment_token']} if wallet else None})
+        voltage=r['voltage_mv'] if r else None
+        band=None
+        try:
+            low=int(current_app.config.get('VOLTAGE_WARNING_LOW_MV',''));high=int(current_app.config.get('VOLTAGE_WARNING_HIGH_MV',''))
+            if not 0<low<high:raise ValueError()
+            band={'low_v':low/1000,'high_v':high/1000}
+        except (ValueError,TypeError):pass
+        voltage_status='unknown'
+        if fresh and r['quality']=='valid' and voltage is not None:
+            if devices[-1]['supply_state']=='absent':voltage_status='no_supply'
+            elif band:voltage_status='low' if voltage<low else 'high' if voltage>high else 'within_band'
+            else:voltage_status='limits_unconfigured'
+        devices[-1]['electrical']={'voltage_v':voltage/1000 if voltage is not None else None,'current_a':r['current_ma']/1000 if r and r['current_ma'] is not None else None,'observed_at':at,'quality':r['quality'] if r else 'unavailable','voltage_status':voltage_status,'warning_band':band,'advisory_only':True}
         allowed,code,message,_=control_eligibility(c,g.actor,dev)
         devices[-1]['controls']={'can_request':allowed,'unavailable_code':code,'unavailable_reason':message}
     usage=[]
@@ -74,7 +87,22 @@ def buildings_create():
 def rooms_route(building_id):
     with transaction() as c:
         building(c,g.actor,building_id)
-        if request.method=='GET':return page(rows(c,"SELECT r.*,(SELECT id FROM devices WHERE room_id=r.id LIMIT 1) AS device_id,o.tenant_id,p.full_name AS tenant_name FROM rooms r LEFT JOIN occupancies o ON o.room_id=r.id AND o.end_at IS NULL LEFT JOIN profiles p ON p.id=o.tenant_id WHERE r.building_id=:id ORDER BY r.label",id=building_id))
+        if request.method=='GET':
+            items=rows(c,"""SELECT room.*,d.id AS device_id,o.tenant_id,p.full_name AS tenant_name,
+              d.supply_state,d.supply_observed_at_ms,d.supply_clock_quality,
+              reading.real_power_mw,reading.voltage_mv,reading.current_ma,reading.occurred_at_ms,reading.quality,reading.clock_quality,
+              (SELECT sum(u.consumed_mwh) FROM usage_postings u JOIN readings source ON source.id=u.reading_id WHERE source.device_id=d.id AND u.accounting_quality='measured'
+                AND u.interval_start_ms>=extract(epoch FROM(date_trunc('day',now() AT TIME ZONE 'Africa/Lagos') AT TIME ZONE 'Africa/Lagos'))*1000) AS today_mwh
+              FROM rooms room LEFT JOIN occupancies o ON o.room_id=room.id AND o.end_at IS NULL LEFT JOIN profiles p ON p.id=o.tenant_id
+              LEFT JOIN LATERAL(SELECT * FROM devices WHERE room_id=room.id ORDER BY id LIMIT 1)d ON true
+              LEFT JOIN LATERAL(SELECT * FROM readings WHERE device_id=d.id ORDER BY occurred_at_ms DESC NULLS LAST,received_at DESC LIMIT 1)reading ON true
+              WHERE room.building_id=:id ORDER BY room.label""",id=building_id)
+            result=[];now_ms=datetime.now(timezone.utc).timestamp()*1000
+            for row in items:
+                fresh=row['occurred_at_ms'] is not None and 0<=now_ms-row['occurred_at_ms']<180000 and row['quality']=='valid' and row['clock_quality']=='trusted'
+                supply=row['supply_state'] if row['supply_observed_at_ms'] is not None and 0<=now_ms-row['supply_observed_at_ms']<180000 and row['supply_clock_quality']=='trusted' else 'unknown'
+                result.append({**{k:row[k] for k in('id','building_id','label','created_at','device_id','tenant_id','tenant_name')},'monitoring':{'supply_state':supply,'power_w':row['real_power_mw']/1000 if row['real_power_mw'] is not None else None,'voltage_v':row['voltage_mv']/1000 if row['voltage_mv'] is not None else None,'current_a':row['current_ma']/1000 if row['current_ma'] is not None else None,'recorded_today_kwh':float(row['today_mwh'])/1000000 if row['today_mwh'] is not None else None,'fresh':fresh,'observed_at':datetime.fromtimestamp(row['occurred_at_ms']/1000,timezone.utc) if row['occurred_at_ms'] is not None else None}})
+            return page(result)
         d=body();rid=ident();query(c,'INSERT INTO rooms(id,building_id,label) VALUES(:id,:bid,:label)',id=rid,bid=building_id,label=requested_text(d,'label',150));audit(c,g.actor['id'],'room_created',rid)
     return jsonify(room_id=rid),201
 

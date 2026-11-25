@@ -184,6 +184,10 @@ export default function OverviewDashboard({
                       quality="observed"
                     />
                   </div>
+                  {['voltage_v','current_a'].map((key) => <div style={{gridColumn:"span 6"}} key={key}>
+                    <LiveMetric label={(fresh ? "" : "Last recorded ")+(key==='voltage_v'?'Voltage':'Current')} value={device?.electrical?.[key] ?? null} unit={key==='voltage_v'?'V':'A'} observedAt={device?.electrical?.observed_at} quality={device?.electrical?.quality || 'unknown'}/>
+                  </div>)}
+                  {['low','high'].includes(device?.electrical?.voltage_status) && <div className="overview-note" role="status" style={{gridColumn:"span 12"}}>Voltage is {device.electrical.voltage_status==='low'?'below':'above'} your configured advisory band ({device.electrical.warning_band.low_v}–{device.electrical.warning_band.high_v} V). This display warning does not confirm a protective switch action.</div>}
                   <div style={{ gridColumn: "span 8" }}>
                     <UsageChart data={data?.usage_history} />
                   </div>

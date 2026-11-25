@@ -86,6 +86,10 @@ def validate(values):
             try:
                 if not 1<=int(values[name])<=maximum:raise ValueError()
             except (ValueError,TypeError):invalid.append(name+' must fit the configured free allowance')
+    if values.get('VOLTAGE_WARNING_LOW_MV') or values.get('VOLTAGE_WARNING_HIGH_MV'):
+        try:
+            if not 0<int(values.get('VOLTAGE_WARNING_LOW_MV',''))<int(values.get('VOLTAGE_WARNING_HIGH_MV','')):raise ValueError()
+        except (ValueError,TypeError):invalid.append('Voltage display advisory limits must both be positive millivolts with low below high')
     if values.get('ONESIGNAL_APP_ID'):
         import uuid
         try:uuid.UUID(values['ONESIGNAL_APP_ID'])
