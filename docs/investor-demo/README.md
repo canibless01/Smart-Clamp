@@ -4,7 +4,7 @@ This is a separate investor-demo folder. None of its screenshots were added to t
 
 ## Open and try it
 
-The Next.js frontend serves `/demo`. It needs no Supabase database, API, account, SMS provider or payment keys. Select a workspace, choose a demo tenant identity and supply scenario, then use the navigation. State stays in this browser tab's memory and resets on reload or Reset demo. No production authentication tokens are created and no production API calls are made.
+The Next.js frontend serves `/demo`. It needs no Supabase database, API, account, SMS provider or payment keys. Select a workspace, choose a demo tenant identity and supply scenario, then use the navigation. State stays in this browser tab's memory and resets on reload or Reset walkthrough. No production authentication tokens are created and no production API calls are made.
 
 The local server runs on port 3000. This environment currently has SSH only, with no HTTP preview. Add 3000 in Edit Environment → HTTP Previews → Apply to this chat to obtain a private owner preview. The investor-facing address must be the deployed frontend's `/demo` URL; this work does not claim an external public deployment or invent a site address. Normal Next.js frontend hosting is sufficient for the demo; production SQL is not required for this route.
 
@@ -60,3 +60,9 @@ Low current alone is not evidence of bad voltage: a room may simply have little 
 ## Validation
 
 The production web build and 60 real local API integration tests pass. Three new production-browser demo tests pass: independent room purchases and balanced joint allocation; offline/protection/manual-restore behavior without production API calls or tokens; WCAG AA checks and phone-width layout. All 35 production-browser regression checks pass, including the three new demo checks. Screenshots are captured from the running demo, not generated images. No production SQL or hardware commands were sent.
+
+The UI uses natural product wording with one persistent Interactive demo banner. Sample-data, prototype allocation, tariff and safety boundaries remain documented here; the screen no longer repeats simulated/demo labels on every metric or action.
+
+## Verified hosted preview
+
+GitHub reports a successful Vercel deployment for 5225bc5 at https://smartclamp-b0gtke2aa-canibless01-5367s-projects.vercel.app/demo . A guest request redirects to Vercel login, so this is an owner/team preview, not a freely accessible investor link. Configure Vercel Deployment Protection or obtain an authorised share link before inviting outside investors. Subsequent Git pushes may create new preview URLs through the existing integration; no protection settings were changed by this work.
