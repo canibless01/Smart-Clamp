@@ -1,5 +1,6 @@
 "use client";
-import {PowerSwitch,RelayDial} from '@/components/EnergyInstruments';
+import ShortId, {shortReference} from "@/components/ShortId";
+import {RelayDial} from '@/components/EnergyInstruments';
 import { useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch } from "@/lib/api";
@@ -16,6 +17,7 @@ export default function Page() {
       title="Power control"
       description="Confirm a specific action using your phone. Physical protection restrictions always take precedence."
       endpoint="/users/me/context"
+      refreshSeconds={5}
     >
       {(data) => {
         const devices = data.devices.filter((d: any) =>
@@ -48,13 +50,13 @@ export default function Page() {
                 >
                   {devices.map((d: any) => (
                     <option key={d.id} value={d.id}>
-                      {d.role} · {d.id}
+                      {d.role} · {shortReference(d.id)}
                     </option>
                   ))}
                 </select>
               </label>
-              <div><span>Confirmed relay</span><RelayDial on={devices.find((d:any)=>d.id===id)?.relay?.observed ?? null} pending={!!command}/></div>
-              <div><span>Requested power</span><PowerSwitch label="Requested power" on={state==='on'} disabled={busy||!!challenge||!controls?.can_request} onChange={on=>{setState(on?'on':'off');setCommand(null);}}/></div>
+              <div><span>Confirmed relay</span><RelayDial on={devices.find((d:any)=>d.id===id)?.relay?.observed ?? null} pending={!!devices.find((d:any)=>d.id===id)?.relay?.pending_command_id}/></div>
+              <fieldset disabled={busy||!!challenge||!controls?.can_request} className="relay-intent"><legend>Choose requested action</legend><button type="button" aria-pressed={state==='on'} onClick={()=>setState('on')}>⏻ Request ON</button><button type="button" aria-pressed={state==='off'} onClick={()=>setState('off')}>⏻ Request OFF</button><small>This chooses a request. The observed relay changes only after a signed receipt.</small></fieldset>
               {!challenge ? (
                 <button
                   className="btn btn-primary"

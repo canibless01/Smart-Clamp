@@ -1,0 +1,5 @@
+"use client";
+export type SignalTone='success'|'unknown'|'pending'|'warning'|'danger'|'info';
+const paths:Record<string,string>={supply:'M14 2 4 14h7l-1 8 10-13h-7Z',power:'M12 2v10M6 5a9 9 0 1 0 12 0',signal:'M2 8a16 16 0 0 1 20 0M5 12a11 11 0 0 1 14 0M8 16a5 5 0 0 1 8 0M12 20h.01',voltage:'M3 17 7 7l5 12 5-14 4 12',current:'M3 18 12 3l9 15M7 13h10',credit:'M3 5h18v14H3ZM3 10h18M15 14h3',shield:'M12 2 3 6v6c0 5 9 10 9 10s9-5 9-10V6ZM12 8v5m0 3h.01',device:'M6 2h12v20H6ZM10 18h4',bell:'M4 17h16l-2-3V9a6 6 0 0 0-12 0v5ZM10 21h4'};
+export function SignalIcon({name='bell'}:{name?:string}){return <svg viewBox="0 0 24 24" aria-hidden="true"><path d={paths[name]||paths.bell} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>;}
+export default function SignalLight({label,state,tone='unknown',icon='device'}:{label:string;state:string;tone?:SignalTone;icon?:string}){return <div className={'signal-light tone-'+tone} aria-label={label+': '+state}><span className="signal-lamp"><SignalIcon name={icon}/></span><span><strong>{label}</strong><small>{state}</small></span></div>;}

@@ -11,6 +11,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/alerts/{alert_id}/snooze",
+    "handler": "live_resources.snooze_alert"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/auth/email/enroll",
     "handler": "live_auth.enroll_email"
   },

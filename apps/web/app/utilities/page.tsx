@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
-export default function Page() {
-  notFound();
-}
+import PublicShell from '@/components/PublicShell';
+import Link from 'next/link';
+export default function Page(){return <PublicShell><section className="container marketing-page"><span className="eyebrow">SHARED SUPPLY · INDIVIDUAL VISIBILITY</span><h1>One meter. A clearer view of each room.</h1><div className="grid-12"><article className="card" style={{gridColumn:'span 8'}}><h2>Measure each connected space</h2><p>A compatible SmartClamp reports the electrical measurements for its installation. Residents see their own scoped readings; building managers see the measurements they are permitted to monitor.</p><Link className="btn btn-primary" href="/devices">Explore devices</Link></article><article className="card" style={{gridColumn:'span 4'}}><h2>Know what is available</h2><p>Utility service agreements, supported meter providers and qualified hardware must be in place before live prepaid operation. Monitoring alone does not vend meter credit.</p><Link href="/plans" className="text-link">Compare capabilities ↗</Link></article></div></section></PublicShell>;}

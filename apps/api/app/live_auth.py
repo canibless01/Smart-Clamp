@@ -169,8 +169,11 @@ def context():
 def preferences():
     with transaction() as c:
         if request.method=='PATCH':
-            d=request.get_json() or {};allowed={'language','email_enabled','sms_enabled','push_enabled','utility_notices_enabled','theme'}
+            d=request.get_json() or {};allowed={'language','email_enabled','sms_enabled','push_enabled','utility_notices_enabled','theme','sensory'}
             if set(d)-allowed:raise DomainError('validation_error','Unknown preference field.')
+            if 'sensory' in d:
+                from .alert_experience import validate_sensory
+                validate_sensory(d['sensory'])
             for key in ('email_enabled','sms_enabled','push_enabled','utility_notices_enabled'):
                 if key in d and type(d[key]) is not bool:raise DomainError('validation_error','Notification preferences require explicit booleans.')
             if d.get('sms_enabled') is True and not g.actor.get('phone'):raise DomainError('phone_verification_required','Verify a phone before enabling SMS.',409)

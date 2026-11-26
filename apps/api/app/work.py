@@ -6,8 +6,10 @@ from flask import current_app
 from .db import transaction,one,rows,query,scalar,DomainError,json_text,outbox,audit
 from .providers import vtpass,paystack,config
 
-def notify(c,uid,key,message,dedupe,episode=None,channels=None):
-    if uid:query(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id) VALUES(:uid,:key,'in_app','delivered',CAST(:payload AS jsonb),:dedupe,:episode) ON CONFLICT(dedupe_key) DO NOTHING",uid=uid,key=key,payload=json_text({'message':message}),dedupe=dedupe,episode=episode)
+def notify(c,uid,key,message,dedupe,episode=None,channels=None,details=None):
+    from .alert_experience import alert_details
+    presentation=alert_details(key,details)
+    if uid:query(c,"INSERT INTO notifications(recipient_id,template_key,channel,status,payload,dedupe_key,episode_id) VALUES(:uid,:key,'in_app','delivered',CAST(:payload AS jsonb),:dedupe,:episode) ON CONFLICT(dedupe_key) DO NOTHING",uid=uid,key=key,payload=json_text({'message':message,**presentation}),dedupe=dedupe,episode=episode)
     if uid:
         from .notifications import queue_sms
         if channels is None or 'sms' in channels:queue_sms(c,uid,key,message,dedupe,episode)
@@ -120,6 +122,8 @@ def process_reading(c,reading_id):
     r=one(c,'SELECT r.*,i.boot_id FROM readings r JOIN device_inbox i ON i.id=r.inbox_id WHERE r.id=:id',id=reading_id)
     if not r:return
     checkpoint=one(c,'SELECT * FROM devices WHERE id=:id FOR UPDATE',id=r['device_id'])
+    from .device_experience import electrical
+    electrical(c,r,checkpoint)
     if one(c,'SELECT reading_id FROM usage_postings WHERE reading_id=:id',id=reading_id):return
     previous=one(c,"SELECT r.*,i.boot_id FROM readings r JOIN device_inbox i ON i.id=r.inbox_id WHERE r.device_id=:id AND r.id<>:rid AND r.occurred_at_ms<:at ORDER BY r.occurred_at_ms DESC LIMIT 1",id=r['device_id'],rid=r['id'],at=r['occurred_at_ms']) if r['occurred_at_ms'] is not None else None
     consumed=0
@@ -140,6 +144,13 @@ def process_reading(c,reading_id):
             for account,direction in[('customer_available_energy','debit'),('measured_consumption','credit')]:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,energy_mwh) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=w['id'],account=account,direction=direction,amount=funded)
             if cost:
                 for account,direction in [('available_customer_liability','debit'),('metered_energy_consumed','credit')]:query(c,'INSERT INTO ledger_entries(transaction_id,wallet_id,account,direction,amount_kobo) VALUES(:tx,:wallet,:account,:direction,:amount)',tx=tx['id'],wallet=w['id'],account=account,direction=direction,amount=cost)
+        remaining=w['available_mwh']-funded
+        try:low_credit=int(current_app.config.get('LOW_CREDIT_WARNING_MWH','1000000'))
+        except (ValueError,TypeError):low_credit=1000000
+        if w['available_mwh']>0 and (remaining==0 or low_credit>0 and w['available_mwh']>low_credit>=remaining):
+            code='credit_empty' if remaining==0 else 'low_credit'
+            resident=one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL',room=checkpoint['room_id'])
+            notify(c,resident['tenant_id'] if resident else checkpoint['owner_id'],'wallet.zero' if remaining==0 else 'wallet.low','Electricity credit exhausted. Top up to continue.' if remaining==0 else 'Electricity credit is below '+str(Decimal(low_credit)/1000000)+' kWh. Review your balance and top up.','credit-crossing:'+str(r['id']),channels=[],details={'alert_type':code,'device_id':str(r['device_id']),'available_mwh':remaining,'threshold_mwh':low_credit})
         if consumed>=w['available_mwh']:
             query(c,"INSERT INTO off_reasons(device_id,reason,scope) VALUES(:id,'wallet_zero','prepaid') ON CONFLICT(device_id,reason,scope) DO UPDATE SET active=true",id=r['device_id'])
     prev=one(c,'SELECT chain_hash FROM usage_event_chain WHERE device_id=:id ORDER BY id DESC LIMIT 1',id=r['device_id']);prev_hash=prev['chain_hash'] if prev else ''
@@ -153,10 +164,13 @@ def process_episode(c,job):
     if lost:
         if one(c,"SELECT id FROM episodes WHERE cause='supply_lost' AND status='open' AND topology_scope->>'device_id'=:id",id=did):return
         row=one(c,"INSERT INTO episodes(cause,source,confidence,topology_scope,start_at,dedupe_key) VALUES('supply_lost','device',:confidence,CAST(:scope AS jsonb),:at,:dedupe) ON CONFLICT(dedupe_key) DO UPDATE SET dedupe_key=excluded.dedupe_key RETURNING id",confidence=1 if payload.get('clock_quality')=='trusted' else 0,scope=json_text({'device_id':did}),at=datetime.fromtimestamp(payload['occurred_at_ms']/1000,timezone.utc) if payload.get('occurred_at_ms') else datetime.now(timezone.utc),dedupe='supply:'+payload['inbox_id'])
-        notify(c,device['owner_id'],'supply.lost','Your device recorded a supply interruption. The observation time and connection may be uncertain.','supply-lost:'+str(row['id']),row['id'])
+        notify(c,device['owner_id'],'supply.lost','Your device recorded a supply interruption.' if payload.get('clock_quality')=='trusted' else 'A supply interruption was recorded with an untrusted observation time.','supply-lost:'+str(row['id']),row['id'],details={'alert_type':'supply_lost' if payload.get('clock_quality')=='trusted' else 'info','device_id':did,'clock_quality':payload.get('clock_quality'),'observed_at_ms':payload.get('occurred_at_ms')})
     else:
-        episodes=rows(c,"UPDATE episodes SET end_at=:at,status='resolved' WHERE cause='supply_lost' AND status='open' AND topology_scope->>'device_id'=:id AND start_at<=:at RETURNING id",id=did,at=datetime.fromtimestamp(payload['occurred_at_ms']/1000,timezone.utc) if payload.get('occurred_at_ms') and payload.get('clock_quality')=='trusted' else datetime.now(timezone.utc))
-        for e in episodes:notify(c,device['owner_id'],'supply.restored','Your device reported supply returning. Other protection restrictions may still apply.','supply-returned:'+str(e['id']),e['id'])
+        episodes=rows(c,"UPDATE episodes SET end_at=:at,status='resolved' WHERE cause='supply_lost' AND status='open' AND topology_scope->>'device_id'=:id AND start_at<=:at RETURNING id,start_at,confidence",id=did,at=datetime.fromtimestamp(payload['occurred_at_ms']/1000,timezone.utc) if payload.get('occurred_at_ms') and payload.get('clock_quality')=='trusted' else datetime.now(timezone.utc))
+        for e in episodes:
+            trusted=payload.get('clock_quality')=='trusted'
+            duration=max(0,int(payload['occurred_at_ms']/1000-e['start_at'].timestamp())) if trusted and e['confidence']==1 and payload.get('occurred_at_ms') else None
+            notify(c,device['owner_id'],'supply.restored','Power is back. Other protection restrictions may still apply.' if trusted else 'Supply returning was recorded with an untrusted observation time.','supply-returned:'+str(e['id']),e['id'],details={'alert_type':'supply_restored' if trusted else 'info','device_id':did,'outage_seconds':duration,'clock_quality':payload.get('clock_quality')})
 
 def run_once():
     with transaction() as c:
@@ -187,7 +201,7 @@ def run_once():
                 elif job['event_type'] in('protection','tamper'):
                     d=one(c,'SELECT owner_id FROM devices WHERE id=:id',id=job['payload']['device_id'])
                     message='Your device reported stable voltage and cleared its protection restriction. Other restrictions may still apply.' if job['event_type']=='protection' and job['payload'].get('active') is False else 'Your device reported a '+job['event_type']+' signal that needs review. Physical switching is not confirmed by this signal.'
-                    notify(c,d['owner_id'],job['event_type'],message,str(job['id']))
+                    notify(c,d['owner_id'],job['event_type'],message+(' This signal asks for investigation; it does not prove theft.' if job['event_type']=='tamper' else ''),str(job['id']),details={'alert_type':job['event_type'] if job['payload'].get('active',True) else 'info','device_id':job['payload']['device_id']})
                 else:raise DomainError('unsupported_event','This event requires an implemented processor.',503)
         with transaction() as c:query(c,"UPDATE outbox SET status='done',lease_until=NULL,last_error=NULL WHERE id=:id",id=job['id'])
     except Exception as e:

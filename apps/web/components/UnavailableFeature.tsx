@@ -1,3 +1,4 @@
+import SignalLight from "./SignalLight";
 import AppShell from "./AppShell";
 export default function UnavailableFeature({
   title,
@@ -11,7 +12,7 @@ export default function UnavailableFeature({
   return (
     <AppShell role={role}>
       <div className="workspace-empty">
-        <span className="eyebrow">AVAILABILITY</span>
+        <SignalLight icon="shield" label="Availability" state="Not enabled" tone="unknown"/>
         <h1>{title}</h1>
         <p>{description}</p>
         <p>This feature is not enabled. No action has been performed.</p>

@@ -39,6 +39,8 @@ def inbox(c,d,p):
         if prev['payload_sha256']!=digest:raise DomainError('sequence_conflict','The same device sequence was used for different data.',409)
         return prev['id'],ack,True
     row=one(c,'INSERT INTO device_inbox(device_id,key_epoch,boot_id,seq,payload_sha256,payload_bytes,payload_hash) VALUES(:id,:epoch,:boot,:seq,:hash,CAST(:body AS jsonb),:hash) RETURNING id',id=d['id'],epoch=p['key_epoch'],boot=p['boot_id'],seq=p['seq'],hash=digest,body=json_text(p))
+    from .device_experience import connection
+    connection(c,d)
     query(c,'UPDATE devices SET last_seen_at=now() WHERE id=:id',id=d['id'])
     return row['id'],ack,False
 
@@ -122,7 +124,11 @@ def receipt():
         # Delivery can be delayed after a timely physical observation. Preserve the
         # receipt without allowing it to overwrite newer feedback or revive a revocation.
         if cmd['status']!='revoked':query(c,'UPDATE commands SET status=:state WHERE command_id=:id',state=result,id=cmd['command_id'])
-        if observed is not None and p.get('clock_quality')=='trusted':query(c,'UPDATE devices SET relay_observed=:state,relay_observed_at=:at WHERE id=:id AND(relay_observed_at IS NULL OR relay_observed_at<:at)',state=observed,at=datetime.fromtimestamp(at/1000,timezone.utc),id=d['id'])
+        if observed is not None and p.get('clock_quality')=='trusted':
+            updated=one(c,'UPDATE devices SET relay_observed=:state,relay_observed_at=:at WHERE id=:id AND(relay_observed_at IS NULL OR relay_observed_at<:at) RETURNING id',state=observed,at=datetime.fromtimestamp(at/1000,timezone.utc),id=d['id'])
+            if updated and result=='applied' and cmd['status']!='revoked':
+                from .work import notify
+                notify(c,cmd['requester_id'],'relay.changed','Device receipt confirms relay '+('ON' if observed else 'OFF')+'.','relay-receipt:'+str(cmd['command_id']),channels=[],details={'device_id':str(d['id']),'observed_on':observed,'observed_at_ms':at,'command_id':str(cmd['command_id'])})
         audit(c,cmd['requester_id'],'command_'+result,cmd['command_id'])
     return jsonify(ack)
 

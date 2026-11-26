@@ -1,4 +1,6 @@
 "use client";
+import FormCheckRow from "@/components/FormCheckRow";
+
 import { useEffect,useState } from 'react';
 import PublicShell from '@/components/PublicShell';
 import { apiFetch } from '@/lib/api';
@@ -16,7 +18,7 @@ export default function Page() {
       <p>Verified contact: {data.email || data.phone || 'Verification required'}</p>
       <label>Full name<input className="input" autoComplete="name" required maxLength={160} value={name} onChange={e=>setName(e.target.value)}/></label>
       {!data.role && <label>Your setup<select className="input" value={role} onChange={e=>setRole(e.target.value)}><option value="homeowner">My home</option><option value="tenant">My room</option><option value="landlord">My building</option></select></label>}
-      <label className="consent-check"><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>I agree to the <a className="text-link" href="/terms" target="_blank" rel="noreferrer">Terms</a> and acknowledge the <a className="text-link" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span></label>
+      <FormCheckRow className="consent-check"><input type="checkbox" required checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>I agree to the <a className="text-link" href="/terms" target="_blank" rel="noreferrer">Terms</a> and acknowledge the <a className="text-link" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span></FormCheckRow>
       <button className="btn btn-primary" disabled={busy || !consent}>{busy?'Saving…':'Complete my profile'}</button>
     </form>}
   </div></PublicShell>;

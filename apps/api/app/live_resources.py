@@ -240,16 +240,29 @@ def revoke_viewer(device_id,viewer_id):
 @bp.get('/api/v1/alerts')
 @authenticated
 def alerts():
-    with transaction() as c:return page(rows(c,'SELECT id,episode_id,template_key,channel,status,payload,created_at FROM notifications WHERE recipient_id=:uid ORDER BY created_at DESC LIMIT :n',uid=g.actor['id'],n=limit()))
+    with transaction() as c:return page(rows(c,"SELECT n.id,n.episode_id,n.template_key,n.channel,n.status,n.payload,n.created_at,i.acknowledged_at,i.snoozed_until FROM notifications n LEFT JOIN notification_interactions i ON i.notification_id=n.id AND i.recipient_id=:uid WHERE n.recipient_id=:uid ORDER BY n.created_at DESC LIMIT :n",uid=g.actor['id'],n=limit()))
 
 @bp.post('/api/v1/alerts/<alert_id>/acknowledge')
 @authenticated
 def acknowledge(alert_id):
     with transaction() as c:
-        r=query(c,"UPDATE notifications SET status='delivered' WHERE id=:id AND recipient_id=:uid AND channel='in_app'",id=uuid_string(alert_id),uid=g.actor['id'])
-        if not r.rowcount:raise DomainError('not_found','Notification not found.',404)
+        found=one(c,"SELECT id FROM notifications WHERE id=:id AND recipient_id=:uid AND channel='in_app'",id=uuid_string(alert_id),uid=g.actor['id'])
+        if not found:raise DomainError('not_found','Notification not found.',404)
+        query(c,"INSERT INTO notification_interactions(notification_id,recipient_id,acknowledged_at) VALUES(:id,:uid,now()) ON CONFLICT(notification_id) DO UPDATE SET acknowledged_at=coalesce(notification_interactions.acknowledged_at,now()),snoozed_until=NULL,updated_at=now()",id=alert_id,uid=g.actor['id'])
         audit(c,g.actor['id'],'notification_acknowledged',alert_id)
     return jsonify(status='acknowledged')
+
+@bp.post('/api/v1/alerts/<alert_id>/snooze')
+@authenticated
+def snooze_alert(alert_id):
+    minutes=body().get('minutes',15)
+    if type(minutes) is not int or not 1<=minutes<=1440:raise DomainError('validation_error','Snooze must be between one minute and one day.')
+    with transaction() as c:
+        if not one(c,"SELECT id FROM notifications WHERE id=:id AND recipient_id=:uid AND channel='in_app'",id=uuid_string(alert_id),uid=g.actor['id']):raise DomainError('not_found','Notification not found.',404)
+        until=datetime.now(timezone.utc)+timedelta(minutes=minutes)
+        query(c,"INSERT INTO notification_interactions(notification_id,recipient_id,snoozed_until) VALUES(:id,:uid,:until) ON CONFLICT(notification_id) DO UPDATE SET snoozed_until=excluded.snoozed_until,updated_at=now()",id=alert_id,uid=g.actor['id'],until=until)
+        audit(c,g.actor['id'],'notification_snoozed',alert_id)
+    return jsonify(status='snoozed',snoozed_until=until)
 
 @bp.route('/api/v1/support/tickets',methods=['GET','POST'])
 @authenticated

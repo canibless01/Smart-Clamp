@@ -1,0 +1,3 @@
+"use client";
+import {AnimatePresence,motion,useReducedMotion} from 'framer-motion';
+export default function RollingReadout({value}:{value:string}){const reduced=useReducedMotion();return <span className="rolling-readout" role="img" aria-label={value}>{Array.from(value).map((digit,i)=><span className="rolling-digit" aria-hidden="true" key={i}><AnimatePresence initial={false} mode="popLayout"><motion.span key={digit} initial={reduced?false:{y:'-65%',opacity:0}} animate={{y:0,opacity:1}} exit={reduced?undefined:{y:'65%',opacity:0}} transition={{duration:.25}}>{digit}</motion.span></AnimatePresence></span>)}</span>;}

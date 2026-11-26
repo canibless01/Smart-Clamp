@@ -1,0 +1,5 @@
+"use client";
+import {useExperience} from './ExperienceProvider';
+import {SignalIcon} from './SignalLight';
+import DashboardGrid,{DashboardTile} from './DashboardGrid';
+export default function StaffAlertQueue(){const {events}=useExperience(),unread=events.filter(e=>!e.acknowledged);return <DashboardGrid className="staff-primary"><DashboardTile size="XL"><header><h2>Your alert queue</h2><a href="/alerts">History ↗</a></header>{unread.length?unread.slice(0,4).map(e=><a key={e.id} className={'queue-event tone-'+e.severity} href="/alerts"><SignalIcon name={e.iconId}/><span>{e.message}<small>{new Date(e.createdAt).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})}</small></span></a>):<p>No unread events loaded for your account. This is not a fleet health confirmation.</p>}</DashboardTile><DashboardTile size="M" tone="instrument"><h2>Reach your audience</h2><div className="notice-flow" aria-hidden="true">◉ → ◉ → ◉</div><p>Choose an authorised audience, review channels and send a service notice.</p><a href="/communications" className="btn btn-primary">Compose service notice ↗</a></DashboardTile></DashboardGrid>;}

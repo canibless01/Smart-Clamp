@@ -1,4 +1,5 @@
 "use client";
+import ShortId, {shortReference} from "@/components/ShortId";
 import RecordWorkspace from "@/components/RecordWorkspace";
 export default function Page({ params: { id } }: { params: { id: string } }) {
   return (
@@ -12,7 +13,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
           <h2>{d.profile.replace(/_/g, " ")}</h2>
           <dl>
             <dt>Device ID</dt>
-            <dd>{d.id}</dd>
+            <dd><ShortId value={d.id}/></dd>
             <dt>Installation</dt>
             <dd>{d.install_state}</dd>
             <dt>Calibration</dt>

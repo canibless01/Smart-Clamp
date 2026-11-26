@@ -1,43 +1,7 @@
 "use client";
-import RecordWorkspace from "@/components/RecordWorkspace";
-export default function Page() {
-  return (
-    <RecordWorkspace
-      title="Notifications"
-      description="Events recorded for your account. Connectivity loss alone does not establish a power outage or tampering."
-      endpoint="/alerts"
-    >
-      {(data) => (
-        <div className="resource-list">
-          {data.items.length ? (
-            data.items.map((r: any) => (
-              <article className="card" key={r.id}>
-                <h2>{r.template_key.replace(/\./g, " ")}</h2>
-                <p>
-                  {r.payload?.message || "An event was recorded for review."}
-                </p>
-                <p>{['sms','push','email'].includes(r.channel) ? `${r.channel === 'sms' ? 'SMS' : r.channel==='email'?'Email':'Browser push'} · ${r.status.replace(/_/g, " ")}${r.status === "provider_accepted" ? (r.channel==='email'?" (inbox delivery unconfirmed)":" (device display unconfirmed)") : ""}` : "In-app record"}</p>
-                <time dateTime={r.created_at}>
-                  {new Date(r.created_at).toLocaleString()}
-                </time>
-                <div className="resource-actions">
-                  <a className="btn btn-secondary" href="/support">
-                    Get help with this event
-                  </a>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="workspace-empty">
-              <h2>No notifications yet.</h2>
-              <p>
-                Device and payment events will appear here when they are
-                recorded.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </RecordWorkspace>
-  );
-}
+import {useState} from 'react';
+import RecordWorkspace from '@/components/RecordWorkspace';
+import {recordedEvent,alertCatalog} from '@/lib/experience-events';
+import {useExperience} from '@/components/ExperienceProvider';
+import {SignalIcon} from '@/components/SignalLight';
+export default function Page(){const {acknowledge,snooze}=useExperience(),[history,setHistory]=useState(false),[error,setError]=useState('');return <RecordWorkspace title="Notifications" description="Recorded events. Connectivity loss alone does not establish a power outage or tampering." endpoint="/alerts">{(data,reload)=><><div className="resource-actions"><button className="btn btn-secondary" aria-pressed={!history} onClick={()=>setHistory(false)}>Unread alerts</button><button className="btn btn-secondary" aria-pressed={history} onClick={()=>setHistory(true)}>History</button><a href="/settings" className="text-link">Alert settings ↗</a></div>{error&&<p role="alert">{error}</p>}<div className="notification-grid">{data.items.filter((r:any)=>history||r.channel==='in_app'&&!r.acknowledged_at).map((row:any)=>{const e=recordedEvent(row),active=row.channel==='in_app',snoozed=e.snoozedUntil&&Date.parse(e.snoozedUntil)>Date.now();return <article key={row.id} className={'dashboard-tile notification-tile tone-'+e.severity}><SignalIcon name={e.iconId}/><div><h2>{alertCatalog[e.alertType].label}</h2><p>{e.message}</p>{e.alertType==='tamper'&&<p>This signal asks for investigation; it doesn’t prove theft.</p>}{typeof e.details?.outage_seconds==='number'&&<p>Recorded interruption: {Math.round(e.details.outage_seconds/60)} min</p>}<time dateTime={e.createdAt}>{new Date(e.createdAt).toLocaleString('en-NG',{timeZone:'Africa/Lagos'})}</time><small>{active?e.acknowledged?'Acknowledged':snoozed?'Snoozed until '+new Date(e.snoozedUntil!).toLocaleTimeString('en-NG',{timeZone:'Africa/Lagos'}):'In-app record':`${row.channel} · ${row.status.replace(/_/g,' ')}${row.status==='provider_accepted'?' · display or inbox delivery unconfirmed':''}`}</small>{active&&!e.acknowledged&&<div className="resource-actions"><button className="btn btn-secondary" onClick={()=>void acknowledge(e).then(reload).catch(()=>setError('Acknowledgement was not saved.'))}>Acknowledge</button><button className="btn btn-secondary" onClick={()=>void snooze(e).then(reload).catch(()=>setError('Snooze was not saved.'))}>Snooze 15 min</button></div>}</div></article>;})}{!data.items.some((r:any)=>history||r.channel==='in_app'&&!r.acknowledged_at)&&<p>No unread notifications. History retains the recorded events.</p>}</div></>}</RecordWorkspace>;}

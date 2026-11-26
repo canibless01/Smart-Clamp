@@ -55,7 +55,7 @@ export default function PlanComparison() {
                           {cell}
                         </th>
                       ) : (
-                        <td key={i}>{cell}</td>
+                        <td key={i} data-label={["Feature","Free","Basic","Basic Pro","Pro","What to know"][i]}>{/planned|hardware|available/i.test(cell)?<span className={"capability-chip "+(/planned/i.test(cell)?"is-planned":/hardware/i.test(cell)?"is-hardware":"is-available")}>{cell}</span>:cell}</td>
                       ),
                     )}
                   </tr>

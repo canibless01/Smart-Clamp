@@ -1,0 +1,156 @@
+{
+  "supply_lost": {
+    "severity": "danger",
+    "iconId": "supply",
+    "soundId": "lost",
+    "label": "Power lost",
+    "hapticPattern": [
+      90,
+      60,
+      90
+    ]
+  },
+  "supply_restored": {
+    "severity": "success",
+    "iconId": "supply",
+    "soundId": "restored",
+    "label": "Power is back",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "under_voltage": {
+    "severity": "warning",
+    "iconId": "voltage",
+    "soundId": "warning",
+    "label": "Low voltage",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "over_voltage": {
+    "severity": "danger",
+    "iconId": "voltage",
+    "soundId": "alarm",
+    "label": "High voltage",
+    "hapticPattern": [
+      90,
+      60,
+      90
+    ]
+  },
+  "over_current": {
+    "severity": "danger",
+    "iconId": "current",
+    "soundId": "alarm",
+    "label": "Over-current",
+    "hapticPattern": [
+      90,
+      60,
+      90
+    ]
+  },
+  "under_current": {
+    "severity": "warning",
+    "iconId": "current",
+    "soundId": "warning",
+    "label": "Under-current",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "relay_changed": {
+    "severity": "info",
+    "iconId": "power",
+    "soundId": "confirmed",
+    "label": "Relay changed",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "low_credit": {
+    "severity": "warning",
+    "iconId": "credit",
+    "soundId": "reminder",
+    "label": "Credit low",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "credit_empty": {
+    "severity": "danger",
+    "iconId": "credit",
+    "soundId": "warning",
+    "label": "Credit exhausted",
+    "hapticPattern": [
+      90,
+      60,
+      90
+    ]
+  },
+  "tamper": {
+    "severity": "danger",
+    "iconId": "shield",
+    "soundId": "alarm",
+    "label": "Investigation requested",
+    "hapticPattern": [
+      90,
+      60,
+      90
+    ]
+  },
+  "device_offline": {
+    "severity": "unknown",
+    "iconId": "signal",
+    "soundId": "lost",
+    "label": "Device contact lost",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "device_online": {
+    "severity": "success",
+    "iconId": "signal",
+    "soundId": "restored",
+    "label": "Device reconnected",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "topup_success": {
+    "severity": "success",
+    "iconId": "credit",
+    "soundId": "confirmed",
+    "label": "Credit available",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "welcome": {
+    "severity": "info",
+    "iconId": "device",
+    "soundId": "welcome",
+    "label": "Welcome",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "info": {
+    "severity": "info",
+    "iconId": "bell",
+    "soundId": "reminder",
+    "label": "Account update",
+    "hapticPattern": [
+      35
+    ]
+  },
+  "protection": {
+    "severity": "warning",
+    "iconId": "shield",
+    "soundId": "warning",
+    "label": "Protection signal",
+    "hapticPattern": [
+      35
+    ]
+  }
+}

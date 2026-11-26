@@ -1,0 +1,3 @@
+"use client";
+import {useEffect,useRef,type ReactNode} from 'react';
+export default function InstrumentDrawer({label,onClose,children}:{label:string;onClose:()=>void;children:ReactNode}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const d=ref.current;d?.showModal();return()=>{d?.close();};},[]);return <dialog ref={ref} className="instrument-modal" aria-label={label} onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===ref.current)onClose();}}><section className="instrument-drawer"><button autoFocus className="btn btn-secondary" onClick={onClose}>Close</button>{children}</section></dialog>;}

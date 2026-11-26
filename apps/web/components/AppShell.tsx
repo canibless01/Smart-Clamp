@@ -1,4 +1,7 @@
 "use client";
+import {SoundToggle} from "./ExperienceProvider";
+import SimulatePanel from "./SimulatePanel";
+import DashboardGrid from "./DashboardGrid";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -150,7 +153,7 @@ export default function AppShell({
             <span>/</span>
             <span>{current}</span>
           </div>
-          <div className="app-header-actions">
+          <div className="app-header-actions"><SoundToggle/>
             <span className="app-browser-status">
               <span className={`status-dot ${online ? "" : "off"}`} />
               {online ? "Browser connected" : "Browser offline"}
@@ -172,7 +175,7 @@ export default function AppShell({
           </div>
         </header>
         <main id="main" className="main-content">
-          {children}
+          <DashboardGrid className="workspace-grid">{children}</DashboardGrid><SimulatePanel/>
         </main>
         <nav
           className="bottom-nav desktop-hidden"

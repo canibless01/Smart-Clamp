@@ -1,4 +1,6 @@
 "use client";
+import FormCheckRow from "@/components/FormCheckRow";
+
 import { useState, useEffect, FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -267,7 +269,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
               </div>
             )}
             {signup && <>
-              <label className="consent-check"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>I agree to the <Link href="/terms" target="_blank">Terms</Link> and acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>.</span></label>
+              <FormCheckRow className="consent-check"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/><span>I agree to the <Link href="/terms" target="_blank">Terms</Link> and acknowledge the <Link href="/privacy" target="_blank">Privacy Policy</Link>.</span></FormCheckRow>
               {errors.consent && <p role="alert">{errors.consent}</p>}
               <p className="auth-fineprint">Professional and utility accounts need an invitation. Address details are requested when you set up a building or installation.</p>
             </>}

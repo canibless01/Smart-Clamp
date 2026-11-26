@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import WorkspaceInstrument from "./WorkspaceInstrument";
+import ShortId from "./ShortId";
 import AppShell from "./AppShell";
 import { apiFetch } from "@/lib/api";
 export default function RecordWorkspace({
@@ -8,11 +10,13 @@ export default function RecordWorkspace({
   endpoint,
   role,
   children,
+  refreshSeconds=0,
 }: {
   title: string;
   description: string;
   endpoint: string;
   role?: string;
+  refreshSeconds?: number;
   children: (data: any, reload: () => void) => React.ReactNode;
 }) {
   const [data, setData] = useState<any>(null),
@@ -34,8 +38,9 @@ export default function RecordWorkspace({
     void load();
     const refreshed = () => void load();
     window.addEventListener("smartclamp:session-updated", refreshed);
-    return () => window.removeEventListener("smartclamp:session-updated", refreshed);
-  }, [load]);
+    const timer=refreshSeconds?setInterval(()=>{if(document.visibilityState==='visible')apiFetch(endpoint).then(setData).catch(()=>{});},refreshSeconds*1000):null;
+    return () => {window.removeEventListener("smartclamp:session-updated", refreshed);if(timer)clearInterval(timer);};
+  }, [load,endpoint,refreshSeconds]);
   return (
     <AppShell role={role}>
       <div className="overview-heading">
@@ -62,7 +67,7 @@ export default function RecordWorkspace({
       {loading ? (
         <p role="status">Loading your records…</p>
       ) : (
-        data && children(data, () => void load())
+        data && <><WorkspaceInstrument endpoint={endpoint} data={data}/>{children(data, () => void load())}</>
       )}
     </AppShell>
   );
@@ -94,8 +99,8 @@ export function RecordTable({
           {items.map((r, i) => (
             <tr key={r.id || i}>
               {columns.map((c) => (
-                <td key={c.key}>
-                  {c.render ? c.render(r) : (r[c.key] ?? "Not recorded")}
+                <td key={c.key} data-label={c.label}>
+                  {c.render ? c.render(r) : (typeof r[c.key]==='string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(r[c.key]) ? <ShortId value={r[c.key]}/> : (r[c.key] ?? 'Not recorded'))}
                 </td>
               ))}
             </tr>

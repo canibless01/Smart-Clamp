@@ -1,4 +1,6 @@
 "use client";
+import {SoundToggle} from "./ExperienceProvider";
+import PublicInstrument from "./PublicInstrument";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -68,7 +70,7 @@ export default function PublicShell({
               </Link>
             ))}
           </nav>
-          <div className="nav-actions">
+          <div className="nav-actions"><SoundToggle/>
             <Link href="/login" className="login-link">
               Log in
             </Link>
@@ -132,7 +134,8 @@ export default function PublicShell({
         </div>
       )}
       <main id="main" className="public-main">
-        {children}
+        <PublicInstrument/>
+      {children}
       </main>
       <footer className="site-footer">
         <div className="container">

@@ -1,0 +1,1814 @@
+[
+  {
+    "file": "apps/api/app/__init__.py",
+    "bytes": 5100,
+    "sha256": "d546c0834bfb6b1e6e0e9f8e8f04187b92698768c42919373967e907a06bd2de",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/health",
+      "/api/v1/openapi.yaml",
+      "/api/v1/ops/firmware/artifacts",
+      "/api/v1/webhooks/"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/audiences.py",
+    "bytes": 8692,
+    "sha256": "e14fab71b4f237179292fc7add44fb662c271eb7b8780b8cb881a206eb0151e8",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/ops/bills/<bill_id>/responsibilities",
+      "/api/v1/ops/devices/<device_id>/service-area",
+      "/api/v1/ops/service-areas"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/case_assignment.py",
+    "bytes": 2081,
+    "sha256": "381fbdd3677757baa73902a91ae032a33aa3c70518766c5a80547b35504bb885",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/communications.py",
+    "bytes": 14697,
+    "sha256": "85eb57e6fbffc26a600b099d58ba7ff1fbdf6374bf5715d1b26d8058e35f9d48",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/communications/context",
+      "/api/v1/communications/previews",
+      "/api/v1/communications/send",
+      "/api/v1/ops/organizations/<organization_id>/notice-grant"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/db.py",
+    "bytes": 3667,
+    "sha256": "37cc9ac9ff2deae220ad8abbea2224166f75849d7b88dbd11dc1eebd14009458",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/email_delivery.py",
+    "bytes": 10623,
+    "sha256": "eeb67802e78bc8927edae5c39d1aac63c834a71dff29e7b93ae977fededec126",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/email_receipts.py",
+    "bytes": 7230,
+    "sha256": "799f3e5c9380740e6a0e3902120f45ca84f5f5c7ec101bab48a50df6c9016892",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/webhooks/resend"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/email_routing.py",
+    "bytes": 4311,
+    "sha256": "d03fb6aaa257efb209bbca87a535e28dd4ea96e28b6854b1f145656dfd9bc527",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/firmware.py",
+    "bytes": 15314,
+    "sha256": "fe67cc2739605b3450b36713537862d26f7cbd2865a8402aeca5e8ecfec2e998",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/device/firmware/download",
+      "/api/v1/device/firmware/receipts",
+      "/api/v1/ops/firmware",
+      "/api/v1/ops/firmware/artifacts",
+      "/api/v1/ops/firmware/rollouts",
+      "/api/v1/ops/firmware/rollouts/<rollout_id>/actions"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/idempotency.py",
+    "bytes": 1821,
+    "sha256": "6baf895777770a1bfd159955ed5f6714734450b9be1a22a968123bc364664fce",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/live_auth.py",
+    "bytes": 23147,
+    "sha256": "7adea4e4f33b52b06e683da4a3b0ea45de6944164db270ac656bad7320cbf166",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/auth/email/enroll",
+      "/api/v1/auth/email/verify",
+      "/api/v1/auth/login",
+      "/api/v1/auth/logout",
+      "/api/v1/auth/oauth/exchange",
+      "/api/v1/auth/oauth/start",
+      "/api/v1/auth/onboarding",
+      "/api/v1/auth/options",
+      "/api/v1/auth/phone/enroll",
+      "/api/v1/auth/phone/verify",
+      "/api/v1/auth/recovery",
+      "/api/v1/auth/recovery/complete",
+      "/api/v1/auth/recovery/phone",
+      "/api/v1/auth/refresh",
+      "/api/v1/auth/signup",
+      "/api/v1/auth/step-up/challenges",
+      "/api/v1/auth/step-up/challenges/<challenge_id>/verify",
+      "/api/v1/auth/verify",
+      "/api/v1/users/me/context",
+      "/api/v1/users/me/preferences",
+      "/api/v1/users/me/report-preferences",
+      "/api/v1/users/me/subscription",
+      "/api/v1/users/me/subscription/cancel"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/live_devices.py",
+    "bytes": 17781,
+    "sha256": "22ba3ebcfe1dc3d579d7adb81ed29395a7414a7bcd48e05019fffe725a51d271",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/device/events",
+      "/api/v1/device/poll",
+      "/api/v1/device/receipts",
+      "/api/v1/devices/<device_id>/commands",
+      "/api/v1/devices/<device_id>/relay"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/live_payments.py",
+    "bytes": 16012,
+    "sha256": "54ded748ae49b3f23322135fdf3edfaeb44685a4597b2374843e39600160e03d",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/payments/<payment_id>",
+      "/api/v1/payments/<payment_id>/confirm-meter-entry",
+      "/api/v1/payments/<payment_id>/transfer-instructions",
+      "/api/v1/payments/checkout",
+      "/api/v1/payments/quotes",
+      "/api/v1/public/payments/<status_token>",
+      "/api/v1/public/payments/<status_token>/transfer-instructions",
+      "/api/v1/wallets/<wallet_id>/recharge",
+      "/api/v1/webhooks/notifications",
+      "/api/v1/webhooks/payment",
+      "/api/v1/webhooks/ussd",
+      "/api/v1/webhooks/vending"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/live_resources.py",
+    "bytes": 42636,
+    "sha256": "6f9c81146e111d087b40d09796163a1939311273de050d2b75e41f1a4418ad9a",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/alerts",
+      "/api/v1/alerts/<alert_id>/acknowledge",
+      "/api/v1/bills",
+      "/api/v1/buildings",
+      "/api/v1/buildings/<building_id>/rooms",
+      "/api/v1/dashboard/homeowner",
+      "/api/v1/dashboard/landlord",
+      "/api/v1/dashboard/tenant",
+      "/api/v1/devices/<device_id>",
+      "/api/v1/devices/<device_id>/events",
+      "/api/v1/devices/<device_id>/viewers",
+      "/api/v1/devices/<device_id>/viewers/<viewer_id>",
+      "/api/v1/disputes",
+      "/api/v1/disputes/<dispute_id>/meeting-view",
+      "/api/v1/disputes/<dispute_id>/messages",
+      "/api/v1/disputes/<dispute_id>/workflow",
+      "/api/v1/feature-flags/active",
+      "/api/v1/invitations/<invitation_id>",
+      "/api/v1/invitations/accept",
+      "/api/v1/meters/<linked_meter_id>/manual-reading",
+      "/api/v1/meters/link",
+      "/api/v1/meters/validate",
+      "/api/v1/ops/fleet-health",
+      "/api/v1/ops/fleet-health-basic",
+      "/api/v1/orders",
+      "/api/v1/orders/<order_id>",
+      "/api/v1/orders/<order_id>/actions",
+      "/api/v1/organizations/by-subdomain/<subdomain>",
+      "/api/v1/portal/jobs",
+      "/api/v1/portal/payouts",
+      "/api/v1/portal/referrals",
+      "/api/v1/public/electricity-providers",
+      "/api/v1/rooms/<room_id>/invitations",
+      "/api/v1/rooms/<room_id>/join",
+      "/api/v1/rooms/<room_id>/occupancies",
+      "/api/v1/rooms/<room_id>/transfer",
+      "/api/v1/support/tickets",
+      "/api/v1/support/tickets/<ticket_id>",
+      "/api/v1/support/tickets/<ticket_id>/messages",
+      "/api/v1/support/tickets/<ticket_id>/workflow",
+      "/api/v1/transactions",
+      "/api/v1/wallets",
+      "/api/v1/wallets/<wallet_id>/ledger"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/live_workflows.py",
+    "bytes": 17684,
+    "sha256": "fa73cf5120953536d23cf74cd07d63351fed6975a5702e3f8be904dd6fd96dcb",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/dashboard/utility",
+      "/api/v1/devices/claim",
+      "/api/v1/jobs/<job_id>",
+      "/api/v1/jobs/<job_id>/actions",
+      "/api/v1/ops/buildings/<building_id>/payment-destination",
+      "/api/v1/ops/devices/<device_id>/claim-code",
+      "/api/v1/ops/features/water-management",
+      "/api/v1/ops/jobs",
+      "/api/v1/ops/summary",
+      "/api/v1/public/capabilities"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/notice_fanout.py",
+    "bytes": 2268,
+    "sha256": "fd04984295adcc883804978071c7b6c91aa1af5ff664649ac14e9d59fa07ed08",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/notifications.py",
+    "bytes": 5118,
+    "sha256": "5e287754ff9d2cf3b6566b97e4a500179c52e4f4b456ef15c979112345b6c194",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/onesignal_push.py",
+    "bytes": 9433,
+    "sha256": "efd091f793bd270c7d92ccc11cc42b0be325a90d6a91ae121cbb360995f3fbcb",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/users/me/onesignal/devices/<registration_id>",
+      "/api/v1/users/me/onesignal/session"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/prepaid.py",
+    "bytes": 6281,
+    "sha256": "dd0f16ac83177f796be757786794d8b45c41affa593dbd6a43507f858503dabe",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/device/prepaid-policy/receipts"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/protocol.py",
+    "bytes": 3252,
+    "sha256": "a2af458cfb0cb9e28e15dfac1c5e754601b25d4ea6729f1c4bfd0656b9c0ce04",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/providers.py",
+    "bytes": 4425,
+    "sha256": "73c9c317e8c09d0dec02f8cc133e18791d50f720c9e09dcdc2b9b3d94543f257",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/reports.py",
+    "bytes": 10772,
+    "sha256": "f84b53a6476ff813b9edc7fbd896b4f503a6de4e7e67fb6b5ca7580af0669760",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/exports/<export_id>",
+      "/api/v1/public/reports/<token>",
+      "/api/v1/reports",
+      "/api/v1/reports/<report_id>",
+      "/api/v1/reports/<report_id>/exports",
+      "/api/v1/reports/<report_id>/revoke"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/web_push.py",
+    "bytes": 11002,
+    "sha256": "32d7bfd74183461b171875370fbb6afe80fdf7d3b343a6448357ffef6ee93c79",
+    "imports": [],
+    "api_paths": [
+      "/api/v1/users/me/push-subscriptions"
+    ],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/webhook_auth.py",
+    "bytes": 1950,
+    "sha256": "2128dff2b842ab26b72604e715943fa2fb141a91143fa74a2c9d42219a32b639",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/api/app/work.py",
+    "bytes": 20503,
+    "sha256": "6434db59395af59cb52480ddff96635404fc6746dba4c5d521f8084b9eed8b96",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/about/layout.tsx",
+    "bytes": 223,
+    "sha256": "19f47c78b83568381b6014c362a4b72d066b312a28428eafae5bebbba1d0009c",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/about/page.tsx",
+    "bytes": 2555,
+    "sha256": "73a17eb6ca023c284992f5badcd4e3dccf862e1f0717030fb96755ac3fa536ff",
+    "imports": [
+      "@/components/PublicShell",
+      "next/image",
+      "next/link",
+      "@/components/Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Image",
+      "Link",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/account/complete-profile/page.tsx",
+    "bytes": 2950,
+    "sha256": "79a2288bca63403501a2b6fca1a40ac4480e5f1531f4c14f08272012883a251e",
+    "imports": [
+      "react",
+      "@/components/PublicShell",
+      "@/lib/api",
+      "@/lib/session"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/account/recovery/page.tsx",
+    "bytes": 4217,
+    "sha256": "1a575ba80c20e242177cbd354cd7d1ea5bf38c37303ab0e35afee10f38e124ae",
+    "imports": [
+      "react",
+      "@/components/PublicShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/admin/organizations/[id]/page.tsx",
+    "bytes": 348,
+    "sha256": "5048b57d2db01dd5a2b478021df45e31a9600935a61ceb000c4d185ffb88a0dd",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/alerts/page.tsx",
+    "bytes": 1728,
+    "sha256": "7bc09db3192b7fdfbbef9c013eb805b88a924d97437701a86947477ab3a44f9d",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/auth/callback/page.tsx",
+    "bytes": 1601,
+    "sha256": "1311aa4a0bc876706822607d9c328963c7c90546ea23114a237829bfc2c55ea2",
+    "imports": [
+      "react",
+      "@/components/PublicShell",
+      "@/lib/api",
+      "@/lib/signin"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/billing/page.tsx",
+    "bytes": 8404,
+    "sha256": "bb6df1a79219feea6deda890b0195b2e0feea7fd353622ea6ef43790748a1a9c",
+    "imports": [
+      "react",
+      "@/components/AppShell",
+      "@/lib/api",
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell",
+      "RecordTable"
+    ]
+  },
+  {
+    "file": "apps/web/app/communications/page.tsx",
+    "bytes": 14547,
+    "sha256": "2d22ea4a233fdb176d8026ffb85d46b027f2c6856e21f8ee66c5802896ebf387",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Composer",
+      "Record",
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/community/page.tsx",
+    "bytes": 321,
+    "sha256": "35c35b0de56c3c9f9642fb3cc6a43ddce10a3ad1858853c606d546bffd7f16b5",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/connection-help/page.tsx",
+    "bytes": 3977,
+    "sha256": "c6ca29ea65190e76dde5e00aea1bbb610cc1139fed66ed5af612253068c40034",
+    "imports": [
+      "react",
+      "@/components/PublicShell",
+      "@/components/Icon",
+      "next/link",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Link",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/control/page.tsx",
+    "bytes": 7257,
+    "sha256": "e1b74bea062d01c59b394e8dd4753e03709111f44c8707cb39860475cc67da3b",
+    "imports": [
+      "@/components/EnergyInstruments",
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PowerSwitch",
+      "RecordWorkspace",
+      "RelayDial"
+    ]
+  },
+  {
+    "file": "apps/web/app/d/[public_token]/page.tsx",
+    "bytes": 668,
+    "sha256": "315bc82ba3c99956aeb24b1ed6f296bdbfb5c14dcd0eac07ea8726f8a37dd0b1",
+    "imports": [
+      "@/components/PublicShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/homeowner/page.tsx",
+    "bytes": 148,
+    "sha256": "d5dbfe7e9057c0eaaa6dfa9297002ce9534e40df38cb43f3b74f2c18c7aba78d",
+    "imports": [
+      "@/components/OverviewDashboard"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "OverviewDashboard"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/landlord/buildings/[id]/rooms/page.tsx",
+    "bytes": 6052,
+    "sha256": "e752da4093412e854339ea7e330fc91a9efddbaba6d65f3d0ff0e4f067cbdf8a",
+    "imports": [
+      "@/components/EnergyInstruments",
+      "@/components/RecordWorkspace",
+      "@/lib/api",
+      "react"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace",
+      "RoomLoadComparison"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/landlord/buildings/new/page.tsx",
+    "bytes": 4354,
+    "sha256": "7d1798306e174986283c7e35a600dbbdf0f09d27639bf4cca4096d3a0cade8c5",
+    "imports": [
+      "@/lib/session",
+      "react",
+      "next/navigation",
+      "@/components/AppShell",
+      "@/components/Icon",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell",
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/landlord/page.tsx",
+    "bytes": 3962,
+    "sha256": "e722dae01615b62f636924d951cfa2cbb35c25155776eea24fd8cc467f81ec91",
+    "imports": [
+      "@/lib/session",
+      "react",
+      "@/components/AppShell",
+      "@/components/Icon",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell",
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/properties/page.tsx",
+    "bytes": 44,
+    "sha256": "71ec4eee69e32757cbdd83a0f9160296c8be6417704ffeccb931372f4178812f",
+    "imports": [
+      "../landlord/page"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/dashboard/tenant/page.tsx",
+    "bytes": 145,
+    "sha256": "dfe0180b5b4ddd0efdb1fe7905b1a3c4c852148cff918e5df406a774ba9b5b1b",
+    "imports": [
+      "@/components/OverviewDashboard"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "OverviewDashboard"
+    ]
+  },
+  {
+    "file": "apps/web/app/dashboard/utility/page.tsx",
+    "bytes": 1977,
+    "sha256": "ebb64c69b09ecd0ea10d32ae838556fb9f9a6e80db3dc8b2e6ef6fd48cd41a4f",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/demo/page.tsx",
+    "bytes": 247,
+    "sha256": "46f5f9cd0e698abf5558d889c5ad6d8072669d77038fe7e0a882b94e70f1681b",
+    "imports": [
+      "next",
+      "@/components/InvestorDemo"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "InvestorDemo"
+    ]
+  },
+  {
+    "file": "apps/web/app/devices/[id]/commands/page.tsx",
+    "bytes": 1041,
+    "sha256": "8343d4762e6c744bb5c08f85ca8355e05ad5ad5e06b83da7c5b6a7889a719883",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/devices/[id]/page.tsx",
+    "bytes": 2242,
+    "sha256": "9d938e2497466f8583d0a9146de1a19fab4a6a69d0dda68ea3ed60e074d2dff8",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/devices/link/page.tsx",
+    "bytes": 2392,
+    "sha256": "810d37393f9f931fc16a286ea053b4c4b0aa603b065839b188110344a9a586fa",
+    "imports": [
+      "react",
+      "@/components/AppShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/disputes/[id]/meeting/page.tsx",
+    "bytes": 1532,
+    "sha256": "1b8330805bc6b2a5a605cce9e548095314c8008501908713eb8d5f8e299aa27e",
+    "imports": [
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/disputes/[id]/page.tsx",
+    "bytes": 4187,
+    "sha256": "4647b0b01f3193a28d6052dec237880b7c3817afda8213c0d9f2924dbf195ad8",
+    "imports": [
+      "react",
+      "next/link",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Link",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/disputes/page.tsx",
+    "bytes": 2552,
+    "sha256": "b4e0b3ef5b5e72e0df685048d8c2f230404c8fceffdb9db60db2d49defe52a78",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "NewDispute",
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/faqs/layout.tsx",
+    "bytes": 237,
+    "sha256": "ab463f85360b6b84defe8e29e7c574f664833a4752d2c2d0c0310a3db9874f04",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/faqs/page.tsx",
+    "bytes": 3807,
+    "sha256": "84070c0b9ceeb8d227106937113b580bb2f4c0ec22238a73b01e10809e650956",
+    "imports": [
+      "@/components/PublicShell",
+      "next/link",
+      "@/components/Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Link",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/for-homeowners/layout.tsx",
+    "bytes": 231,
+    "sha256": "03f4d1f9d0da177b028923ed86c9b0dffcd9955a7861c52c4401d8a6592a6c18",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/for-homeowners/page.tsx",
+    "bytes": 116,
+    "sha256": "b33e71f51422257387ce0a5d0a2454e387a7f1c8275cd4fe2e25c8c952c17138",
+    "imports": [
+      "@/components/AudiencePage"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AudiencePage"
+    ]
+  },
+  {
+    "file": "apps/web/app/for-landlords/layout.tsx",
+    "bytes": 238,
+    "sha256": "8e26def69b06adb4de915f9cd82cef9142b7a8b4a90e0f474c0f8c5466a8bb7e",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/for-landlords/page.tsx",
+    "bytes": 125,
+    "sha256": "07c7351f471caa1c75897afb0ae6d6bf84c4ccde927dc8e663257d949c13db7e",
+    "imports": [
+      "@/components/AudiencePage"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AudiencePage"
+    ]
+  },
+  {
+    "file": "apps/web/app/globals.css",
+    "bytes": 86852,
+    "sha256": "6298a4e3d465112ec3b95763290debf76b8a9b77bef610bae51fcf8d96d3f2f1",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/history/page.tsx",
+    "bytes": 4345,
+    "sha256": "780dfef60f0de182ccd0ab203911f2ffc54ff75930435a254133e95dc800315e",
+    "imports": [
+      "@/components/EnergyInstruments",
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "ElectricalTrends",
+      "Readings",
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/how-it-works/layout.tsx",
+    "bytes": 227,
+    "sha256": "d881bc4b6a115722ee9d1c28c0cf273ca40b47be23f1672881917ee44ac7b101",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/how-it-works/page.tsx",
+    "bytes": 2558,
+    "sha256": "6f8e9726186bd1baff44b20c1b269a241f1024406215d4647b7527f9bc7b439d",
+    "imports": [
+      "@/components/PublicShell",
+      "@/components/SystemMap",
+      "@/components/Icon",
+      "next/link"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Link",
+      "PublicShell",
+      "SystemMap"
+    ]
+  },
+  {
+    "file": "apps/web/app/install/page.tsx",
+    "bytes": 1970,
+    "sha256": "8b4857fa608d4e60399314115e03f5e3456cf0fe9e6a60ca4706681adb3b6212",
+    "imports": [
+      "@/components/PublicShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/ir-reader/setup/page.tsx",
+    "bytes": 1561,
+    "sha256": "1450d06ae57260d2839d56d6719952f34329bf365987eb4bfd7bfac48eb38276",
+    "imports": [
+      "@/components/PublicShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/join/page.tsx",
+    "bytes": 2515,
+    "sha256": "cd91f315e029638d4d36bbbd27ebf935f4dc38e702591c22204f5befb5bc7866",
+    "imports": [
+      "@/lib/session",
+      "react",
+      "@/components/PublicShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/layout.tsx",
+    "bytes": 1222,
+    "sha256": "0111468e0edb53bfd822245a01255ba9251a02a081d985f6ee675352faf505eb",
+    "imports": [
+      "@fontsource-variable/manrope",
+      "@fontsource-variable/dm-sans",
+      "./globals.css",
+      "next",
+      "@/components/PwaRegistration"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PwaRegistration"
+    ]
+  },
+  {
+    "file": "apps/web/app/login/page.tsx",
+    "bytes": 104,
+    "sha256": "8ec28770d349fcac52d25e423c80e277decf06d1ed280ba153efa78c11007ac9",
+    "imports": [
+      "@/components/AuthPage"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AuthPage"
+    ]
+  },
+  {
+    "file": "apps/web/app/manifest.ts",
+    "bytes": 484,
+    "sha256": "ccb8bf41e9d98f4cfb008f2580b9bb5f6f8641ecf455ce719ff6a012a19cf8f3",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/meters/link/page.tsx",
+    "bytes": 3076,
+    "sha256": "30d047b589706c4554b559a1e5394e8bfa8d7c195f370d6ee86151e0faa69e8a",
+    "imports": [
+      "react",
+      "@/components/AppShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/ops/firmware/page.tsx",
+    "bytes": 6108,
+    "sha256": "723e52bf466306168e3dd078553204de7ee78e583c33fe50ca4672795f8b8c2d",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "File",
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/ops/incidents/[id]/page.tsx",
+    "bytes": 297,
+    "sha256": "b4c7bd69847081f0a7fcca011599828612da16cc9d39dc6dcd5c06f46976d142",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/ops/page.tsx",
+    "bytes": 8372,
+    "sha256": "4f8b493adaf2f6fe2fde0dac92359c3460922fd58ae71f5a575aa4a1047e1c16",
+    "imports": [
+      "@/components/RecordWorkspace",
+      "@/lib/api",
+      "react"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/orders/page.tsx",
+    "bytes": 821,
+    "sha256": "f448e721991d39b915b9c01e2b2fb8a16d6915b3eec96e08ea733a98def52c1d",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/page.tsx",
+    "bytes": 22253,
+    "sha256": "22553d6595a24ca8ed97efa22d773c0300bf023b4b068afe486222fa2ba3596a",
+    "imports": [
+      "react",
+      "next/image",
+      "next/link",
+      "@/components/PublicShell",
+      "@/components/ProductCarousel",
+      "@/components/MeterLookup",
+      "@/components/Icon",
+      "@/components/EnergyExperience"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "DeviceVisual",
+      "EnergyExperience",
+      "EnergySparkline",
+      "Icon",
+      "Image",
+      "Link",
+      "MeterLookup",
+      "ProductCarousel",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/payments/return/page.tsx",
+    "bytes": 6527,
+    "sha256": "60ad875e2c1f020aba91f0652722d063c3525c7a3e9fc374795cc5385de97cde",
+    "imports": [
+      "react",
+      "@/components/PublicShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/payments/transfer/[quote_id]/page.tsx",
+    "bytes": 371,
+    "sha256": "566c085901202b2ab17441498d3aee00d14990de6004967bafa7eb312ef14794",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/plans/[slug]/page.tsx",
+    "bytes": 2229,
+    "sha256": "8397f9f3db7d8fd8e31a2724fe50bba36cc4b766eac8ca27c1a057f448b725ef",
+    "imports": [
+      "next/navigation",
+      "@/components/PublicShell",
+      "@/components/PlanComparison"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PlanComparison",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/portal/jobs/[id]/page.tsx",
+    "bytes": 4461,
+    "sha256": "c7b45dac57b5febca15d0e2ea094650a743009a16e70ba65e0931b9066538bd4",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/portal/page.tsx",
+    "bytes": 1501,
+    "sha256": "cf94fe121081f4222d557cba5ec7df9a96e714212b3e5866a93fb33a81e14c46",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/pricing/layout.tsx",
+    "bytes": 231,
+    "sha256": "dadd9d82a549945c0c4f7bf2f958aace615664202eb2abe4cb801a0e31b4e893",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/pricing/page.tsx",
+    "bytes": 4172,
+    "sha256": "ecffbbdee6b5c22e16444cac05735549446635f4b199d047d7a9cf1f15f80572",
+    "imports": [
+      "@/components/PlanComparison",
+      "@/components/PublicShell",
+      "@/components/Icon",
+      "next/link"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Link",
+      "PlanComparison",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/privacy/page.tsx",
+    "bytes": 2952,
+    "sha256": "ed246723f536ff1fec4d4a489abffde48782875ac56334b29c5c8a39738b0e07",
+    "imports": [
+      "@/components/PublicShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/products/[slug]/page.tsx",
+    "bytes": 2689,
+    "sha256": "c309b1237de744ffe2a7e18b81c28b3bae229fd471ba17753facc8e9db6b16fe",
+    "imports": [
+      "next/navigation",
+      "@/components/PublicShell",
+      "@/components/Icon",
+      "@/data/catalogue"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/pwa-icons/[size]/route.tsx",
+    "bytes": 567,
+    "sha256": "2bccc0aa697b3814ff6cfe0f0fabaf1cac3a2fd84490b5484757fb732acd5ac7",
+    "imports": [
+      "next/og"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/reports/page.tsx",
+    "bytes": 4372,
+    "sha256": "01ef8fc2eeaa0782f262bf3cb45073c4bf960c79c64da8404ee5b23e7f4c8f29",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/components/MeasurementReport",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "MeasurementReport",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/robots.ts",
+    "bytes": 670,
+    "sha256": "2cf10414d4ddd8d13986a937eae74ff975b4e6d8a841e1ca9c9e62c860effd28",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/settings/page.tsx",
+    "bytes": 5240,
+    "sha256": "e7ca410e03cb452af84db200618afbf5d4a2c6bf2467d8bf527dbbd3c9396ab4",
+    "imports": [
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api",
+      "@/components/EmailEnrollment",
+      "@/components/PhoneEnrollment",
+      "@/components/PwaControls"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "EmailEnrollment",
+      "PhoneEnrollment",
+      "PwaControls",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/settings/smart-devices/page.tsx",
+    "bytes": 343,
+    "sha256": "708ff315fe7e6507d59c1078ff5029b49cb4c251eddbfcb7b1aba5ef5754f06f",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/settings/subscription/page.tsx",
+    "bytes": 950,
+    "sha256": "8460ed19a9eb844b1d5ed09b59adef69a9f1b0fef2909a65eb8856e1caa3f1a9",
+    "imports": [
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/settings/utility-control/page.tsx",
+    "bytes": 404,
+    "sha256": "df8f69246ae4876e89d63c52463d8453fe16b6ce356b3858b120c8e238f4de9e",
+    "imports": [
+      "@/components/UnavailableFeature"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "UnavailableFeature"
+    ]
+  },
+  {
+    "file": "apps/web/app/signup/page.tsx",
+    "bytes": 111,
+    "sha256": "e777706af63c674e6cfbbc9cc9115dee9c4ef44d8fa87a4b0ee47370a34fcfcb",
+    "imports": [
+      "@/components/AuthPage"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AuthPage"
+    ]
+  },
+  {
+    "file": "apps/web/app/sitemap.ts",
+    "bytes": 637,
+    "sha256": "34d3f761f5784e73447743e14ad16d2ef95c6424567870c4793256b9bb5e28ab",
+    "imports": [
+      "next",
+      "@/data/catalogue"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/smart-meter/layout.tsx",
+    "bytes": 244,
+    "sha256": "c42bd4fc7739a0ab05b33f6b8f9ded4b6d7a03b83f7c40f620f5759f06f8e9e9",
+    "imports": [
+      "next"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/smart-meter/page.tsx",
+    "bytes": 1856,
+    "sha256": "0dcea15e4c911ddab62475912bdc40c3ebf9c77e62129036a25be58f48fe0cc8",
+    "imports": [
+      "@/components/PublicShell",
+      "@/components/MeterLookup",
+      "@/components/Icon",
+      "next/link"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Link",
+      "MeterLookup",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/support/page.tsx",
+    "bytes": 6988,
+    "sha256": "ab2bd662e77210567121368f433ab28cc31821ef9f9f6e36f867308acbc74d99",
+    "imports": [
+      "@/lib/session",
+      "react",
+      "@/components/PublicShell",
+      "@/components/Icon",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/support/requests/page.tsx",
+    "bytes": 1220,
+    "sha256": "cbaa6c0c1a204fb32d76294eacea9cc8e212d4662446821d50e438a21a71e99d",
+    "imports": [
+      "react",
+      "next/link",
+      "@/components/RecordWorkspace"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Link",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/support/tickets/[id]/page.tsx",
+    "bytes": 4716,
+    "sha256": "6267587be5af0b26a891d60f548424b03332e51421f262a2105d85c96f56c699",
+    "imports": [
+      "next/link",
+      "react",
+      "@/components/RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Link",
+      "RecordWorkspace"
+    ]
+  },
+  {
+    "file": "apps/web/app/terms/page.tsx",
+    "bytes": 3127,
+    "sha256": "061e0f64239d93ebd0157f87a1376340c654b0a867c71494f28ceafb6bef523c",
+    "imports": [
+      "@/components/PublicShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/app/utilities/page.tsx",
+    "bytes": 93,
+    "sha256": "c916bbe7ba8e21992c89f91e735bf039cbdb2f0c3bda7488b024c35e2eb5ce6a",
+    "imports": [
+      "next/navigation"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/app/verification-reports/[token]/page.tsx",
+    "bytes": 576,
+    "sha256": "b68f867a077ca97706dbf7d3f638bc567e0faa6b1960c43ba75955157c6c600d",
+    "imports": [
+      "@/components/PublicShell",
+      "@/components/SharedReport"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PublicShell",
+      "SharedReport"
+    ]
+  },
+  {
+    "file": "apps/web/components/AppShell.tsx",
+    "bytes": 7511,
+    "sha256": "2ae84d6dc5723f6d281963b55b276bfb94def51e1eb9aa28a7925bafdd2f24fd",
+    "imports": [
+      "next/link",
+      "next/navigation",
+      "react",
+      "./Icon",
+      "./useWorkspaceSession"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Brand",
+      "Icon",
+      "Link"
+    ]
+  },
+  {
+    "file": "apps/web/components/AudiencePage.tsx",
+    "bytes": 6076,
+    "sha256": "4c3d1f9d4e66be9a8319bf3c30a5c1afdeb50c2952d403e9118998b681e3dbe8",
+    "imports": [
+      "next/image",
+      "next/link",
+      "./PublicShell",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon",
+      "Image",
+      "Link",
+      "PublicShell"
+    ]
+  },
+  {
+    "file": "apps/web/components/AuthPage.tsx",
+    "bytes": 12498,
+    "sha256": "b984c632c163b97f9fb54a543fd4ed43c3e87af3a32fcc33562d84260734ee5c",
+    "imports": [
+      "react",
+      "next/link",
+      "next/image",
+      "./PublicShell",
+      "./Icon",
+      "@/lib/api",
+      "@/lib/signin",
+      "./GoogleSignin"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "GoogleSignin",
+      "Icon",
+      "Image",
+      "Link",
+      "PublicShell",
+      "Record"
+    ]
+  },
+  {
+    "file": "apps/web/components/EmailEnrollment.tsx",
+    "bytes": 1879,
+    "sha256": "a8c6904636ad65512463bb44c3fb2098c21c56080010474e8890d3b28377c684",
+    "imports": [
+      "react",
+      "@/lib/api",
+      "@/lib/session"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/EnergyExperience.tsx",
+    "bytes": 4060,
+    "sha256": "7dd5523ed37115b8fa1b730a29291e696e6bafdcf358643aba2babeefac7dccc",
+    "imports": [
+      "react",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/components/EnergyInstruments.tsx",
+    "bytes": 11199,
+    "sha256": "2749ce5ab1fe52017cb2dde49a087d9849b9d26c48db07820495fb0425791182",
+    "imports": [
+      "react"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "PowerGlyph",
+      "Trace"
+    ]
+  },
+  {
+    "file": "apps/web/components/GoogleSignin.tsx",
+    "bytes": 1532,
+    "sha256": "6986841307f042bc32f021a185336bd5fe624e4dda3578ccb850875474bba314",
+    "imports": [
+      "react",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/Icon.tsx",
+    "bytes": 3716,
+    "sha256": "65224c771a456e6aeb6379fa98ccb1c7de20c18388f75c3661bb19bf0de4b5b7",
+    "imports": [
+      "react"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "IconName"
+    ]
+  },
+  {
+    "file": "apps/web/components/InvestorDemo.tsx",
+    "bytes": 13493,
+    "sha256": "7728a20b11b93a158969fc59e23b47bb641eb8876306f4e9bc4ec58d2b7907c0",
+    "imports": [
+      "react",
+      "next/link",
+      "./Icon",
+      "./UsageChart",
+      "./EnergyInstruments"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Brand",
+      "ElectricalGauge",
+      "ElectricalTrends",
+      "Link",
+      "PowerSwitch",
+      "Record",
+      "RelayDial",
+      "Role",
+      "RoomLoadComparison",
+      "Scenario",
+      "SupplyFlow",
+      "UsageChart"
+    ]
+  },
+  {
+    "file": "apps/web/components/LiveMetric.tsx",
+    "bytes": 2460,
+    "sha256": "f7bb728644c6c7772fc87a082262e7aa20ab4d982e85ae95821ad8735986bac1",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/MeasurementReport.tsx",
+    "bytes": 2179,
+    "sha256": "945a15431e18e90c22441d74262a9d94ba34156e40d96116c2886238d463497d",
+    "imports": [
+      "./RecordWorkspace",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "RecordTable"
+    ]
+  },
+  {
+    "file": "apps/web/components/MeterLookup.tsx",
+    "bytes": 6803,
+    "sha256": "5d4cc23942cdded3a5c3ac89cfe46025711d5fca6f779f68102a3ef16393bfc2",
+    "imports": [
+      "react",
+      "@/lib/api",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AbortController",
+      "Icon",
+      "State"
+    ]
+  },
+  {
+    "file": "apps/web/components/OverviewDashboard.tsx",
+    "bytes": 9362,
+    "sha256": "66f226ae7232e10f1d803d65b95347fd686c145d433be32bf226c3cd76d37d1e",
+    "imports": [
+      "@/lib/session",
+      "react",
+      "./AppShell",
+      "./EnergyInstruments",
+      "./UsageChart",
+      "./WalletCard",
+      "./Icon",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell",
+      "ElectricalGauge",
+      "ElectricalTrends",
+      "Icon",
+      "RelayDial",
+      "SupplyFlow",
+      "UsageChart",
+      "WalletCard"
+    ]
+  },
+  {
+    "file": "apps/web/components/PhoneEnrollment.tsx",
+    "bytes": 1742,
+    "sha256": "ff7afb4eb8f8fa4b59ae5aceeb2532f12129becc6702ae35f1f8cdfd59e1df5d",
+    "imports": [
+      "react",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/PlanComparison.tsx",
+    "bytes": 2081,
+    "sha256": "15d583442bbee2e2506deaa2066b3e2c222564ec7eb775844f6e94603c95a42b",
+    "imports": [
+      "@/data/catalogue"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/ProductCarousel.tsx",
+    "bytes": 2789,
+    "sha256": "981fd0241f999f4b3d166d0cbb061b5ac2d47e931927ce1eef04a48fe60913a0",
+    "imports": [
+      "react",
+      "next/link",
+      "./Icon",
+      "@/data/catalogue"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "HTMLDivElement",
+      "Icon",
+      "Link"
+    ]
+  },
+  {
+    "file": "apps/web/components/PublicShell.tsx",
+    "bytes": 6527,
+    "sha256": "581487fca6e38933cf851c478e73e21f282b6299b33a0c17145a0bcb2de1750f",
+    "imports": [
+      "react",
+      "next/link",
+      "next/navigation",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Brand",
+      "HTMLButtonElement",
+      "HTMLDivElement",
+      "HTMLElement",
+      "Icon",
+      "Link"
+    ]
+  },
+  {
+    "file": "apps/web/components/PwaControls.tsx",
+    "bytes": 5350,
+    "sha256": "5c91655e6efa5e8c4f3b5edaaeebde6729759e495a60293f94c5bfacd245832f",
+    "imports": [
+      "react",
+      "@/lib/api",
+      "@/lib/onesignal"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "ServiceWorker"
+    ]
+  },
+  {
+    "file": "apps/web/components/PwaRegistration.tsx",
+    "bytes": 570,
+    "sha256": "fe9593ee8b5327e0e499bb5dfa3361cd00085ca3697c759b2a83310fd45f73d9",
+    "imports": [
+      "react"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/components/RecordWorkspace.tsx",
+    "bytes": 2703,
+    "sha256": "501eb90f63a68c3cd1d35b4d1f70801beafcee8bb2e6c327b0be3ac2274e469f",
+    "imports": [
+      "react",
+      "./AppShell",
+      "@/lib/api"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell"
+    ]
+  },
+  {
+    "file": "apps/web/components/SharedReport.tsx",
+    "bytes": 722,
+    "sha256": "e2b68e78b8b83cee1532d657de654748b0d29fde4c8ef7120efd65ac21589c9a",
+    "imports": [
+      "react",
+      "@/lib/api",
+      "./MeasurementReport"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "MeasurementReport"
+    ]
+  },
+  {
+    "file": "apps/web/components/SystemMap.tsx",
+    "bytes": 3159,
+    "sha256": "ff194671da45faf0078e90981bd9eaed2ede2ededbbe1f38be3faa5dea22e770",
+    "imports": [
+      "react",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/components/UnavailableFeature.tsx",
+    "bytes": 762,
+    "sha256": "7604430ed06ee0ea6955d196853dcc22b1c7920a556b7a85cc34adff8cccea19",
+    "imports": [
+      "./AppShell"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "AppShell"
+    ]
+  },
+  {
+    "file": "apps/web/components/UsageChart.tsx",
+    "bytes": 2436,
+    "sha256": "9ed55cca58cac975b12a2dcca3625e095db3f2b93f3e2f7b246f1f3bb33e8f90",
+    "imports": [
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/components/WalletCard.tsx",
+    "bytes": 1494,
+    "sha256": "ca4cb7ccbade9dfbff2a88b450eed63be9ed9b06dfcfa2c0c105ae6251db49c0",
+    "imports": [
+      "@/lib/api",
+      "./Icon"
+    ],
+    "api_paths": [],
+    "component_tags": [
+      "Icon"
+    ]
+  },
+  {
+    "file": "apps/web/components/useWorkspaceSession.ts",
+    "bytes": 2511,
+    "sha256": "1a1477d5ccf93d3dd024604595abb513cf41344087e9d0cdc737136d583611b8",
+    "imports": [
+      "react",
+      "@/lib/api",
+      "@/lib/session"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/data/catalogue.ts",
+    "bytes": 12064,
+    "sha256": "88cafd88e8d535e5ef91e16ab28d6fdf6269090a2ede23473050b94ae4577d24",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/lib/api.ts",
+    "bytes": 5269,
+    "sha256": "c2e9e603f81de7f61203ee309126dcbcb2d0e28f39cbf7e7977d6e7ae7fa6b75",
+    "imports": [
+      "./session"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/lib/auth.ts",
+    "bytes": 1119,
+    "sha256": "bdb3a45d7600f6b5bb507e3bc1f8d5efa27acf78de3b0986cc090779eaffce08",
+    "imports": [
+      "./api"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/lib/onesignal.ts",
+    "bytes": 5309,
+    "sha256": "04647df800722129bfb0828514d07938aad64ca8e67b9b29db4536dfca794508",
+    "imports": [
+      "./api",
+      "./session"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  },
+  {
+    "file": "apps/web/lib/session.ts",
+    "bytes": 4041,
+    "sha256": "cb74dc5f7e1c31a24c7899c92afc7ce8c844efeec9cb05ebc4916ca97f3fa531",
+    "imports": [],
+    "api_paths": [],
+    "component_tags": [
+      "RefreshResult"
+    ]
+  },
+  {
+    "file": "apps/web/lib/signin.ts",
+    "bytes": 737,
+    "sha256": "f0ab76214e651cf59ef51531134bfc849a760ab72162b84eb1046dec61aefd38",
+    "imports": [
+      "./session"
+    ],
+    "api_paths": [],
+    "component_tags": []
+  }
+]

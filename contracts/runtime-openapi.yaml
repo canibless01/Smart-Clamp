@@ -194,6 +194,103 @@ paths:
             schema:
               type: object
               additionalProperties: true
+  /alerts/{alert_id}/snooze:
+    post:
+      operationId: live_resources_snooze_alert_post_alerts_alert_id_snooze
+      summary: Snooze alert
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
   /auth/email/enroll:
     post:
       operationId: live_auth_enroll_email_post_auth_email_enroll

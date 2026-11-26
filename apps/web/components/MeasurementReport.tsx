@@ -5,7 +5,7 @@ export default function MeasurementReport({ data }: { data: any }) {
   const s = data.snapshot;
   return <>
     <section className="card">
-      <h2>Issued measurement snapshot</h2>
+      <div className="report-heading"><h2>Issued measurement snapshot</h2><span className={"report-seal "+(data.signature_valid?"is-verified":"is-unverified")} role="img" aria-label={data.signature_valid?"Stored snapshot signature verified":"Signature not verified"}>{data.signature_valid?"✓ SIGNATURE VERIFIED":"— UNVERIFIED"}</span></div>
       <p>Period: {new Date(s.period_start).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })} to {new Date(s.period_end).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })} (Lagos, end exclusive).</p>
       <p>Consumption in eligible measured intervals: {s.consumption_status === "unavailable" ? "Unavailable" : formatKwh(s.measured_consumption_mwh)}</p>
       <p>{s.coverage.observation_count} observations · {s.coverage.eligible_intervals} eligible intervals · {s.coverage.requested_period_ms ? (100 * s.coverage.counter_interval_ms / s.coverage.requested_period_ms).toFixed(1) : "0"}% counter-interval coverage.</p>

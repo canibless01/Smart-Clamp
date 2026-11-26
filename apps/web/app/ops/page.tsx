@@ -1,4 +1,5 @@
 "use client";
+import StaffAlertQueue from "@/components/StaffAlertQueue";
 import RecordWorkspace, { RecordTable } from "@/components/RecordWorkspace";
 import { apiFetch } from "@/lib/api";
 import { useState } from "react";
@@ -17,6 +18,7 @@ export default function Page() {
     >
       {(data, reload) => (
         <>
+          <StaffAlertQueue/>
           <div className="grid-12">
             {Object.entries(data.fleet).map(([key, value]) => (
               <div className="card" style={{ gridColumn: "span 3" }} key={key}>

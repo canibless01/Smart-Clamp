@@ -1,4 +1,5 @@
 "use client";
+import BuildingInstruments from "@/components/BuildingInstruments";
 import {RoomLoadComparison} from '@/components/EnergyInstruments';
 import RecordWorkspace, {RecordTable} from "@/components/RecordWorkspace";
 import { apiFetch } from "@/lib/api";
@@ -14,9 +15,19 @@ export default function Page({ params }: { params: { id: string } }) {
       role="landlord"
       description="Add rooms, connect their SmartClamps and invite residents."
       endpoint={`/buildings/${params.id}/rooms`}
+      refreshSeconds={15}
     >
       {(data, reload) => (
         <>
+          <section className="card" style={{marginTop:24}}><h2>Room energy monitoring</h2><BuildingInstruments rooms={data.items}/><details className="instrument-data"><summary>Measurement records</summary><RecordTable items={data.items} columns={[
+            {key:'label',label:'Room'},
+            {key:'supply',label:'Grid supply',render:r=>r.monitoring?.supply_state==='present'?'Present':r.monitoring?.supply_state==='absent'?'Absent':'Unknown'},
+            {key:'power',label:'Power',render:r=>r.monitoring?.power_w!=null?`${r.monitoring.power_w} W`:'Not recorded'},
+            {key:'voltage',label:'Voltage',render:r=>r.monitoring?.voltage_v!=null?`${r.monitoring.voltage_v} V`:'Not recorded'},
+            {key:'current',label:'Current',render:r=>r.monitoring?.current_a!=null?`${r.monitoring.current_a} A`:'Not recorded'},
+            {key:'today',label:'Recorded today',render:r=>r.monitoring?.recorded_today_kwh!=null?`${r.monitoring.recorded_today_kwh.toFixed(3)} kWh`:'Not recorded'},
+            {key:'fresh',label:'Reading state',render:r=>r.monitoring?.fresh?'Fresh':r.monitoring?.observed_at?'Last recorded · '+new Date(r.monitoring.observed_at).toLocaleString():'Unavailable'}
+          ]}/></details></section>
           <form
             className="resource-form"
             onSubmit={async (e) => {
@@ -69,15 +80,7 @@ export default function Page({ params }: { params: { id: string } }) {
               </a>
             </section>
           )}
-          <section className="card" style={{marginTop:24}}><h2>Room energy monitoring</h2><RoomLoadComparison rooms={data.items}/><details className="instrument-data"><summary>Measurement records</summary><RecordTable items={data.items} columns={[
-            {key:'label',label:'Room'},
-            {key:'supply',label:'Grid supply',render:r=>r.monitoring?.supply_state==='present'?'Present':r.monitoring?.supply_state==='absent'?'Absent':'Unknown'},
-            {key:'power',label:'Power',render:r=>r.monitoring?.power_w!=null?`${r.monitoring.power_w} W`:'Not recorded'},
-            {key:'voltage',label:'Voltage',render:r=>r.monitoring?.voltage_v!=null?`${r.monitoring.voltage_v} V`:'Not recorded'},
-            {key:'current',label:'Current',render:r=>r.monitoring?.current_a!=null?`${r.monitoring.current_a} A`:'Not recorded'},
-            {key:'today',label:'Recorded today',render:r=>r.monitoring?.recorded_today_kwh!=null?`${r.monitoring.recorded_today_kwh.toFixed(3)} kWh`:'Not recorded'},
-            {key:'fresh',label:'Reading state',render:r=>r.monitoring?.fresh?'Fresh':r.monitoring?.observed_at?'Last recorded · '+new Date(r.monitoring.observed_at).toLocaleString():'Unavailable'}
-          ]}/></details></section>
+
           <div className="resource-list">
             {data.items.length ? (
               data.items.map((room: any) => (

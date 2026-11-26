@@ -2,6 +2,7 @@ import "@fontsource-variable/manrope";
 import "@fontsource-variable/dm-sans";
 import "./globals.css";
 import type { Metadata } from "next";
+import ExperienceProvider from "@/components/ExperienceProvider";
 import PwaRegistration from '@/components/PwaRegistration';
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body>
+      <body><ExperienceProvider>
         <PwaRegistration/>
         <a
           href="#main"
@@ -41,7 +42,7 @@ export default function RootLayout({
           Skip to content
         </a>
         {children}
-      </body>
+      </ExperienceProvider></body>
     </html>
   );
 }
