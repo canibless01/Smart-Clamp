@@ -1,3 +1,4 @@
+import Icon from "@/components/Icon";
 import PublicShell from "@/components/PublicShell";
 export default function Page() {
   return (
@@ -20,7 +21,7 @@ export default function Page() {
           </p>
           <h3>2. Payments</h3>
           <p>
-            All amounts in kobo (bigint). Quote → payment → vending → credit are
+            All amounts in kobo (bigint). Quote <Icon name="arrow" size={16}/> payment <Icon name="arrow" size={16}/> vending <Icon name="arrow" size={16}/> credit are
             distinct: paying money ≠ physical meter credit until provider
             confirms vending. Confirmed webhook credits once per gateway
             reference, atomically. Checkout redirects are not proof — webhook

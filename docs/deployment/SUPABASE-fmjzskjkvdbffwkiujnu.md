@@ -17,7 +17,7 @@ is missing. No external migration receipt or success is claimed.
 
 ## Prepared migration
 
-[Review the complete 001–035 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
+[Review the complete 001–038 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
 It contains all current migration files, original SHA-256 checksums and a single
 transaction. It refuses untracked public tables or unknown migration history,
 skips matching applied migrations and stops on checksum drift. It creates no
@@ -67,3 +67,11 @@ separate steps. Database completion does not certify those loops.
 Management API schema verified from the official OpenAPI document:
 https://api.supabase.com/api/v1-json — `POST /v1/projects/{ref}/database/query`
 supports `query` and `read_only`. No unsupported magic SQL RPC is assumed.
+
+## Recheck requested by the owner — 26 November 2026
+
+The linked Supabase tag is visible in chat, but no callable Supabase connector was present in the active tool catalogue. Current Cloud environment status reports no configured secrets/runtime variables. The process and repository dotenv settings contain no `SUPABASE_ACCESS_TOKEN`, external `DATABASE_URL`, `SUPABASE_URL` or `SUPABASE_ANON_KEY`.
+
+Actual read-only network checks: `https://supabase.com` returned 200; `https://api.supabase.com/v1/projects` returned 401 (authentication required). The intended project host's `/auth/v1/health` and REST endpoint failed at the Cloud proxy's CONNECT stage with 403; an outside-sandbox retry of the same health URL failed identically. This does not establish that the project is down, paused, healthy or accessible through a Supabase account. No SQL, project changes or migration success are claimed. The prepared checksum-tracked bundle now includes 001–038.
+
+Use the administration inputs in [LAUNCH-INPUTS](../LAUNCH-INPUTS.md). The existing target/action authorization remains valid; the missing requirement is actual admin connectivity/credentials, not another approval to migrate this project.

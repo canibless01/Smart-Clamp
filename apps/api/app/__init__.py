@@ -38,7 +38,7 @@ def create_app(settings=None):
     @app.after_request
     def finish(response):
         response.headers['X-Request-Id']=getattr(g,'request_id','')
-        response.headers['Cache-Control']='no-store'
+        response.headers['Cache-Control']='no-store, no-transform' if response.mimetype=='text/event-stream' else 'no-store'
         response.headers['X-Content-Type-Options']='nosniff'
         return response
     @app.errorhandler(DomainError)
@@ -65,6 +65,7 @@ def create_app(settings=None):
         return jsonify(status='api_ready' if ready else 'migration_required',database='connected',schema='current' if ready else 'incomplete_or_changed',worker='not_checked',merchant_and_hardware='not_checked'),200 if ready else 503
     @app.get('/api/v1/openapi.yaml')
     def spec():return app.response_class((root/'contracts/runtime-openapi.yaml').read_text(),mimetype='application/yaml')
+    from .live_stream import bp as live_stream
     from .live_auth import bp as auth
     from .live_resources import bp as resources
     from .live_devices import bp as devices
@@ -78,5 +79,5 @@ def create_app(settings=None):
     from .communications import bp as communications
     from .onesignal_push import bp as onesignal_push
     from .audiences import bp as audiences
-    for bp in(auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences,email_receipts):app.register_blueprint(bp)
+    for bp in(live_stream,auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences,email_receipts):app.register_blueprint(bp)
     return app

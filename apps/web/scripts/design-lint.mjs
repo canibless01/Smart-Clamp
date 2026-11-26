@@ -1,6 +1,6 @@
 import {readdirSync,readFileSync,statSync,existsSync} from 'node:fs';
 import {join,extname} from 'node:path';
-const roots=['app','components','lib','data','emails','content','messages','public','../../api/app'];
+const roots=['app','components','lib','data','emails','content','messages','public','../api/app'];
 const extensions=new Set(['.ts','.tsx','.js','.jsx','.json','.md','.mdx','.html','.css','.txt','.py']);
 const bad=/[\p{Extended_Pictographic}\u2190-\u21FF\u2700-\u27BF\u2B00-\u2BFF\uFE0F\u20E3\u23FB\u25C9]/u;
 let hits=0;

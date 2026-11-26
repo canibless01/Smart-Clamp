@@ -23,7 +23,7 @@ export default function Page() {
             {Object.entries(data.fleet).map(([key, value]) => (
               <div className="card" style={{ gridColumn: "span 3" }} key={key}>
                 <p>{key.replace(/_/g, " ")}</p>
-                <strong style={{ fontSize: 30 }}>{String(value)}</strong>
+                <strong style={{ fontSize:'var(--type-size-17)' }}>{String(value)}</strong>
               </div>
             ))}
           </div>

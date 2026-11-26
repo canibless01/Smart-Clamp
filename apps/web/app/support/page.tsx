@@ -144,7 +144,7 @@ export default function Page() {
               </div>
               {error && (
                 <div className="error-panel" role="alert">
-                  {error} {!localStorageSafe() && <a href="/login">Log in →</a>}
+                  {error} {!localStorageSafe() && <a href="/login">Log in <Icon name="arrow" size={16}/></a>}
                 </div>
               )}
               <button

@@ -152,5 +152,27 @@
     "hapticPattern": [
       35
     ]
+  },
+  "voltage_restored": {
+    "severity": "success",
+    "iconId": "voltage",
+    "soundId": "restored",
+    "label": "Voltage within advisory band",
+    "hapticPattern": [
+      35,
+      60,
+      35
+    ]
+  },
+  "current_restored": {
+    "severity": "success",
+    "iconId": "current",
+    "soundId": "restored",
+    "label": "Current within advisory band",
+    "hapticPattern": [
+      35,
+      60,
+      35
+    ]
   }
 }

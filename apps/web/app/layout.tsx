@@ -1,7 +1,9 @@
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/dm-sans";
 import "./globals.css";
+import "./experience.css";
 import type { Metadata } from "next";
+import WorkspaceLiveProvider from "@/components/WorkspaceLiveProvider";
 import ExperienceProvider from "@/components/ExperienceProvider";
 import PwaRegistration from '@/components/PwaRegistration';
 
@@ -25,7 +27,7 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body><ExperienceProvider>
+      <body><WorkspaceLiveProvider><ExperienceProvider>
         <PwaRegistration/>
         <a
           href="#main"
@@ -42,7 +44,7 @@ export default function RootLayout({
           Skip to content
         </a>
         {children}
-      </ExperienceProvider></body>
+      </ExperienceProvider></WorkspaceLiveProvider></body>
     </html>
   );
 }

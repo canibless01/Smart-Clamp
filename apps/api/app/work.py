@@ -35,7 +35,7 @@ def release_credit(c,payment_id,source='provider_confirmed'):
     query(c,"UPDATE payments SET credit_state='available',vending_state='confirmed',credited_at=now(),version=version+1,updated_at=now() WHERE id=:id",id=p['id'])
     # Clear exactly one reason. Protection/manual/budget/etc. are preserved.
     if w['device_id']:query(c,"UPDATE off_reasons SET active=false WHERE device_id=:id AND reason='wallet_zero'",id=w['device_id'])
-    audit(c,p['payer_id'],'credit_released',p['id'],{'source':source});notify(c,p['payer_id'],'payment.confirmed','Your electricity credit is available. Other device restrictions may still apply.','credit:'+str(p['id']))
+    audit(c,p['payer_id'],'credit_released',p['id'],{'source':source});notify(c,p['payer_id'],'payment.confirmed','Your electricity credit is available. Other device restrictions may still apply.','credit:'+str(p['id']),details={'device_id':str(w['device_id']) if w['device_id'] else None,'wallet_id':str(w['id']),'available_mwh':w['available_mwh']+actual})
 
 def process_vending(payment_id):
     with transaction() as c:
@@ -170,7 +170,7 @@ def process_episode(c,job):
         for e in episodes:
             trusted=payload.get('clock_quality')=='trusted'
             duration=max(0,int(payload['occurred_at_ms']/1000-e['start_at'].timestamp())) if trusted and e['confidence']==1 and payload.get('occurred_at_ms') else None
-            notify(c,device['owner_id'],'supply.restored','Power is back. Other protection restrictions may still apply.' if trusted else 'Supply returning was recorded with an untrusted observation time.','supply-returned:'+str(e['id']),e['id'],details={'alert_type':'supply_restored' if trusted else 'info','device_id':did,'outage_seconds':duration,'clock_quality':payload.get('clock_quality')})
+            notify(c,device['owner_id'],'supply.restored','Power is back. Other protection restrictions may still apply.' if trusted else 'Supply returning was recorded with an untrusted observation time.','supply-returned:'+str(e['id']),e['id'],details={'alert_type':'supply_restored' if trusted else 'info','device_id':did,'outage_seconds':duration,'observed_at_ms':payload.get('occurred_at_ms'),'clock_quality':payload.get('clock_quality')})
 
 def run_once():
     with transaction() as c:

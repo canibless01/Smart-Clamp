@@ -1,6 +1,4 @@
 "use client";
-import {SoundToggle} from "./ExperienceProvider";
-import PublicInstrument from "./PublicInstrument";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -70,7 +68,7 @@ export default function PublicShell({
               </Link>
             ))}
           </nav>
-          <div className="nav-actions"><SoundToggle/>
+          <div className="nav-actions">
             <Link href="/login" className="login-link">
               Log in
             </Link>
@@ -134,8 +132,7 @@ export default function PublicShell({
         </div>
       )}
       <main id="main" className="public-main">
-        <PublicInstrument/>
-      {children}
+        {children}
       </main>
       <footer className="site-footer">
         <div className="container">
@@ -192,7 +189,7 @@ export default function PublicShell({
             ))}
           </div>
           <div className="footer-bottom">
-            <span>© {new Date().getFullYear()} SmartClamp</span>
+            <span>Copyright {new Date().getFullYear()} SmartClamp</span>
             <p>
               SmartClamp provides sub-metering and verification technology. It
               does not generate, resell or distribute electricity, or replace

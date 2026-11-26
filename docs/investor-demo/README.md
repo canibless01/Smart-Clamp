@@ -72,3 +72,13 @@ GitHub reports a successful Vercel deployment for 5225bc5 at https://smartclamp-
 The latest captures use shared arc gauges, separate voltage/current/power trend traces, an electricity-flow diagram and a standard power-symbol switch. The fictional stream updates every two seconds; reduced-motion preferences pause it. Phone controls remain readable and setup selectors collapse under View & scenarios. The real monitoring/history/control pages reuse these instruments without inventing readings or bypassing confirmation. See `../VISUAL-INSTRUMENTS.md` for data/scale/missing-value boundaries.
 
 The Rooms view now includes Power now / Recorded today comparison bars, reused by the actual landlord room page. Exact room records remain expandable. The bars do not grant wallet or control privileges and do not turn missing readings into zero. The frontend follow-up passed its build and six targeted browser checks after the full instrument regression.
+
+## A-to-Z instrument follow-up — 26 November 2026
+
+The nine captures are refreshed from the actual isolated walkthrough. Its cockpit now uses one compact relay rocker, a separate green power dial, blue sliding voltage meter, violet current ladder and copper credit tank. The phone view uses a compact header and fixed bottom navigation. Opening the trends drawer retains the three exact measured-example traces. Relay requests remain pending until the explicit QA feedback action; screenshot 08 shows that pending request. Reset clears earlier QA toasts, so a previous purchase confirmation does not obscure a fresh walkthrough.
+
+This is visual and software QA evidence, not physical hardware proof. Signed production feedback, hardware qualifications, provider acceptance and all remaining catalogue gaps retain their existing boundaries. See ../BUILD_STATUS.md and ../DESIGN_AUDIT.md.
+
+## Current visual baseline (supersedes the experimental follow-up above)
+
+The owner requested restoration of the clean light screenshot and clarified that feature completion is the priority. The current captures restore that page composition and navigation, with only subtle voltage/current panel tints and small SVG identifiers. The dark cockpit and bold colour/shape experiment is discarded. Pending QA feedback, sample-data disclosures and opt-in audio remain functional additions. Backend/shared-live work does not turn the sample walkthrough into a real account or physical hardware test.

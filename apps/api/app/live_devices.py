@@ -51,6 +51,9 @@ def events():
         if kind not in('telemetry','heartbeat','supply_lost','supply_returned','protection','tamper','config'):raise DomainError('unsupported_device_event','This event kind is not supported.')
         iid,ack,duplicate=inbox(c,d,p)
         if duplicate:return jsonify(ack)
+        if kind=='config':
+            from .datastreams import save_manifest
+            save_manifest(c,d,p,iid)
         if kind=='telemetry':
             m=p.get('metrics') or {}
             if d['install_state']!='commissioned' or d['calibration_status']!='qualified':raise DomainError('device_not_commissioned','The device must be calibrated and commissioned before measurements are accepted.',409)
@@ -124,7 +127,7 @@ def receipt():
         # Delivery can be delayed after a timely physical observation. Preserve the
         # receipt without allowing it to overwrite newer feedback or revive a revocation.
         if cmd['status']!='revoked':query(c,'UPDATE commands SET status=:state WHERE command_id=:id',state=result,id=cmd['command_id'])
-        if observed is not None and p.get('clock_quality')=='trusted':
+        if observed is not None and p.get('clock_quality')=='trusted' and result!='uncertain':
             updated=one(c,'UPDATE devices SET relay_observed=:state,relay_observed_at=:at WHERE id=:id AND(relay_observed_at IS NULL OR relay_observed_at<:at) RETURNING id',state=observed,at=datetime.fromtimestamp(at/1000,timezone.utc),id=d['id'])
             if updated and result=='applied' and cmd['status']!='revoked':
                 from .work import notify

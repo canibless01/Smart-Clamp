@@ -12,7 +12,9 @@ test("private workspace and installation linking redirect guests before showing 
   }
 });
 
-test("wallet setup actions are separated and homeowner mobile navigation includes Control", async ({ page }) => {
+test("wallet setup actions are separated and monitoring-only homeowner navigation uses Live", async ({ page }) => {
+  await page.route("**/api/v1/users/me/live",r=>r.fulfill({status:503,json:{}}));
+  await page.route("**/api/v1/alerts",r=>r.fulfill({json:{items:[]}}));await page.route("**/api/v1/users/me/preferences",r=>r.fulfill({json:{value:{}}}));
   await page.addInitScript(() => localStorage.setItem("smartclamp_token", "ui-fixture-token"));
   await page.route("**/api/v1/users/me/context", r => r.fulfill({ json: { authorized_context: { role: "homeowner" }, devices: [] } }));
   for (const p of ["wallets", "transactions"]) await page.route(`**/api/v1/${p}`, r => r.fulfill({ json: { items: [] } }));
@@ -23,7 +25,7 @@ test("wallet setup actions are separated and homeowner mobile navigation include
     expect(a && b).toBeTruthy(); expect(b!.x >= a!.x + a!.width + 8 || b!.y >= a!.y + a!.height + 8).toBeTruthy();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   }
-  await expect(page.getByRole("navigation", { name: "Mobile navigation", exact: true }).getByRole("link", { name: "Control", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Mobile navigation", exact: true }).getByRole("link", { name: "Live", exact: true })).toBeVisible();
 });
 
 const fixture = process.env.SMARTCLAMP_BROWSER_FIXTURE;

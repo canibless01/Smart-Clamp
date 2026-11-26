@@ -1,7 +1,6 @@
 "use client";
+import {useWorkspaceLive} from "./WorkspaceLiveProvider";
 import {SoundToggle} from "./ExperienceProvider";
-import SimulatePanel from "./SimulatePanel";
-import DashboardGrid from "./DashboardGrid";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -59,6 +58,8 @@ export default function AppShell({
 }) {
   const path = usePathname();
   const session = useWorkspaceSession();
+  const live=useWorkspaceLive();
+  const hasRelay=session.context?.devices?.some((device:any)=>device.capabilities?.includes("relay"));
   role = session.role || role;
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -82,9 +83,9 @@ export default function AppShell({
         ...(['internal_ops','internal_support','internal_superadmin'].includes(role) ? [{label:'Service messages',href:'/communications',icon:'bell'}] : []),
         ...(role === "internal_engineering" || role === "internal_superadmin" ? [{ label: "Firmware", href: "/ops/firmware", icon: "plug" }] : []),
       ]
-    : groups[role] || [{ label: "Home", href: "/", icon: "home" }];
+    : (groups[role] || [{ label: "Home", href: "/", icon: "home" }]).filter(item=>item.href!=="/control"||hasRelay);
   const current = items.find((i) => path === i.href)?.label || "Workspace";
-  const mobile = role === "tenant" || role === "homeowner" ? [items[0], items.find(i => i.href === "/history")!, items.find(i => i.href === "/control")!, items.find(i => i.href === "/billing")!, { label: "Settings", href: "/settings", icon: "settings" }] : [
+  const mobile = role === "tenant" || role === "homeowner" ? [items[0], items.find(i => i.href === "/history")!, (hasRelay?items.find(i => i.href === "/control")!:{label:"Live",href:"/history",icon:"bolt"}), items.find(i => i.href === "/billing")!, { label: "Settings", href: "/settings", icon: "settings" }] : [
     ...items.slice(0, 3),
     { label: "Settings", href: "/settings", icon: "settings" },
   ];
@@ -103,7 +104,7 @@ export default function AppShell({
           <Brand />
         </Link>
         <div className="app-role-label">
-          YOUR WORKSPACE · {role.replace(/_/g, " ")}
+          YOUR WORKSPACE · {role.replace(/_/g, " ")}{session.context?.authorized_context?.environment==='isolated_qa'&&<span> · ISOLATED QA</span>}
         </div>
         <nav className="app-nav" aria-label="App navigation">
           {items.map((i) => (
@@ -147,7 +148,8 @@ export default function AppShell({
             <Link href="/connection-help">Connection help</Link>
           </div>
         )}
-        <header className="app-header">
+        {live.connection==='reconnecting'&&live.snapshot&&<div className="offline-banner app-offline" role="status">Live updates reconnecting. Last synced {live.lastSynced?new Date(live.lastSynced).toLocaleTimeString('en-NG',{timeZone:'Africa/Lagos'}):'unknown'}. Existing readings may be out of date.</div>}
+        <header className="app-header" data-live-connection={live.connection}>
           <div className="app-breadcrumb">
             <Icon name="home" size={16} />
             <span>/</span>
@@ -175,7 +177,7 @@ export default function AppShell({
           </div>
         </header>
         <main id="main" className="main-content">
-          <DashboardGrid className="workspace-grid">{children}</DashboardGrid><SimulatePanel/>
+          {children}
         </main>
         <nav
           className="bottom-nav desktop-hidden"

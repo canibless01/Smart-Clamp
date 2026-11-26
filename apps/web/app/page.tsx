@@ -60,13 +60,13 @@ function DeviceVisual() {
     >
       <defs>
         <linearGradient id="clamp-body" x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#59635c" />
-          <stop offset=".5" stopColor="#252e29" />
-          <stop offset="1" stopColor="#101a14" />
+          <stop stopColor="var(--legacy-color-443)" />
+          <stop offset=".5" stopColor="var(--legacy-color-444)" />
+          <stop offset="1" stopColor="var(--legacy-color-445)" />
         </linearGradient>
         <linearGradient id="clamp-edge" x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="#839184" />
-          <stop offset="1" stopColor="#2b382f" />
+          <stop stopColor="var(--legacy-color-446)" />
+          <stop offset="1" stopColor="var(--legacy-color-447)" />
         </linearGradient>
         <filter id="device-shadow">
           <feDropShadow dx="0" dy="24" stdDeviation="16" floodOpacity=".16" />
@@ -77,12 +77,12 @@ function DeviceVisual() {
         cy="292"
         rx="120"
         ry="16"
-        fill="#213f2e"
+        fill="var(--legacy-color-448)"
         opacity=".08"
       />
-      <path d="M233-10v105m0 130v125" stroke="#d6d2c5" strokeWidth="35" />
-      <path d="M230-10v105m0 130v125" stroke="#f7f4e9" strokeWidth="24" />
-      <path d="M230-10v105m0 130v125" stroke="#e5e0d4" strokeWidth="2" />
+      <path d="M233-10v105m0 130v125" stroke="var(--legacy-color-449)" strokeWidth="35" />
+      <path d="M230-10v105m0 130v125" stroke="var(--legacy-color-450)" strokeWidth="24" />
+      <path d="M230-10v105m0 130v125" stroke="var(--legacy-color-451)" strokeWidth="2" />
       <g filter="url(#device-shadow)">
         <path
           d="M140 130c0-58 40-96 92-96s92 38 92 96v84c0 20-17 36-37 36H177c-20 0-37-16-37-36Z"
@@ -97,35 +97,35 @@ function DeviceVisual() {
           cy="111"
           rx="43"
           ry="45"
-          fill="#101b15"
-          stroke="#647267"
+          fill="var(--legacy-color-452)"
+          stroke="var(--legacy-color-453)"
           strokeWidth="5"
         />
-        <ellipse cx="232" cy="110" rx="34" ry="37" fill="#edece2" />
-        <path d="M232 73v74" stroke="#f7f4e9" strokeWidth="26" />
-        <path d="M226 73v74" stroke="#ddd8c9" strokeWidth="3" />
-        <path d="M166 171h132" stroke="#647267" strokeWidth="1" />
+        <ellipse cx="232" cy="110" rx="34" ry="37" fill="var(--legacy-color-454)" />
+        <path d="M232 73v74" stroke="var(--legacy-color-450)" strokeWidth="26" />
+        <path d="M226 73v74" stroke="var(--legacy-color-455)" strokeWidth="3" />
+        <path d="M166 171h132" stroke="var(--legacy-color-453)" strokeWidth="1" />
         <rect
           x="169"
           y="185"
           width="126"
           height="39"
           rx="8"
-          fill="#19231d"
-          stroke="#455247"
+          fill="var(--legacy-color-456)"
+          stroke="var(--legacy-color-457)"
         />
-        <path d="m226 192-9 12h8l-3 13 13-17h-9l4-8" fill="#d8efb4" />
-        <circle cx="281" cy="203" r="3" fill="#c4e89e" />
-        <circle cx="161" cy="220" r="3" fill="#111b15" />
-        <circle cx="303" cy="220" r="3" fill="#111b15" />
+        <path d="m226 192-9 12h8l-3 13 13-17h-9l4-8" fill="var(--legacy-color-458)" />
+        <circle cx="281" cy="203" r="3" fill="var(--legacy-color-459)" />
+        <circle cx="161" cy="220" r="3" fill="var(--legacy-color-460)" />
+        <circle cx="303" cy="220" r="3" fill="var(--legacy-color-460)" />
       </g>
       <path
         d="M317 210h35q16 0 16 16v26"
-        stroke="#25362c"
+        stroke="var(--legacy-color-461)"
         strokeWidth="6"
         fill="none"
       />
-      <circle cx="368" cy="260" r="8" fill="#25362c" />
+      <circle cx="368" cy="260" r="8" fill="var(--legacy-color-461)" />
     </svg>
   );
 }
@@ -238,7 +238,7 @@ export default function HomePage() {
               <path
                 d="M90 458v-62q0-24 24-24h324q24 0 24-24V110"
                 fill="none"
-                stroke="#e1f0ce"
+                stroke="var(--legacy-color-462)"
                 strokeWidth="1"
                 opacity=".45"
               />
@@ -246,17 +246,17 @@ export default function HomePage() {
                 className="flow-line"
                 d="M90 458v-62q0-24 24-24h324q24 0 24-24V110"
                 fill="none"
-                stroke="#e1f0ce"
+                stroke="var(--legacy-color-462)"
                 strokeWidth="3"
                 strokeDasharray="3 190"
               />
-              <circle cx="462" cy="110" r="6" fill="#e5f5c9" />
+              <circle cx="462" cy="110" r="6" fill="var(--legacy-color-463)" />
               <circle
                 cx="462"
                 cy="110"
                 r="13"
                 fill="none"
-                stroke="#e5f5c9"
+                stroke="var(--legacy-color-463)"
                 opacity=".5"
               />
             </svg>
@@ -268,7 +268,7 @@ export default function HomePage() {
                 Follow the energy<span>CONCEPT</span>
               </div>
               <div className="insight-power">
-                Home <span>↔ cloud</span>
+                Home <span><Icon name="link" size={16}/> cloud</span>
                 <span className="insight-status">
                   <span className="status-dot" />
                   Home energy

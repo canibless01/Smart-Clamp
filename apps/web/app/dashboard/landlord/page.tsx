@@ -1,6 +1,9 @@
 "use client";
 import { hasSession } from "@/lib/session";
 import { useState, useEffect, useCallback } from "react";
+import DashboardGrid,{DashboardTile} from "@/components/DashboardGrid";
+import {ElectricalGauge} from "@/components/EnergyInstruments";
+import SignalLight from "@/components/SignalLight";
 import AppShell from "@/components/AppShell";
 import Icon from "@/components/Icon";
 import { apiFetch } from "@/lib/api";
@@ -89,18 +92,19 @@ export default function Page() {
           </a>
         </div>
       ) : (
-        <div className="grid-12">
+        <DashboardGrid className="landlord-overview-grid">
+          <DashboardTile size="XL" tone="instrument"><ElectricalGauge label="Loaded buildings · room load" value={buildings.length&&buildings.every(b=>typeof b.monitoring?.room_total_w==='number')?buildings.reduce((sum,b)=>sum+b.monitoring.room_total_w,0):null} unit="W" status="fresh"/><small>Sum of current room readings in the loaded buildings. Common circuits and unmeasured rooms are not inferred.</small></DashboardTile>
+          <DashboardTile size="M"><h2>Collections & records</h2><a className="btn btn-primary" href="/billing">Open billing</a><p>Tenant electricity purchases remain independent of rent and landlord collections.</p><a href="/reports" className="text-link">Measurement reports</a></DashboardTile>
           {buildings.map((b) => (
             <article
               key={b.building_id || b.id}
-              className="card building-card"
-              style={{ gridColumn: "span 6" }}
+              className="dashboard-tile tile-M building-card"
             >
               <span className="outline-icon">
                 <Icon name="building" />
               </span>
               <h2>{b.name}</h2>
-              <p>{b.address}</p>
+              <p>{b.address}</p><SignalLight icon="signal" label="Measurement coverage" state={b.monitoring?`${b.monitoring.current_room_count}/${b.monitoring.room_count} rooms current`:'Unknown'} tone={b.monitoring?.room_count>0&&b.monitoring.current_room_count===b.monitoring.room_count?'success':'unknown'}/>
               <span className="badge badge-unknown">
                 {b.meter_type === "with_meter"
                   ? "Central meter"
@@ -119,7 +123,7 @@ export default function Page() {
               </div>
             </article>
           ))}
-        </div>
+        </DashboardGrid>
       )}
     </AppShell>
   );

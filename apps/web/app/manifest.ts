@@ -1,4 +1,5 @@
+import {metadataPalette} from "@/lib/design-tokens";
 import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
-  return {id:'/',name:'SmartClamp',short_name:'SmartClamp',start_url:'/',scope:'/',display:'standalone',background_color:'#fafbf7',theme_color:'#234b3d',icons:[{src:'/pwa-icons/192',sizes:'192x192',type:'image/png',purpose:'any'},{src:'/pwa-icons/512',sizes:'512x512',type:'image/png',purpose:'any'},{src:'/pwa-icons/512',sizes:'512x512',type:'image/png',purpose:'maskable'}]};
+  return {id:'/',name:'SmartClamp',short_name:'SmartClamp',start_url:'/',scope:'/',display:'standalone',background_color:metadataPalette.surface,theme_color:metadataPalette.brand,icons:[{src:'/pwa-icons/192',sizes:'192x192',type:'image/png',purpose:'any'},{src:'/pwa-icons/512',sizes:'512x512',type:'image/png',purpose:'any'},{src:'/pwa-icons/512',sizes:'512x512',type:'image/png',purpose:'maskable'}]};
 }

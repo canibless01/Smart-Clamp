@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { hasSession, loginPath, roleHome, subject } from "@/lib/session";
 export function useWorkspaceSession() {
   const [status, setStatus] = useState<"checking" | "authenticated" | "unavailable">("checking");
+  const [context,setContext]=useState<any>(null);
   const [role, setRole] = useState("");
   const verify = useCallback(async () => {
     setStatus("checking");
@@ -16,14 +17,14 @@ export function useWorkspaceSession() {
       if ((expected && actual !== (expected === "utility" ? "nepa_staff" : expected)) || (path.startsWith("/ops") && !actual.startsWith("internal_")) || (path.startsWith("/admin") && actual !== "internal_superadmin")) {
         location.replace(roleHome[actual]); return;
       }
-      setRole(actual); setStatus("authenticated");
+      setContext(context);setRole(actual); setStatus("authenticated");
     } catch (e: any) {
       if (e.body?.code === 'profile_required') location.replace('/account/complete-profile?next='+encodeURIComponent(location.pathname+location.search));
       else if (e.status === 401) location.replace(loginPath());
       else setStatus("unavailable");
     }
   }, []);
-  useEffect(() => { void verify(); }, [verify]);
+  useEffect(() => { void verify();const updated=()=>void verify();window.addEventListener('smartclamp:session-updated',updated);return()=>window.removeEventListener('smartclamp:session-updated',updated); }, [verify]);
   useEffect(() => {
     const ended = () => location.replace(loginPath());
     const changed = (e: StorageEvent) => {
@@ -37,5 +38,5 @@ export function useWorkspaceSession() {
     const restored=(event:PageTransitionEvent)=>{if(event.persisted)location.reload();};window.addEventListener('pageshow',restored);
     return () => { window.removeEventListener("smartclamp:session-ended", ended); window.removeEventListener("storage", changed); document.removeEventListener("visibilitychange", resumed);window.removeEventListener('pageshow',restored); };
   }, []);
-  return { status, role, retry: verify };
+  return { status, role, context, retry: verify };
 }

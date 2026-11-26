@@ -1,0 +1,20 @@
+{
+ "voltage_v":{"direction":"uplink","unit":"V","storage":"voltage_mv","divisor":1000,"widget":"voltage_meter"},
+ "current_a":{"direction":"uplink","unit":"A","storage":"current_ma","divisor":1000,"widget":"current_ladder"},
+ "power_w":{"direction":"uplink","unit":"W","storage":"real_power_mw","divisor":1000,"widget":"power_dial"},
+ "energy_kwh_cum":{"direction":"uplink","unit":"kWh","storage":"import_mwh","divisor":1000000,"widget":"odometer"},
+ "relay_state_obs":{"direction":"uplink_receipt","unit":null,"storage":"relay_observed","widget":"relay_lamp"},
+ "relay_cmd":{"direction":"downlink","unit":null,"storage":"commands","widget":"relay_switch"},
+ "current_limit_a":{"direction":"configuration","unit":"A","widget":"limit_marker","available":false},
+ "voltage_low_v":{"direction":"configuration","unit":"V","widget":"band_editor","available":false},
+ "voltage_high_v":{"direction":"configuration","unit":"V","widget":"band_editor","available":false},
+ "protect_mode":{"direction":"configuration","unit":null,"widget":"mode_selector","available":false},
+ "schedule_set":{"direction":"configuration","unit":null,"widget":"schedule_grid","available":false},
+ "daily_unit_limit":{"direction":"configuration","unit":"kWh","widget":"budget_tank","available":false},
+ "status_flags":{"direction":"uplink","unit":null,"storage":"device_signals","widget":"status_lights"},
+ "signal_rssi":{"direction":"uplink","unit":"dBm","widget":"signal_bars","available":false},
+ "heartbeat":{"direction":"uplink","unit":"timestamp","storage":"last_seen_at","widget":"connection_light"},
+ "fw_version":{"direction":"uplink","unit":null,"storage":"firmware_version","widget":"device_tile"},
+ "ota_state":{"direction":"bidirectional","unit":null,"storage":"ota_assignments","widget":"ota_progress"},
+ "outage_record":{"direction":"uplink","unit":null,"storage":"episodes","widget":"outage_timeline"}
+}

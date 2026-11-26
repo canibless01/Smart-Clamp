@@ -1,13 +1,13 @@
 /* Cache only public fallback/assets. Never queue account/payment/control requests. */
-const CACHE='smartclamp-public-v1';
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['/offline.html','/pwa-icons/192','/pwa-icons/512']))));
+const CACHE='smartclamp-public-v2';
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(['/design-tokens.css','/offline.html','/pwa-icons/192','/pwa-icons/512']))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('smartclamp-public-') && key!==CACHE)await caches.delete(key);await self.clients.claim();})()));
 self.addEventListener('message',event=>{if(event.data?.type==='ACTIVATE_UPDATE')self.skipWaiting();});
 self.addEventListener('fetch',event=>{
   const request=event.request,url=new URL(request.url);
   if(request.method!=='GET' || url.origin!==self.location.origin || request.headers.has('Authorization'))return;
   if(request.mode==='navigate'){event.respondWith(self.navigator.onLine===false?caches.match('/offline.html'):fetch(request,{cache:'no-store'}).catch(()=>caches.match('/offline.html')));return;}
-  if(url.pathname.startsWith('/_next/static/') && /\.(js|css|woff2?)$/.test(url.pathname)){
+  if(url.pathname==='/design-tokens.css' || url.pathname.startsWith('/_next/static/') && /\.(js|css|woff2?)$/.test(url.pathname)){
     event.respondWith((async()=>{const cache=await caches.open(CACHE),prior=await cache.match(request);if(prior)return prior;
       const response=await fetch(request);if(response.ok && response.type==='basic'){await cache.put(request,response.clone());const keys=await cache.keys();if(keys.length>200)await cache.delete(keys.find(key=>new URL(key.url).pathname.startsWith('/_next/static/')));}return response;})());
   }

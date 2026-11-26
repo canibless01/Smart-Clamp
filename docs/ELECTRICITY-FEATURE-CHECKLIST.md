@@ -1,0 +1,46 @@
+# Electricity feature completion checklist
+
+Latest owner direction, 26 November 2026: retain the approved clean light UI, fonts and navigation. Make only small semantic tints/icons. Fill missing functionality, feature by feature. Put power control, remaining units, buying units and budgets ahead of electrical detail. Monitoring-only devices must not show a disabled permanent ON/OFF control. Water/gas are outside the electricity launch and remain gated.
+
+`Implemented` means the described software path exists; it does not imply a real provider account, external SQL execution or physical qualification. Pending items below are not solved by entering secrets.
+
+| Priority | Feature and discoverable location | Current implementation | Remaining completion/acceptance |
+|---|---|---|---|
+| 1 | Sign-up/login/profile, `/login`, `/signup`, account settings | Phone/email/password, Google PKCE, terms/profile completion, refresh/session guards | Real provider configuration and acceptance; unfinished email enrollment validation retained from earlier handoff |
+| 1 | Room power first on overview; `/control` for full action | Shared operation-bound phone step-up and signed command panel, observed feedback, explicit pending/expired/rejected/uncertain states | Production actuator HAL and feedback qualification; signed physical ON/OFF acceptance remains required |
+| 1 | Monitoring-only variant | No power panel or switch; familiar Power position becomes Live; readings/supply remain | Production hardware manifest qualification across supported profiles; monitoring-only browser variant passed |
+| 1 | Remaining units and top-up, overview and `/billing` | Verified wallet units/cash, quotes, fees, checkout, callbacks, vending/requery, funding/usage ledgers | Production merchant/provider acceptance; UI reminder/low-credit actions; optional joint purchase allocation remains demo-only |
+| 1 | One live data connection | Authenticated, scoped, bounded SSE; overview/control/notifications share it; history follows new device observations; reconnection retains timestamps | Streaming deployment capacity; broader role dashboards need equivalent event updates. Shared navigation/stream browser regression passed. |
+| 1 | Daily/monthly budget, overview shortcut and control settings | Not implemented as an executable feature | Database policy, step-up edits, device sync/receipt, durable offline enforcement, midnight reset, add-units flow, alerts and tests |
+| 1 | Schedules, control settings | Not implemented as an executable feature | Signed versioned policy, offline schedule engine, durable replay/clock recovery, per-trigger receipt, UI and audit |
+| 1 | Installation voltage/current settings and protection | Signed channel declarations, independent display ranges/advisory bands; portable fixed-policy reference code | Installer configuration UI, signed device-enforced limits/modes, acknowledgement, persistence and physical acceptance; display-only advice is not configuration |
+| 1 | Override/recovery and appliance guidance | Server restrictions prevent unsafe unsupported restore; full override workflow absent | Risk acknowledgement, installation hard limits, expiry/recovery on device, audit, step-up, guidance inventory; no invented success |
+| 1 | Supply lost/restored and notification preferences | Signed supply episodes, timestamp/quality checks, event catalogue, opt-in audio/haptic preferences, ack/snooze/history and persisted channel outcomes | Full expanded event catalogue, all clearing/escalation scenarios, real SMS/email/push acceptance |
+| 1 | Usage and hours of supply, `/history` | Signed scoped readings, consumption traces, exact records, gaps kept unknown | Source-backed hours-of-supply intervals/coverage, period comparison, pagination and event-focused windows. Energy charts are not supply-duration charts. |
+| 1 | Shared central meter and independent tenant purchases | Existing-meter setup, room assignment/invites, independent room funding and measured debits | Central supply-vs-room balance reconciliation, opt-in gap-allocation policy, production joint funding and settlement proofs |
+| 1 | Unmetered building alternative | Setup deliberately gated, no fake utility vending | Approved settlement adapter/account, pooled/contribution ledgers and receipts, tariff/settlement policy, qualified upstream control where fitted. A pole sensor alone is not a meter/relay or utility account. |
+| 1 | Bypass/tamper, user Trust page and scoped utility incidents | Signed device signals and utility scoped signal records; no theft determination | Complete resident tamper log, evidence-chain UI, topology/time-aligned reconciliation, investigation cases, scoped event fanout and inspection request loop |
+| 1 | ESP-to-cloud-to-dashboard loop | Authenticated ingest, deduplication, signed poll/receipt, durable portable policies, Wi-Fi/TLS commissioning and OTA library | Production metrology, actuator, GSM and local-link HAL integration in the actual entrypoint; calibration, commissioning and physical tests |
+| 2 | Automatic recharge, wallet | Not complete | Consented provider mandate, thresholds/caps, idempotent charge/reconciliation, cancellation, notices and UI |
+| 2 | Paid monthly subscription, settings/plans | Entitlement/capability checks and honest availability gates | Confirm products/price, provider plan/mandate code, webhook/requery, billing lifecycle, cancellation and audit. No live recurring charge is enabled. |
+| 2 | Viewer/family/expiring guest access, device settings | Partial authenticated backend grants/revoke | Complete management UI, expiry, contact lookup, finance/privacy scope, audit and revoke/expiry tests |
+| 2 | Reports, `/reports` and issued public snapshot | Signed immutable snapshot, exact observations, CSV, revocable public link and verification seal | QR/print/PDF and scheduled delivery; acceptance of hardware-derived evidence |
+| 2 | Disputes and meeting mode | Persistent scoped cases, responder handoff and shared meeting view | Auto-attached measured period, agreed payment plans/instalments, fulfilment/missed-state handling; no punitive power consequence |
+| 2 | Utility/NEPA decision panels | Assigned-device/signal views, scoped notice audiences and dispatch | Automatic community supply aggregates with coverage; comparative supply hours, substantiated chain flags, evidence/inspection workflow and consent-ready APIs |
+| 2 | Internal operations | Fleet records, work orders, staff notices, signed OTA artifacts/cohorts | User/device onboarding counters, connectivity/command/delivery queues, topology overview, modem-reported GSM usage, compliance/audit summaries |
+| 2 | Community supply information | Public community functionality gated | Privacy-safe automatic transformer/pole aggregates, minimum coverage/population rules; no crowd report needed where measured sources exist |
+| 2 | Restoration estimates/notices | No unsupported prediction emitted | Sourced utility schedules/notices or a validated labelled predictor with uncertainty; never infer a guaranteed future restoration from a present reading |
+| 2 | Electricity insights | Some qualified readings/history and integrity trail exist | Source-backed bill forecast, outage-credit estimate, pattern study, peer aggregation, qualified power factor, validated appliance models; no fabricated appliance attribution |
+| Later/gated | Water/gas, third-party plugs and other unsupported utilities | Unavailable | Keep hidden/gated for this electricity launch; do not advertise them as launch-ready |
+
+## Required completion pattern for each row
+
+Implement persistence/permissions, the user action, the device/provider adapter where needed, pending/error/offline paths, durable receipts/ledger/audit effects and meaningful real-service QA. Then update this checklist and push the tested code. Screenshots are review evidence, not feature completion.
+
+## Configuration and provenance
+
+- [Exact inputs and environment variables](LAUNCH-INPUTS.md)
+- [Where each value originates](DATA-PROVENANCE.md)
+- [Detailed A-to-Z status](BUILD_STATUS.md)
+
+The external Supabase project has not been migrated; only isolated QA SQL has run. Provider and hardware acceptance must be reported separately from code implementation.

@@ -1,5 +1,6 @@
 "use client";
-import RollingReadout from "./RollingReadout";
+import Icon from './Icon';
+import RollingReadout from './RollingReadout';
 import { useId, useState } from 'react';
 export type ElectricalSample = {
     at: number;
@@ -21,24 +22,25 @@ export function RelayDial({ on, pending = false }: {
     on: boolean | null;
     pending?: boolean;
 }) { return <div className={'relay-dial ' + (pending ? 'is-pending' : on === true ? 'is-on' : on === false ? 'is-off' : 'is-unknown')}><span className="relay-orbit"><PowerGlyph /></span><strong>{pending ? 'Pending' : on === true ? 'ON' : on === false ? 'OFF' : 'Unconfirmed'}</strong></div>; }
-export function SupplyFlow({ supply, relay, power }: {
+export function SupplyFlow({ supply, relay, power, hasRelay=true }: {
+    hasRelay?: boolean;
     supply: string;
     relay: boolean | null;
     power: number | null;
 }) {
     const flowing = supply === 'present' && power !== null && power !== 0;
-    return <section className={'supply-flow card ' + (flowing ? 'is-flowing ' : '') + (power !== null && power < 0 ? 'is-exporting' : '')} aria-label="Electricity path"><div className="flow-node"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24 3 9 23h11l-4 14 16-22H21Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/></svg><strong>Grid</strong><span>{supply === 'present' ? 'Available' : supply === 'absent' ? 'No supply' : 'Unknown'}</span></div><span className="flow-wire" aria-hidden="true"/><div className="flow-node"><span className={'flow-power ' + (relay === true ? 'is-on' : '')}><PowerGlyph /></span><strong>SmartClamp</strong><span>{relay === true ? 'Relay on' : relay === false ? 'Relay off' : 'Relay unconfirmed'}</span></div><span className="flow-wire" aria-hidden="true"/><div className="flow-node"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="m4 19 16-14 16 14M9 16v19h22V16M16 35V24h8v11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/></svg><strong>Your space</strong><span>{power === null ? 'Unknown' : power !== 0 ? number(Math.abs(power)) + ' W' + (power < 0 ? ' exporting' : '') : 'No measured load'}</span></div></section>;
+    return <section className={'supply-flow card ' + (flowing ? 'is-flowing ' : '') + (power !== null && power < 0 ? 'is-exporting' : '')} aria-label="Electricity path"><div className="flow-node"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M24 3 9 23h11l-4 14 16-22H21Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/></svg><strong>Grid</strong><span>{supply === 'present' ? 'Available' : supply === 'absent' ? 'No supply' : 'Unknown'}</span></div><span className="flow-wire" aria-hidden="true"/><div className="flow-node"><span className={'flow-power ' + (relay === true ? 'is-on' : '')}><PowerGlyph /></span><strong>SmartClamp</strong><span>{!hasRelay?'Monitoring only':relay === true ? 'Relay on' : relay === false ? 'Relay off' : 'Relay unconfirmed'}</span></div><span className="flow-wire" aria-hidden="true"/><div className="flow-node"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="m4 19 16-14 16 14M9 16v19h22V16M16 35V24h8v11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/></svg><strong>Your space</strong><span>{power === null ? 'Unknown' : power !== 0 ? number(Math.abs(power)) + ' W' + (power < 0 ? ' exporting' : '') : 'No measured load'}</span></div></section>;
 }
-export function ElectricalGauge({ label, value, unit, scale, status = 'recorded', band }: {
+export function ElectricalGauge({ label, value, unit, scale, status = 'recorded' }: {
     label: string;
     value: number | null;
     unit: string;
-    scale: number;
+    scale?: number;
     status?: string;
     band?: {low:number;high:number};
 }) {
-    const safe = value !== null && Number.isFinite(value) ? value : null, max = Math.max(scale, safe === null ? 0 : Math.ceil(Math.abs(safe) * 1.2)), ratio = safe === null ? 0 : Math.max(0, Math.min(1, Math.abs(safe) / max)), angle = -135 + ratio * 270;
-    return <section className={'card electrical-gauge ' + (status === 'low' || status === 'high' ? 'has-warning' : '')} aria-label={label + ' instrument'}><div className="instrument-heading"><h2>{label}</h2><span className="instrument-unit">{unit}</span></div><div className="gauge-face" role="img" aria-label={label + ': ' + (safe === null ? 'unavailable' : number(safe) + ' ' + unit)}><svg viewBox="0 0 240 190" aria-hidden="true"><path className="gauge-track" d="M59.9 165.1 A85 85 0 1 1 180.1 165.1" pathLength="100"/>{band && <>{[{start:0,end:band.low,color:'#c18b37'},{start:band.low,end:band.high,color:'#60ad7b'},{start:band.high,end:max,color:'#d2695e'}].map((b,i)=><path key={i} d="M59.9 165.1 A85 85 0 1 1 180.1 165.1" pathLength="100" fill="none" stroke={b.color} strokeWidth="5" strokeDasharray={`${Math.max(0,Math.min(max,b.end)-Math.min(max,b.start))/max*100} 100`} strokeDashoffset={-Math.min(max,b.start)/max*100}/>)}</>}<path className="gauge-fill" d="M59.9 165.1 A85 85 0 1 1 180.1 165.1" pathLength="100" strokeDasharray={`${ratio * 100} 100`}/>{safe !== null && <g className="gauge-needle" style={{ transform: `rotate(${angle}deg)` }}><path d="M120 105V38"/><circle cx="120" cy="105" r="5"/></g>}<text x="33" y="181">0</text><text x="190" y="181">{number(max)}</text></svg><div className="gauge-value"><strong><RollingReadout value={safe === null ? '—' : number(safe)}/></strong><span>{unit}</span></div></div><div className="instrument-status"><span className={'instrument-dot ' + (safe === null || status === 'stale' || status === 'Unverified reading' ? 'is-muted' : '')}/>{safe === null ? 'No reading' : safe < 0 && unit === 'W' ? 'Exporting' : status === 'fresh' ? 'Current reading' : status === 'low' ? 'Low voltage' : status === 'high' ? 'High voltage' : status === 'stale' ? 'Last recorded' : status}</div></section>;
+    const safe = value !== null && Number.isFinite(value) ? value : null, max = Math.max(scale||1, safe === null ? 0 : Math.ceil(Math.abs(safe) * 1.2)), ratio = safe === null ? 0 : Math.max(0, Math.min(1, Math.abs(safe) / max)), angle = -135 + ratio * 270;
+    return <section className={'card electrical-gauge metric-'+(unit==='V'?'voltage':unit==='A'?'current':'power')+' '+(status==='high'?'has-danger':status==='low'?'has-warning':'')} aria-label={label + ' instrument'}><div className="instrument-heading"><h2><Icon name={unit==='V'?'wave':unit==='A'?'current':'bolt'} size={16}/>{label}</h2><span className="instrument-unit">{unit}</span></div><div className="gauge-face" role="img" aria-label={label + ': ' + (safe === null ? 'unavailable' : number(safe) + ' ' + unit)}><svg viewBox="0 0 240 190" aria-hidden="true"><path className="gauge-track" d="M59.9 165.1 A85 85 0 1 1 180.1 165.1" pathLength="100"/><path className="gauge-fill" d="M59.9 165.1 A85 85 0 1 1 180.1 165.1" pathLength="100" strokeDasharray={`${ratio * 100} 100`}/>{safe !== null && <g className="gauge-needle" style={{ transform: `rotate(${angle}deg)` }}><path d="M120 105V38"/><circle cx="120" cy="105" r="5"/></g>}<text x="33" y="181">0</text><text x="190" y="181">{number(max)}</text></svg><div className="gauge-value"><strong><RollingReadout value={safe === null ? '—' : number(safe)}/></strong><span>{unit}</span></div></div><div className="instrument-status"><span className={'instrument-dot ' + (safe === null || status === 'stale' || status === 'Unverified reading' ? 'is-muted' : '')}/>{safe === null ? status==='Disconnected'?'Disconnected':'No reading' : safe < 0 && unit === 'W' ? 'Exporting' : status === 'fresh' ? 'Current reading' : status === 'low' ? 'Low voltage' : status === 'high' ? 'High voltage' : status === 'stale' ? 'Last recorded' : status}</div></section>;
 }
 export function ElectricalTrends({ samples, demo = false }: {
     samples: ElectricalSample[];

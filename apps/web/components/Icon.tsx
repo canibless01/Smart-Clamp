@@ -1,5 +1,10 @@
 import type { CSSProperties } from "react";
 export type IconName =
+  | "power"
+  | "signal"
+  | "link"
+  | "wave"
+  | "current"
   | "arrow"
   | "bolt"
   | "home"
@@ -24,6 +29,11 @@ export type IconName =
   | "history"
   | "logout";
 const paths: Record<IconName, React.ReactNode> = {
+  power: <path d="M12 2v10M6 5a9 9 0 1 0 12 0"/>,
+  signal: <path d="M3 8a14 14 0 0 1 18 0M6 12a9 9 0 0 1 12 0M9 16a4 4 0 0 1 6 0M12 20h.01"/>,
+  link: <path d="m10 8 3-3a5 5 0 0 1 7 7l-3 3M14 16l-3 3a5 5 0 0 1-7-7l3-3M8 16l8-8"/>,
+  wave: <path d="M2 12c4-16 6 16 10 0s6 16 10 0"/>,
+  current: <path d="m4 20 8-17 8 17M7 14h10"/>,
   arrow: (
     <>
       <path d="M5 12h14M13 6l6 6-6 6" />

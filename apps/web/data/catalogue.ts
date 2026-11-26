@@ -318,7 +318,7 @@ export const featureGroups = [
         "—",
         "—",
         "Compatible relay",
-        "Request → signed device receipt → observed feedback; never timer-confirmed.",
+        "Request  then  signed device receipt  then  observed feedback; never timer-confirmed.",
       ],
       [
         "Local voltage protection",

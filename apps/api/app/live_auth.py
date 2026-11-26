@@ -156,12 +156,15 @@ def recovery():
     auth_request('recover','POST',{'email':email})
     return jsonify(status='accepted')
 
+def context_identity():
+    return {**{key:g.actor[key] for key in ('id','role','full_name','phone','email','subscription_tier')},'environment':'isolated_qa' if current_app.testing is True else 'configured'}
+
 @bp.get('/api/v1/users/me/context')
 @authenticated
 def context():
     from .live_resources import projection
     with transaction() as c: result=projection(c)
-    result['authorized_context']={k:g.actor[k] for k in('id','role','full_name','phone','email','subscription_tier')}
+    result['authorized_context']=context_identity()
     return jsonify(result)
 
 @bp.route('/api/v1/users/me/preferences',methods=['GET','PATCH'])

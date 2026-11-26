@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
+import {CreditTank} from "@/components/MeasurementInstruments";
+import ShortId,{shortReference} from "@/components/ShortId";
 import AppShell from "@/components/AppShell";
 import { apiFetch, formatNaira, formatKwh } from "@/lib/api";
 import { RecordTable } from "@/components/RecordWorkspace";
@@ -86,7 +88,8 @@ export default function Page() {
           <a className="btn btn-secondary" href="/meters/link">Link a meter account</a></div>
         </div>
       ) : (
-        <section className="card">
+        <section className="card recharge-primary">
+          <div className="recharge-instrument"><CreditTank amount={wallet?.balance_kind==='meter_purchases'?null:wallet?.available_mwh==null?null:wallet.available_mwh/1000000} unit="kWh" secondary={wallet?.available_kobo==null?'Balance unavailable':formatNaira(wallet.available_kobo)}/>{wallet?.device_id&&<ShortId value={wallet.device_id}/>}</div>
           <form
             className="resource-form"
             onSubmit={async (e) => {
@@ -130,7 +133,7 @@ export default function Page() {
               >
                 {wallets.map((w) => (
                   <option key={w.id} value={w.id}>
-                    {w.balance_kind === "meter_purchases" ? `Meter ending ${w.meter_hint}` : `SmartClamp ${w.device_id}`}
+                    {w.balance_kind === "meter_purchases" ? `Meter ending ${w.meter_hint}` : `SmartClamp ${shortReference(w.device_id)}`}
                   </option>
                 ))}
               </select>
@@ -140,6 +143,7 @@ export default function Page() {
               {formatKwh(wallet.available_mwh)}. Reserved:{" "}
               {formatNaira(wallet.reserved_kobo)}.
             </p>}
+            <div className="quick-amounts" aria-label="Quick top-up amount">{['500','1000','2000'].map(value=><button type="button" className="btn btn-secondary" key={value} aria-pressed={amount===value} onClick={()=>{setAmount(value);setQuote(null);}}>₦{Number(value).toLocaleString('en-NG')}</button>)}</div>
             <label>
               Amount in naira
               <input

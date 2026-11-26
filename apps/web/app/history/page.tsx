@@ -1,9 +1,11 @@
 "use client";
+import {useWorkspaceLive} from "@/components/WorkspaceLiveProvider";
 import {ElectricalTrends} from '@/components/EnergyInstruments';
 import { useState, useEffect } from "react";
 import RecordWorkspace, { RecordTable } from "@/components/RecordWorkspace";
 import { apiFetch, formatKwh } from "@/lib/api";
 function Readings({ id }: { id: string }) {
+  const live=useWorkspaceLive(),observation=live.snapshot?.context.devices?.find((device:any)=>device.id===id)?.measurement,changeKey=observation?String(observation.observed_at)+"|"+String(observation.value)+"|"+String(observation.quality):"";
   const [items, setItems] = useState<any[]>([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
@@ -20,9 +22,9 @@ function Readings({ id }: { id: string }) {
         if (!c.signal.aborted) setLoading(false);
       });
     void fetchReadings();
-    const timer=setInterval(()=>{if(document.visibilityState==='visible')void fetchReadings();},15000);
-    return () => {clearInterval(timer);c.abort();};
-  }, [id]);
+
+    return () => {c.abort();};
+  }, [id,changeKey]);
   return (
     <section className="card">
       {error ? (

@@ -2,11 +2,13 @@ import { formatNaira } from "@/lib/api";
 import Icon from "./Icon";
 export default function WalletCard({
   available,
+  availableEnergyMwh,
   reserved,
   ledgerVersion,
   updatedAt,
 }: {
   available: number | null;
+  availableEnergyMwh?: number | null;
   reserved: number | null;
   ledgerVersion?: number;
   updatedAt?: string;
@@ -22,6 +24,7 @@ export default function WalletCard({
       <div className="metric-value wallet-value">
         {available == null ? "—" : formatNaira(available)}
       </div>
+      <p className="wallet-description">{availableEnergyMwh==null?'Units: —':(availableEnergyMwh/1000000).toLocaleString('en-NG',{maximumFractionDigits:3})+' kWh remaining'}</p>
       <p className="wallet-description">
         {available == null
           ? "Your confirmed balance will appear here."
@@ -32,7 +35,7 @@ export default function WalletCard({
       </p>
       <div className="wallet-actions">
         <a href="/billing" className="btn btn-primary">
-          Recharge
+          Buy units
           <Icon name="arrow" size={15} />
         </a>
         <a href="/billing" className="text-link">

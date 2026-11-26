@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import WorkspaceInstrument from "./WorkspaceInstrument";
+import {useWorkspaceLive} from "./WorkspaceLiveProvider";
 import ShortId from "./ShortId";
 import AppShell from "./AppShell";
 import { apiFetch } from "@/lib/api";
@@ -19,6 +19,7 @@ export default function RecordWorkspace({
   refreshSeconds?: number;
   children: (data: any, reload: () => void) => React.ReactNode;
 }) {
+  const live=useWorkspaceLive();
   const [data, setData] = useState<any>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
@@ -38,9 +39,10 @@ export default function RecordWorkspace({
     void load();
     const refreshed = () => void load();
     window.addEventListener("smartclamp:session-updated", refreshed);
-    const timer=refreshSeconds?setInterval(()=>{if(document.visibilityState==='visible')apiFetch(endpoint).then(setData).catch(()=>{});},refreshSeconds*1000):null;
-    return () => {window.removeEventListener("smartclamp:session-updated", refreshed);if(timer)clearInterval(timer);};
-  }, [load,endpoint,refreshSeconds]);
+    return () => {window.removeEventListener("smartclamp:session-updated", refreshed);};
+  }, [load]);
+  useEffect(()=>{if(!live.snapshot)return;if(endpoint==='/users/me/context'){setData(live.snapshot.context);setLoading(false);}if(endpoint==='/alerts'){setData({items:live.snapshot.notifications});setLoading(false);}},[live.snapshot,endpoint]);
+
   return (
     <AppShell role={role}>
       <div className="overview-heading">
@@ -67,7 +69,7 @@ export default function RecordWorkspace({
       {loading ? (
         <p role="status">Loading your records…</p>
       ) : (
-        data && <><WorkspaceInstrument endpoint={endpoint} data={data}/>{children(data, () => void load())}</>
+        data && children(data, () => void load())
       )}
     </AppShell>
   );
@@ -99,7 +101,7 @@ export function RecordTable({
           {items.map((r, i) => (
             <tr key={r.id || i}>
               {columns.map((c) => (
-                <td key={c.key} data-label={c.label}>
+                <td key={c.key} data-label={c.label} aria-label={!c.render&&typeof r[c.key]==='string'&&/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(r[c.key])?r[c.key]:undefined}>
                   {c.render ? c.render(r) : (typeof r[c.key]==='string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(r[c.key]) ? <ShortId value={r[c.key]}/> : (r[c.key] ?? 'Not recorded'))}
                 </td>
               ))}

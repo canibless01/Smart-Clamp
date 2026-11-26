@@ -1,3 +1,36 @@
+
+## Resumed checkpoint verification — 26 November 2026
+
+Approved light UI restored. Room control and credit are prioritized, monitoring-only control is hidden, and authenticated SSE is shared across navigation. Local API integration: 71 passed. Production web build and design lint passed. Focused browser regression: 12 of 13 passed initially; the remaining email-history assertion was updated for the intended History tab and unique notices. Repeated dispatch checks must respect the existing one-minute anti-spam limit. Supabase external migrations are being handled in a separate chat; none were applied here. See ELECTRICITY-FEATURE-CHECKLIST.md for outstanding implementation, not merely provider acceptance.
+
+# Current owner direction and feature checkpoint — 26 November 2026
+
+Do not redesign again. The owner explicitly accepted the clean light screenshot based on the `5af008a` composition. Preserve its typography and navigation; only subtle panel tints and small semantic icons are wanted. The A-to-Z attachment is primarily a missing-feature implementation brief. Dark bento/purple/different-shape and altered-tab experiments were rejected and removed. Read `docs/ELECTRICITY-FEATURE-CHECKLIST.md`, `docs/LAUNCH-INPUTS.md` and `docs/DATA-PROVENANCE.md` first.
+
+The owner most recently requested room power first, visible remaining units/top-up, no permanent disabled control on monitoring-only hardware, daily/monthly budgets and auto-recharge, both shared-meter and unmetered settlement, scoped bypass investigation/utility data, source-backed supply statistics, GSM/ops/OTA workflows and a real ESP-to-site loop. Water/gas are outside launch and stay gated. Do not confuse consumption charts with hours of supply; no inferred theft, restoration guarantee or community tamper buzzer.
+
+New code: shared `PowerControlPanel` is first on resident overview and reused by `/control`, with real operation-bound phone confirmation and signed feedback. Monitoring-only navigation uses Live in the familiar Power position. Wallet cards include kWh and cash. Shared authenticated SSE now supplies readings/control/notifications; history follows changed observations, not its own timer. Important fixes: `no-transform` avoids proxy buffering, streamed profile fields match account context, and source permissions are rechecked per snapshot. Uncertain receipts cannot set a confirmed relay state. Read-only viewers no longer receive financial wallets, ledgers or bills. Search in manual staff audiences reaches the authorised registry beyond the latest 200 rows.
+
+71 API checks and the production web build pass. A full browser run had 36 passing checks and eight regressions; their fixes are in place and focused acceptance is being rerun. Record the actual latest browser result before claiming all checks pass. Keep QA and investor images separate from the historical gallery, and refresh the ZIP after final captures. Inspect git status/log for the current checkpoint/push; do not leave this work only locally.
+
+Supabase recheck: no callable connector is exposed despite the tag. Public Supabase site returns 200; Management API returns 401 without credentials. The specific project host currently fails proxy CONNECT with 403, both inside and outside the sandbox. No admin token or external DB URL is configured and no external SQL has been applied. Bundle is through 038, applied only to local QA. See the target runbook for exact evidence and required secure inputs.
+
+Next implementation priorities: executable budgets/schedules and their durable device integration; production metrology/relay/GSM/local-link HALs in the actual entrypoint; qualified installation settings/overrides; shared/unmetered ledgers/reconciliation; complete scoped tamper case flow; auto-recharge/subscriptions; viewer/guest UI/privacy; role analytics. Portable firmware libraries exist but the current commissioning image does not itself wire every production HAL, so flashing it does not magically enable measurement/control. Never label this environment/SQL-only readiness yet.
+
+---
+
+# Current instrument/A-to-Z continuation — 26 November 2026
+
+The owner supplied `docs/ui-overhaul/SmartClamp_AtoZ_Build_Spec.md` and asked to incorporate it while finishing the redesign. Read `docs/BUILD_STATUS.md`, `docs/DESIGN_AUDIT.md`, `docs/ui-overhaul/IMPLEMENTATION-NOTES.md`, `docs/ui-overhaul/SCREEN-COVERAGE.md` and the live git diff before continuing. The owner most recently clarified that voltage bands and current limits vary by installation; homes and commercial installations must not inherit the same current threshold. They rejected the intermediate duplicate/overlapping relay dial and long switch: the compact shared RelaySwitch now has one state readout, one short rocker and one feedback timestamp.
+
+First pushed redesign checkpoint is `f94a51e`; inspect git for the next identity/manifests checkpoint. Distinct blue voltage sliding meter, violet current ladder, green power dial, rolling digits and copper tank replace the repeated arcs. Token and symbol checks are wired into CI. The isolated investor overview reuses the compact core instruments and the sample disclosure; pending relay requests require explicit QA feedback rather than timer confirmation. Reset clears the QA moment queue. Captures remain in the separate investor folder.
+
+Migrations now include 036 alert interactions, 037 device transition memory and 038 signed display-channel declarations. These are applied ONLY to local QA; the external Supabase project remains untouched. The target SQL bundle must include all 038 checksums. Backend API verification has 67 unique passing checks, including recipient-only ack/snooze, strict sensory settings, profile swaps and distinct home/business current bands. Live browser checks and screenshot verification are being completed; record their actual results before claiming acceptance.
+
+Do not call this the complete A-to-Z product or environment/SQL-only launch. Shared realtime has not replaced per-page polling, the UI simulator does not yet exercise signed ingest, full protected override/schedules/budget execution and several broader catalogue rows remain incomplete. Installer display advisories do not prove device-enforced protection. Preserve all receipt, unknown-data, privacy, account-holder authority and isolated-QA boundaries. Push verified bounded batches; do not manually publish/deploy or force-push.
+
+---
+
 # Latest visual-instrument checkpoint —26 November2026
 
 The owner supplied a Blynk-style visual reference and requested engineering gauges/charts/switches, preserving SmartClamp colours/branding. Read `docs/VISUAL-INSTRUMENTS.md`. Shared gauges, three sampled electrical traces, power-flow indicators, and accessible ON/OFF switches now serve the investor demo and core real overview/history/control pages. The demo generates bounded fictional traces; real charts use scoped measured data, with missing values/gaps retained. No fabricated production animation or Auth bypass. Investor images remain separate under `docs/investor-demo/`. The original screenshot folder is not merged.

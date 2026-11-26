@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async({page})=>{await page.route("**/api/v1/users/me/live",route=>route.fulfill({status:503,json:{code:"ui_contract_stream_unavailable"}}));await page.route("**/api/v1/alerts",route=>route.fulfill({json:{items:[]}}));await page.route("**/api/v1/users/me/preferences",route=>route.fulfill({json:{value:{}}}));});
 import AxeBuilder from "@axe-core/playwright";
 test("landing is responsive without page-wide overflow or hydration errors", async ({
   page,
@@ -121,9 +122,9 @@ test("login routes the actual returned role and dashboard has no invented fallba
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Log in", exact: true }).click();
   await expect(page).toHaveURL(/dashboard\/tenant/);
-  await expect(page.getByText("Your energy story starts here.")).toBeVisible();
+  await expect(page.getByText("Connect your home.",{exact:true})).toBeVisible();
   await expect(
-    page.getByText("Your confirmed balance will appear here."),
+    page.getByText("Your confirmed balance will appear here.",{exact:true}),
   ).toBeVisible();
   await expect(page.getByText("1240", { exact: true })).toHaveCount(0);
   await expect(

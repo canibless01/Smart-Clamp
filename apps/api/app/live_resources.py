@@ -23,27 +23,42 @@ def requested_text(d,key,maximum=4000):
 def owned_device_ids(c):
     return rows(c,"""SELECT d.id FROM devices d WHERE d.owner_id=:uid OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL) OR EXISTS(SELECT 1 FROM buildings b LEFT JOIN rooms r ON r.building_id=b.id WHERE b.landlord_id=:uid AND(b.id=d.building_id OR r.id=d.room_id)) OR EXISTS(SELECT 1 FROM device_viewers v WHERE v.device_id=d.id AND v.viewer_user_id=:uid AND v.revoked_at IS NULL AND(v.expires_at IS NULL OR v.expires_at>now()))""",uid=g.actor['id'])
 
+def financial_device_ids(c):
+    # A read-only device viewer is not a wallet/ledger/bill account holder.
+    return rows(c,"SELECT d.id FROM devices d WHERE d.owner_id=:uid OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL)",uid=g.actor['id'])
+
 def projection(c):
     from .live_devices import control_eligibility
-    devices=[]
+    devices=[];financial_ids={str(row['id']) for row in financial_device_ids(c)}
     for d in owned_device_ids(c):
-        dev=device(c,g.actor,d['id']);r=one(c,"SELECT r.* FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 1",id=d['id'],role=g.actor['role'],room=dev['room_id'],uid=g.actor['id']);wallet=one(c,'SELECT * FROM wallets WHERE device_id=:id',id=d['id']);at=datetime.fromtimestamp(r['occurred_at_ms']/1000,timezone.utc) if r and r['occurred_at_ms'] is not None else None
+        dev=device(c,g.actor,d['id']);r=one(c,"SELECT r.* FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 1",id=d['id'],role=g.actor['role'],room=dev['room_id'],uid=g.actor['id']);wallet=one(c,'SELECT * FROM wallets WHERE device_id=:id',id=d['id']) if str(d['id']) in financial_ids else None;at=datetime.fromtimestamp(r['occurred_at_ms']/1000,timezone.utc) if r and r['occurred_at_ms'] is not None else None
         fresh=at and 0<=(datetime.now(timezone.utc)-at).total_seconds()<180
-        pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') ORDER BY created_at DESC LIMIT 1",id=d['id'])
+        pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') AND expires_at>now() ORDER BY created_at DESC LIMIT 1",id=d['id'])
         devices.append({'id':str(dev['id']),'role':dev['profile'],'capabilities':dev['capabilities'],'supply_state':dev['supply_state'] if dev['supply_clock_quality']=='trusted' and dev['supply_observed_at_ms'] is not None and 0<=datetime.now(timezone.utc).timestamp()*1000-dev['supply_observed_at_ms']<180000 else 'unknown','connectivity':'online' if dev['last_seen_at'] and (datetime.now(timezone.utc)-dev['last_seen_at']).total_seconds()<180 else 'stale' if dev['last_seen_at'] else 'unknown','relay':{'observed':dev['relay_observed'],'observed_at':dev['relay_observed_at'],'pending_command_id':pending['command_id'] if pending else None,'off_reasons':[x['reason'] for x in rows(c,"SELECT reason FROM off_reasons WHERE device_id=:id AND active AND(expires_at IS NULL OR expires_at>now())",id=d['id'])]},'measurement':{'value':float(Decimal(r['real_power_mw'])/1000) if r and r['real_power_mw'] is not None else None,'unit':'W','observed_at':at,'quality':r['quality'] if r else 'unavailable','coverage':None},'wallet':{'id':wallet['id'],'available':wallet['available_kobo'],'reserved':wallet['reserved_kobo'],'available_mwh':wallet['available_mwh'],'unit':'kobo','ledger_version':wallet['ledger_version'],'updated_at':wallet['updated_at'],'payment_token':wallet['payment_token']} if wallet else None})
+        latest=one(c,"SELECT c.command_id AS id,c.on_state AS requested,CASE WHEN c.status IN('pending','pending_delivery') AND c.expires_at<=now() THEN 'expired' ELSE c.status END AS status,c.expires_at,r.result,r.observed_on,r.observed_at_ms,r.reason_code FROM commands c LEFT JOIN command_receipts r ON r.command_id=c.command_id WHERE c.device_id=:id ORDER BY c.created_at DESC LIMIT 1",id=d['id'])
+        devices[-1]['relay']['latest_command']=dict(latest) if latest else None
         voltage=r['voltage_mv'] if r else None
+        manifest=one(c,'SELECT version,channels,calibration_version FROM device_channel_manifests WHERE device_id=:id',id=d['id'])
+        devices[-1]['channel_manifest']=dict(manifest) if manifest else None
         band=None
         try:
             low=int(current_app.config.get('VOLTAGE_WARNING_LOW_MV',''));high=int(current_app.config.get('VOLTAGE_WARNING_HIGH_MV',''))
             if not 0<low<high:raise ValueError()
             band={'low_v':low/1000,'high_v':high/1000}
         except (ValueError,TypeError):pass
+        declared=manifest['channels'].get('voltage_v') if manifest else None
+        if declared and declared.get('warning_band'):
+            low,high=[value*1000 for value in declared['warning_band']];band={'low_v':low/1000,'high_v':high/1000}
         voltage_status='unknown'
         if fresh and r['quality']=='valid' and r['clock_quality']=='trusted' and voltage is not None:
             if devices[-1]['supply_state']=='absent':voltage_status='no_supply'
             elif band:voltage_status='low' if voltage<low else 'high' if voltage>high else 'within_band'
             else:voltage_status='limits_unconfigured'
-        devices[-1]['electrical']={'voltage_v':voltage/1000 if voltage is not None else None,'current_a':r['current_ma']/1000 if r and r['current_ma'] is not None else None,'observed_at':at,'quality':r['quality'] if r else 'unavailable','clock_quality':r['clock_quality'] if r else 'unknown','voltage_status':voltage_status,'warning_band':band,'advisory_only':True}
+        current_band=manifest['channels'].get('current_a',{}).get('warning_band') if manifest else None
+        current_status='unknown'
+        if current_band and fresh and r['quality']=='valid' and r['clock_quality']=='trusted' and r['current_ma'] is not None:
+            current_status='low' if r['current_ma']/1000<current_band[0] else 'high' if r['current_ma']/1000>current_band[1] else 'within_band'
+        devices[-1]['electrical']={'voltage_v':voltage/1000 if voltage is not None else None,'current_a':r['current_ma']/1000 if r and r['current_ma'] is not None else None,'observed_at':at,'quality':r['quality'] if r else 'unavailable','clock_quality':r['clock_quality'] if r else 'unknown','voltage_status':voltage_status,'warning_band':band,'advisory_only':True,'current_warning_band':current_band,'current_status':current_status}
         allowed,code,message,_=control_eligibility(c,g.actor,dev)
         devices[-1]['controls']={'can_request':allowed,'unavailable_code':code,'unavailable_reason':message}
     usage=[];electrical_history=[]
@@ -60,7 +75,7 @@ def projection(c):
             WHERE d.id=r.device_id AND o.tenant_id=:uid AND o.end_at IS NULL AND u.interval_start_ms>=extract(epoch FROM o.start_at)*1000))
           ORDER BY r.occurred_at_ms DESC LIMIT 24""",id=devices[0]['id'],role=g.actor['role'],uid=g.actor['id'])
         usage=[{'time':datetime.fromtimestamp(p['occurred_at_ms']/1000,timezone(timedelta(hours=1))).strftime('%d %b %H:%M'),'kwh':p['consumed_mwh']/1000000} for p in reversed(periods)]
-    actions=['view_dashboard','recharge'] if devices else ['view_dashboard']
+    actions=['view_dashboard','recharge'] if any(item['wallet'] for item in devices) else ['view_dashboard']
     if any(d['controls']['can_request'] for d in devices):actions.append('relay_toggle')
     return {'snapshot_version':int(scalar(c,"SELECT coalesce(max(id),0) FROM audit_log WHERE actor_id=:uid",uid=g.actor['id']) or 0),'generated_at':datetime.now(timezone.utc),'usage_history':usage,'electrical_history':electrical_history,'authorized_context':{'user_id':g.actor['id'],'role':g.actor['role']},'devices':devices,'allowed_actions':actions}
 
@@ -76,7 +91,17 @@ def dashboard():
 @bp.get('/api/v1/buildings')
 @authenticated
 def buildings_list():
-    with transaction() as c:return page(rows(c,'SELECT * FROM buildings WHERE landlord_id=:uid ORDER BY created_at,id LIMIT :limit',uid=g.actor['id'],limit=limit()))
+    with transaction() as c:
+        result=[]
+        for b in rows(c,'SELECT * FROM buildings WHERE landlord_id=:uid ORDER BY created_at,id LIMIT :limit',uid=g.actor['id'],limit=limit()):
+            readings=rows(c,"""SELECT room.id,r.real_power_mw,r.occurred_at_ms,r.quality,r.clock_quality FROM rooms room
+              LEFT JOIN LATERAL(SELECT id FROM devices WHERE room_id=room.id ORDER BY id LIMIT 1)d ON true
+              LEFT JOIN LATERAL(SELECT real_power_mw,occurred_at_ms,quality,clock_quality FROM readings WHERE device_id=d.id ORDER BY occurred_at_ms DESC NULLS LAST,received_at DESC LIMIT 1)r ON true
+              WHERE room.building_id=:id""",id=b['id'])
+            now_ms=datetime.now(timezone.utc).timestamp()*1000
+            fresh=[r for r in readings if r['real_power_mw'] is not None and r['occurred_at_ms'] is not None and 0<=now_ms-r['occurred_at_ms']<180000 and r['quality']=='valid' and r['clock_quality']=='trusted']
+            result.append({**dict(b),'monitoring':{'room_count':len(readings),'current_room_count':len(fresh),'room_total_w':sum(r['real_power_mw'] for r in fresh)/1000 if readings and len(fresh)==len(readings) else None}})
+        return page(result)
 
 @bp.post('/api/v1/buildings')
 @authenticated
@@ -387,7 +412,7 @@ def transactions():
 @authenticated
 def wallets():
     with transaction() as c:
-        ids=[d['id'] for d in owned_device_ids(c)]
+        ids=[d['id'] for d in financial_device_ids(c)]
         result=rows(c,"""SELECT w.id,w.device_id,w.linked_meter_id,w.available_kobo,w.reserved_kobo,w.available_mwh,w.reserved_mwh,w.ledger_version,w.updated_at,w.payment_token,
             CASE WHEN w.linked_meter_id IS NULL THEN 'device_credit' ELSE 'meter_purchases' END AS balance_kind,
             CASE WHEN m.id IS NOT NULL THEN right(m.meter_number,4) END AS meter_hint
@@ -401,7 +426,7 @@ def ledger(wallet_id):
     with transaction() as c:
         w=one(c,'SELECT * FROM wallets WHERE id=:id',id=uuid_string(wallet_id))
         if not w:raise DomainError('not_found','Wallet not found.',404)
-        if w['device_id']:device(c,g.actor,w['device_id'])
+        if w['device_id']:device(c,g.actor,w['device_id'],write=True)
         elif not one(c,'SELECT id FROM linked_meters WHERE id=:id AND owner_id=:uid',id=w['linked_meter_id'],uid=g.actor['id']):raise DomainError('not_found','Wallet not found.',404)
         return page(rows(c,'SELECT t.kind,t.created_at,e.account,e.direction,e.amount_kobo,e.energy_mwh FROM ledger_transactions t JOIN ledger_entries e ON e.transaction_id=t.id WHERE t.wallet_id=:id ORDER BY t.created_at DESC LIMIT :n',id=wallet_id,n=limit()))
 
@@ -409,7 +434,7 @@ def ledger(wallet_id):
 @authenticated
 def bills():
     with transaction() as c:
-        ids=[d['id'] for d in owned_device_ids(c)]
+        ids=[d['id'] for d in financial_device_ids(c)]
         return page(rows(c,"SELECT * FROM bills WHERE(subject_type='device' AND subject_id=ANY(CAST(:ids AS uuid[])) AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o JOIN devices d ON d.room_id=o.room_id WHERE d.id=bills.subject_id AND o.tenant_id=:uid AND o.start_at<=bills.period_start::timestamptz AND(o.end_at IS NULL OR o.end_at>=bills.period_end::timestamptz)))) OR(subject_type='building' AND subject_id IN(SELECT id FROM buildings WHERE landlord_id=:uid)) ORDER BY created_at DESC LIMIT :n",ids=ids,uid=g.actor['id'],role=g.actor['role'],n=limit()))
 
 DISPUTE_REVIEWERS=('internal_finance','internal_superadmin')

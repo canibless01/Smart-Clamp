@@ -16,7 +16,7 @@ export default function PwaControls(){
     return()=>{window.removeEventListener('smartclamp:pwa-ready',sync);window.removeEventListener('appinstalled',sync);};
   },[]);
   return <section className="card" style={{marginTop:24}}><h2>SmartClamp on this device</h2>
-    <p>{installed?'You’re using the installed app.':'Install SmartClamp for quick access. In Safari, use Share → Add to Home Screen; in Chrome or Edge, use Install app in the browser menu.'}</p>
+    <p>{installed?'You’re using the installed app.':'Install SmartClamp for quick access. In Safari, use Share  then  Add to Home Screen; in Chrome or Edge, use Install app in the browser menu.'}</p>
     <div className="resource-actions">
       {install && !installed && <button className="btn btn-secondary" onClick={async()=>{const prompt=(window as any).smartclampInstallPrompt;if(!prompt)return;await prompt.prompt();await prompt.userChoice;(window as any).smartclampInstallPrompt=null;setInstall(false);}}>Install SmartClamp</button>}
       {update && <button className="btn btn-secondary" onClick={()=>{navigator.serviceWorker.addEventListener('controllerchange',()=>location.reload(),{once:true});update.postMessage({type:'ACTIVATE_UPDATE'});}}>Update installed app</button>}
