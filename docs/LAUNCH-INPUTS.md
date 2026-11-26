@@ -69,3 +69,5 @@ The implemented account/service-notice adapter uses Africa's Talking: approved s
 ## 9. Launch scope
 
 Electricity is the launch scope. Water/gas and other unsupported utilities remain unavailable behind feature gates. Utility/NEPA data requires the named organisation's reviewed device scopes and staff memberships; no public theft accusation or audible community tamper alarm is part of the workflow.
+
+`SUPPLY_PRESENT_MIN_MV=50000` configures sampled supply-presence analytics only (default 50 V). It does not change installation protection or override limits.

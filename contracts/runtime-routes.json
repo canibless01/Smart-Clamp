@@ -221,6 +221,11 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/devices/{device_id}/supply-history",
+    "handler": "supply_history.supply_history"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/devices/{device_id}/viewers",
     "handler": "live_resources.viewers"
   },

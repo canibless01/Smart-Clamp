@@ -1,4 +1,13 @@
 
+## Access and sampled supply checkpoint — 26 November 2026
+
+Family/guest sharing is discoverable in Settings → device. Expiring or ongoing grants, phone/email lookup, immediate revoke, resident authority, private measurement history floors, wallet/allowance masking and audit are implemented. Move-in revokes old grants; grants and transfers serialize on the room. API tests cover expiry/regrant/revoke and resident authority.
+
+Usage history now includes sampled hours of supply for 1/7/30 days, unknown hours, coverage and a previous equal period. It uses paired qualified voltage samples, not energy totals or connectivity. Gaps and transitions are unknown. The documented presence threshold does not alter protection settings.
+
+Verification: expanded real database/Auth suite 74 passed; additional lock-focused tests 2 passed; mobile sharing/revoke and supply-history browser journeys 2 passed; production build passed. No external SQL applied and no new migration in this batch. Budgets/schedules, device HALs, settlement and other checklist items remain open.
+
+
 ## Resumed checkpoint verification — 26 November 2026
 
 Approved light UI restored. Room control and credit are prioritized, monitoring-only control is hidden, and authenticated SSE is shared across navigation. Local API integration: 71 passed. Production web build and design lint passed. Focused browser regression: 12 of 13 passed initially; the corrected email-history check passed separately (all 13 accepted across the initial run and retry). The email test uses unique notices, checks the History tab, and retains the existing one-minute dispatch protection. TypeScript checking also passed. Supabase external migrations are being handled in a separate chat; none were applied here. See ELECTRICITY-FEATURE-CHECKLIST.md for outstanding implementation, not merely provider acceptance.

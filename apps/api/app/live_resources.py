@@ -2,7 +2,7 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 import hashlib,json,secrets,uuid
 from flask import Blueprint,request,jsonify,g,current_app
-from .db import transaction,one,rows,query,scalar,DomainError,device,building,audit,json_text,uuid_string
+from .db import transaction,one,rows,query,scalar,DomainError,device,building,audit,json_text,uuid_string,reading_since
 from .live_auth import authenticated,staff
 from .providers import validate_meter,config,electricity_services
 from .idempotency import idempotent
@@ -31,7 +31,7 @@ def projection(c):
     from .live_devices import control_eligibility
     devices=[];financial_ids={str(row['id']) for row in financial_device_ids(c)}
     for d in owned_device_ids(c):
-        dev=device(c,g.actor,d['id']);r=one(c,"SELECT r.* FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 1",id=d['id'],role=g.actor['role'],room=dev['room_id'],uid=g.actor['id']);wallet=one(c,'SELECT * FROM wallets WHERE device_id=:id',id=d['id']) if str(d['id']) in financial_ids else None;at=datetime.fromtimestamp(r['occurred_at_ms']/1000,timezone.utc) if r and r['occurred_at_ms'] is not None else None
+        dev=device(c,g.actor,d['id']);r=one(c,"SELECT r.* FROM readings r WHERE r.device_id=:id AND(CAST(:since AS timestamptz) IS NULL OR r.occurred_at_ms>=extract(epoch FROM CAST(:since AS timestamptz))*1000) ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 1",id=d['id'],role=g.actor['role'],room=dev['room_id'],uid=g.actor['id'],since=reading_since(c,g.actor,dev));wallet=one(c,'SELECT * FROM wallets WHERE device_id=:id',id=d['id']) if str(d['id']) in financial_ids else None;at=datetime.fromtimestamp(r['occurred_at_ms']/1000,timezone.utc) if r and r['occurred_at_ms'] is not None else None
         fresh=at and 0<=(datetime.now(timezone.utc)-at).total_seconds()<180
         pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') AND expires_at>now() ORDER BY created_at DESC LIMIT 1",id=d['id'])
         devices.append({'id':str(dev['id']),'role':dev['profile'],'capabilities':dev['capabilities'],'supply_state':dev['supply_state'] if dev['supply_clock_quality']=='trusted' and dev['supply_observed_at_ms'] is not None and 0<=datetime.now(timezone.utc).timestamp()*1000-dev['supply_observed_at_ms']<180000 else 'unknown','connectivity':'online' if dev['last_seen_at'] and (datetime.now(timezone.utc)-dev['last_seen_at']).total_seconds()<180 else 'stale' if dev['last_seen_at'] else 'unknown','relay':{'observed':dev['relay_observed'],'observed_at':dev['relay_observed_at'],'pending_command_id':pending['command_id'] if pending else None,'off_reasons':[x['reason'] for x in rows(c,"SELECT reason FROM off_reasons WHERE device_id=:id AND active AND(expires_at IS NULL OR expires_at>now())",id=d['id'])]},'measurement':{'value':float(Decimal(r['real_power_mw'])/1000) if r and r['real_power_mw'] is not None else None,'unit':'W','observed_at':at,'quality':r['quality'] if r else 'unavailable','coverage':None},'wallet':{'id':wallet['id'],'available':wallet['available_kobo'],'reserved':wallet['reserved_kobo'],'available_mwh':wallet['available_mwh'],'unit':'kobo','ledger_version':wallet['ledger_version'],'updated_at':wallet['updated_at'],'payment_token':wallet['payment_token']} if wallet else None})
@@ -64,16 +64,15 @@ def projection(c):
     usage=[];electrical_history=[]
     if devices:
         samples=rows(c,"""SELECT r.occurred_at_ms,r.voltage_mv,r.current_ma,r.real_power_mw,r.quality,r.clock_quality FROM readings r
-          WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000))
-          ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 120""",id=devices[0]['id'],room=one(c,'SELECT room_id FROM devices WHERE id=:id',id=devices[0]['id'])['room_id'],role=g.actor['role'],uid=g.actor['id'])
+          WHERE r.device_id=:id AND(CAST(:since AS timestamptz) IS NULL OR r.occurred_at_ms>=extract(epoch FROM CAST(:since AS timestamptz))*1000)
+          ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 120""",id=devices[0]['id'],room=one(c,'SELECT room_id FROM devices WHERE id=:id',id=devices[0]['id'])['room_id'],role=g.actor['role'],uid=g.actor['id'],since=reading_since(c,g.actor,device(c,g.actor,devices[0]['id'])))
         for sample in reversed(samples):
             valid=sample['quality']=='valid' and sample['clock_quality']=='trusted'
             electrical_history.append({'at':sample['occurred_at_ms'],'voltage':sample['voltage_mv']/1000 if valid and sample['voltage_mv'] is not None else None,'current':sample['current_ma']/1000 if valid and sample['current_ma'] is not None else None,'power':sample['real_power_mw']/1000 if valid and sample['real_power_mw'] is not None else None})
         periods=rows(c,"""SELECT r.occurred_at_ms,u.consumed_mwh FROM usage_postings u JOIN readings r ON r.id=u.reading_id
           WHERE r.device_id=:id AND u.accounting_quality='measured'
-          AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o JOIN devices d ON d.room_id=o.room_id
-            WHERE d.id=r.device_id AND o.tenant_id=:uid AND o.end_at IS NULL AND u.interval_start_ms>=extract(epoch FROM o.start_at)*1000))
-          ORDER BY r.occurred_at_ms DESC LIMIT 24""",id=devices[0]['id'],role=g.actor['role'],uid=g.actor['id'])
+          AND(CAST(:since AS timestamptz) IS NULL OR u.interval_start_ms>=extract(epoch FROM CAST(:since AS timestamptz))*1000)
+          ORDER BY r.occurred_at_ms DESC LIMIT 24""",id=devices[0]['id'],role=g.actor['role'],uid=g.actor['id'],since=reading_since(c,g.actor,device(c,g.actor,devices[0]['id'])))
         usage=[{'time':datetime.fromtimestamp(p['occurred_at_ms']/1000,timezone(timedelta(hours=1))).strftime('%d %b %H:%M'),'kwh':p['consumed_mwh']/1000000} for p in reversed(periods)]
     actions=['view_dashboard','recharge'] if any(item['wallet'] for item in devices) else ['view_dashboard']
     if any(d['controls']['can_request'] for d in devices):actions.append('relay_toggle')
@@ -157,6 +156,8 @@ def accept_invitation(room_id=None):
         inv=one(c,'SELECT * FROM invitations WHERE token=:token AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at>now() FOR UPDATE',token=body().get('token',''))
         if not inv or(room_id and str(inv['room_id'])!=room_id):raise DomainError('not_found','This invitation is invalid or expired.',404)
         if g.actor['role']!='tenant':raise DomainError('forbidden','A tenant account is required.',403)
+        query(c,'SELECT id FROM rooms WHERE id=:id FOR UPDATE',id=inv['room_id'])
+        query(c,'UPDATE device_viewers SET revoked_at=now() WHERE device_id IN(SELECT id FROM devices WHERE room_id=:id)',id=inv['room_id'])
         query(c,'INSERT INTO occupancies(room_id,tenant_id) VALUES(:rid,:uid)',rid=inv['room_id'],uid=g.actor['id']);query(c,'UPDATE invitations SET accepted_at=now(),accepted_by=:uid WHERE id=:id',uid=g.actor['id'],id=inv['id']);audit(c,g.actor['id'],'invitation_accepted',inv['room_id'])
     return jsonify(status='joined',room_id=inv['room_id'])
 
@@ -197,7 +198,7 @@ def details(device_id):
     with transaction() as c:
         d=device(c,g.actor,device_id)
         from .prepaid import state
-        return jsonify({**{k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')},'prepaid_policy':state(c,d)})
+        return jsonify({**{k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')},'prepaid_policy':state(c,d) if any(str(item['id'])==str(d['id']) for item in financial_device_ids(c)) else None,'can_manage_viewers':bool((not one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL AND tenant_id<>:uid',room=d['room_id'],uid=g.actor['id'])) and (str(d['owner_id'])==str(g.actor['id']) or one(c,'SELECT id FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=g.actor['id'])))})
 
 @bp.get('/api/v1/devices/<device_id>/events')
 @authenticated
@@ -205,7 +206,7 @@ def history(device_id):
     with transaction() as c:
         d=device(c,g.actor,device_id)
         # A current tenant sees only its active occupancy interval, even if the device predates it.
-        return page(rows(c,"""SELECT r.id,r.occurred_at_ms,r.quality,r.clock_quality,r.voltage_mv,r.current_ma,r.real_power_mw,r.import_mwh,r.export_mwh FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST LIMIT :limit""",id=device_id,role=g.actor['role'],room=d['room_id'],uid=g.actor['id'],limit=limit()))
+        return page(rows(c,"""SELECT r.id,r.occurred_at_ms,r.quality,r.clock_quality,r.voltage_mv,r.current_ma,r.real_power_mw,r.import_mwh,r.export_mwh FROM readings r WHERE r.device_id=:id AND(CAST(:since AS timestamptz) IS NULL OR r.occurred_at_ms>=extract(epoch FROM CAST(:since AS timestamptz))*1000) ORDER BY r.occurred_at_ms DESC NULLS LAST LIMIT :limit""",id=device_id,role=g.actor['role'],room=d['room_id'],uid=g.actor['id'],since=reading_since(c,g.actor,d),limit=limit()))
 
 @bp.get('/api/v1/feature-flags/active')
 @authenticated
@@ -244,22 +245,44 @@ def manual_reading(linked_meter_id):
         row=one(c,'INSERT INTO manual_readings(linked_meter_id,entered_by,reading_kwh,recorded_at) VALUES(:id,:uid,:v,:at) RETURNING id',id=linked_meter_id,uid=g.actor['id'],v=value,at=at)
     return jsonify(id=row['id'],status='recorded',source='manual'),201
 
+def manage_viewers(c,device_id):
+    d=device(c,g.actor,device_id,write=True)
+    # Match occupancy-transfer lock order so a concurrent grant cannot survive move-in/out.
+    if d['room_id']:query(c,'SELECT id FROM rooms WHERE id=:id FOR UPDATE',id=d['room_id'])
+    query(c,'SELECT id FROM devices WHERE id=:id FOR UPDATE',id=d['id'])
+    occupant=one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL ORDER BY start_at DESC LIMIT 1',room=d['room_id'])
+    if occupant and str(occupant['tenant_id'])!=str(g.actor['id']):
+        raise DomainError('resident_authority_required','The current resident manages shared access to this room.',403)
+    return d
+
 @bp.route('/api/v1/devices/<device_id>/viewers',methods=['GET','POST'])
 @authenticated
 def viewers(device_id):
     with transaction() as c:
-        device(c,g.actor,device_id,write=True)
-        if request.method=='GET':return page(rows(c,'SELECT id,viewer_user_id,expires_at FROM device_viewers WHERE device_id=:id AND revoked_at IS NULL',id=device_id))
-        viewer=one(c,'SELECT id FROM profiles WHERE phone=:phone',phone=body().get('viewer_phone',''))
+        manage_viewers(c,device_id)
+        if request.method=='GET':
+            return page(rows(c,"SELECT v.id,v.viewer_user_id,p.full_name,v.created_at,v.expires_at,CASE WHEN v.expires_at<=now() THEN 'expired' ELSE 'active' END AS status FROM device_viewers v JOIN profiles p ON p.id=v.viewer_user_id WHERE v.device_id=:id AND v.revoked_at IS NULL ORDER BY v.created_at DESC",id=device_id))
+        data=body();phone=data.get('viewer_phone');email=data.get('viewer_email')
+        if bool(phone)==bool(email) or (phone is not None and (not isinstance(phone,str) or len(phone)>32)) or (email is not None and (not isinstance(email,str) or len(email)>254)):
+            raise DomainError('validation_error','Enter one registered phone number or email address.')
+        expiry=data.get('expires_in_hours',24)
+        if expiry is not None and(type(expiry) is not int or not 1<=expiry<=8760):raise DomainError('validation_error','Guest access must last between 1 hour and 365 days, or choose ongoing access.')
+        viewer=one(c,'SELECT id FROM profiles WHERE '+('phone=:contact' if phone else 'lower(email)=:contact'),contact=phone.strip() if phone else email.strip().lower())
         if not viewer:raise DomainError('not_found','The invited viewer needs an account.',404)
-        row=one(c,"INSERT INTO device_viewers(device_id,viewer_user_id,added_by) VALUES(:id,:v,:uid) ON CONFLICT(device_id,viewer_user_id) DO UPDATE SET revoked_at=NULL RETURNING id",id=device_id,v=viewer['id'],uid=g.actor['id']);audit(c,g.actor['id'],'viewer_added',device_id)
-    return jsonify(id=row['id'],status='invited'),201
+        if str(viewer['id'])==str(g.actor['id']):raise DomainError('validation_error','Choose another account to share with.')
+        expires=datetime.now(timezone.utc)+timedelta(hours=expiry) if expiry is not None else None
+        row=one(c,"INSERT INTO device_viewers(device_id,viewer_user_id,added_by,expires_at) VALUES(:id,:v,:uid,:expires) ON CONFLICT(device_id,viewer_user_id) DO UPDATE SET revoked_at=NULL,created_at=now(),added_by=excluded.added_by,expires_at=excluded.expires_at RETURNING id,expires_at",id=device_id,v=viewer['id'],uid=g.actor['id'],expires=expires)
+        audit(c,g.actor['id'],'viewer_added',device_id,{'viewer_user_id':str(viewer['id']),'expires_at':expires.isoformat() if expires else None})
+    return jsonify(id=row['id'],status='active',expires_at=row['expires_at']),201
 
 @bp.delete('/api/v1/devices/<device_id>/viewers/<viewer_id>')
 @authenticated
 def revoke_viewer(device_id,viewer_id):
     with transaction() as c:
-        device(c,g.actor,device_id,write=True);query(c,'UPDATE device_viewers SET revoked_at=now() WHERE id=:id AND device_id=:d',id=uuid_string(viewer_id),d=device_id);audit(c,g.actor['id'],'viewer_revoked',device_id)
+        manage_viewers(c,device_id)
+        row=one(c,'UPDATE device_viewers SET revoked_at=now() WHERE id=:id AND device_id=:d AND revoked_at IS NULL RETURNING viewer_user_id',id=uuid_string(viewer_id),d=device_id)
+        if not row:raise DomainError('not_found','Shared access not found.',404)
+        audit(c,g.actor['id'],'viewer_revoked',device_id,{'viewer_user_id':str(row['viewer_user_id'])})
     return jsonify(status='revoked')
 
 @bp.get('/api/v1/alerts')

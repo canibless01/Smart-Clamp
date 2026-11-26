@@ -66,3 +66,5 @@
 | `/terms` | Direct component/page change | See the file diff; shared shells and tokens also apply. |
 | `/utilities` | Direct component/page change | See the file diff; shared shells and tokens also apply. |
 | `/verification-reports/[token]` | Retained public shell | Page-specific content retained to preserve the approved design; shared responsive shell fixes apply. |
+
+Follow-up: `/settings` adds device/access discovery; `/devices/[id]` adds family and guest management; `/history` adds sampled supply hours with coverage and equal-period comparison. Other page-specific content is retained to preserve the approved UI and avoid another visual redesign.

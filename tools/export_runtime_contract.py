@@ -26,6 +26,7 @@ body('/meters/link','post',{'meter_number':{'type':'string','pattern':'^[0-9]{6,
 body('/payments/quotes','post',{'destination_token':string,'amount_kobo':{'type':'integer','minimum':100,'maximum':100000000},'utility_type':{'type':'string','enum':['electricity']}},['destination_token','amount_kobo'])
 body('/payments/checkout','post',{'quote_id':uid,'payer_email':{'type':'string','format':'email'},'return_path':string},['quote_id','payer_email'])
 body('/devices/{device_id}/relay','post',{'state':{'type':'string','enum':['on','off']},'authorization_ref':uid},['state','authorization_ref'])
+body('/devices/{device_id}/viewers','post',{'viewer_phone':{'type':'string','maxLength':32},'viewer_email':{'type':'string','format':'email','maxLength':254},'expires_in_hours':{'type':'integer','nullable':True,'minimum':1,'maximum':8760}},[])
 body('/invitations/accept','post',{'token':string},['token'])
 body('/reports','post',{'device_id':uid,'period_start':{'type':'string','format':'date'},'period_end':{'type':'string','format':'date'}},['device_id','period_start','period_end'])
 body('/jobs/{job_id}/actions','post',{

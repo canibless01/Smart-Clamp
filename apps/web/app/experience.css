@@ -22,3 +22,5 @@
 .demo-priority{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:20px 0}.demo-priority .demo-balance-strip{margin:0;flex-direction:column;align-items:flex-start;justify-content:center;gap:20px}.demo-priority .relay-dial{padding:8px 0}.demo-priority .instrument-switch-wrap{margin:12px 0}.demo-selectors{grid-template-columns:repeat(4,minmax(0,1fr))}@media(max-width:767px){.demo-priority{grid-template-columns:1fr;gap:14px}.demo-priority .demo-balance-strip{flex-direction:row;align-items:center}.demo-selectors{grid-template-columns:1fr}}
 
 .power-control-panel>.resource-form>p{color:var(--navy)}
+
+.supply-coverage-bar{height:18px;display:flex;overflow:hidden;border-radius:8px;background:#dbe1dc;margin:16px 0}.supply-covered-present{background:#3e745e}.supply-covered-absent{background:#a4473a}.supply-coverage-totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.supply-coverage-totals dd{margin:8px 0;font:600 1.5rem var(--font-mono,monospace);font-variant-numeric:tabular-nums}.supply-coverage-totals dt{font-size:.85rem;color:#526458}@media(max-width:600px){.supply-coverage-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -25,3 +25,7 @@ Use this for product implementation and investor questions. Unknown means unknow
 | Expected restoration time | A sourced utility notice or a validated, explicitly labelled prediction with confidence | Transformer measurements report current/recorded supply, not a guaranteed future restoration time. |
 
 A pole/transformer channel enables upstream-to-downstream comparison only where topology, timestamps and measurement coverage are comparable. A central relay/contactor can only control what is physically downstream of it. Software cannot stop wiring that bypasses every qualified measuring/actuating point. Reconciliation produces inspection flags and evidence, not automatic blame or invented tenant charges.
+
+## Sampled hours of supply
+
+`GET /devices/:id/supply-history?days=1|7|30` pairs adjacent signed readings only when both have valid sensing, trusted timestamps, non-null voltage, the same supply classification and a gap no larger than 180 seconds. Other intervals remain unknown. The current and previous equal periods both expose coverage. No coverage returns null hours, never fabricated zero. The configurable `SUPPLY_PRESENT_MIN_MV` defaults to 50000 (50 V), the reference presence threshold, and does not configure protection. These sampled hours are not a continuous-availability guarantee, theft evidence or a utility credit determination. Scope starts at the tenant occupancy/viewer grant where applicable.

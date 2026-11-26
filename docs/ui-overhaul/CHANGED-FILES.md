@@ -98,3 +98,30 @@ Current follow-up checkpoint against pushed commit f94a51e. Includes removal of 
 - `docs/ui-overhaul/IMPLEMENTATION-NOTES.md`
 - `docs/ui-overhaul/SCREEN-COVERAGE.md`
 - `tools/export_runtime_contract.py`
+
+## Access and sampled supply follow-up
+
+- `.env.example`
+- `apps/api/.env.example`
+- `apps/api/app/__init__.py`
+- `apps/api/app/db.py`
+- `apps/api/app/live_resources.py`
+- `apps/api/app/supply_history.py`
+- `apps/api/tests/test_supply_history.py`
+- `apps/api/tests/test_viewers.py`
+- `apps/web/app/devices/[id]/page.tsx`
+- `apps/web/app/experience.css`
+- `apps/web/app/history/page.tsx`
+- `apps/web/app/settings/page.tsx`
+- `apps/web/components/DeviceViewers.tsx`
+- `apps/web/components/SupplyHistory.tsx`
+- `apps/web/tests/supply-history.spec.ts`
+- `apps/web/tests/viewer-access.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/ELECTRICITY-FEATURE-CHECKLIST.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `tools/export_runtime_contract.py`

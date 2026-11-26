@@ -61,3 +61,13 @@ def building(conn,actor,bid):
     row=one(conn,'SELECT * FROM buildings WHERE id=:id AND landlord_id=:uid',id=uuid_string(bid),uid=actor['id'])
     if not row:raise DomainError('not_found','Building not found.',404)
     return dict(row)
+
+
+def reading_since(conn,actor,d):
+    """Private measurement floor; viewer access never includes pre-grant/previous-resident data."""
+    occupancy=one(conn,'SELECT tenant_id,start_at FROM occupancies WHERE room_id=:room AND end_at IS NULL ORDER BY start_at DESC LIMIT 1',room=d['room_id'])
+    if occupancy and str(occupancy['tenant_id'])==str(actor['id']):return occupancy['start_at']
+    if str(d['owner_id'])==str(actor['id']):return None
+    grant=one(conn,'SELECT created_at FROM device_viewers WHERE device_id=:id AND viewer_user_id=:uid AND revoked_at IS NULL AND(expires_at IS NULL OR expires_at>now())',id=d['id'],uid=actor['id'])
+    if grant:return max(grant['created_at'],occupancy['start_at']) if occupancy else grant['created_at']
+    return None # A separately authorized building manager retains its existing monitoring scope.

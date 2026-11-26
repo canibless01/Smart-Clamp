@@ -90,6 +90,7 @@ export default function Page() {
             )}
             {message && <p role="status">{message}</p>}
           </section>
+          <section className="card"><h2>Devices & shared access</h2><p>Manage family viewers and expiring guests from your SmartClamp.</p><div className="resource-actions">{data.devices.map((device:any,index:number)=><a key={device.id} className="btn btn-secondary" href={`/devices/${device.id}`}>SmartClamp {index+1} · installation & access</a>)}{!data.devices.length&&<p>Link a device to manage access.</p>}</div></section>
           <SensorySettings/>
           <PwaControls/>
           <div className="resource-actions">

@@ -1,5 +1,6 @@
 "use client";
 import ShortId, {shortReference} from "@/components/ShortId";
+import DeviceViewers from "@/components/DeviceViewers";
 import RecordWorkspace from "@/components/RecordWorkspace";
 export default function Page({ params: { id } }: { params: { id: string } }) {
   return (
@@ -9,6 +10,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
       endpoint={`/devices/${id}`}
     >
       {(d) => (
+        <>
         <section className="card">
           <h2>{d.profile.replace(/_/g, " ")}</h2>
           <dl>
@@ -46,6 +48,8 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             </a>
           </div>
         </section>
+        {d.can_manage_viewers&&<DeviceViewers deviceId={id}/>}
+        </>
       )}
     </RecordWorkspace>
   );

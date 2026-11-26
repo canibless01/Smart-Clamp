@@ -1,4 +1,5 @@
 "use client";
+import SupplyHistory from "@/components/SupplyHistory";
 import {useWorkspaceLive} from "@/components/WorkspaceLiveProvider";
 import {ElectricalTrends} from '@/components/EnergyInstruments';
 import { useState, useEffect } from "react";
@@ -101,6 +102,7 @@ export default function Page() {
                 ))}
               </select>
             </label>
+            <SupplyHistory deviceId={selected || data.devices[0].id}/>
             <Readings id={selected || data.devices[0].id} />
             <div className="resource-actions"><a className="btn btn-secondary" href="/reports">Create a signed report or CSV export</a></div>
           </>
