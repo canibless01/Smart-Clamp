@@ -1,7 +1,7 @@
 
 ## Resumed checkpoint verification — 26 November 2026
 
-Approved light UI restored. Room control and credit are prioritized, monitoring-only control is hidden, and authenticated SSE is shared across navigation. Local API integration: 71 passed. Production web build and design lint passed. Focused browser regression: 12 of 13 passed initially; the remaining email-history assertion was updated for the intended History tab and unique notices. Repeated dispatch checks must respect the existing one-minute anti-spam limit. Supabase external migrations are being handled in a separate chat; none were applied here. See ELECTRICITY-FEATURE-CHECKLIST.md for outstanding implementation, not merely provider acceptance.
+Approved light UI restored. Room control and credit are prioritized, monitoring-only control is hidden, and authenticated SSE is shared across navigation. Local API integration: 71 passed. Production web build and design lint passed. Focused browser regression: 12 of 13 passed initially; the corrected email-history check passed separately (all 13 accepted across the initial run and retry). The email test uses unique notices, checks the History tab, and retains the existing one-minute dispatch protection. TypeScript checking also passed. Supabase external migrations are being handled in a separate chat; none were applied here. See ELECTRICITY-FEATURE-CHECKLIST.md for outstanding implementation, not merely provider acceptance.
 
 # Current owner direction and feature checkpoint — 26 November 2026
 
