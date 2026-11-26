@@ -70,3 +70,5 @@ GitHub reports a successful Vercel deployment for 5225bc5 at https://smartclamp-
 ## Visual instrument update
 
 The latest captures use shared arc gauges, separate voltage/current/power trend traces, an electricity-flow diagram and a standard power-symbol switch. The fictional stream updates every two seconds; reduced-motion preferences pause it. Phone controls remain readable and setup selectors collapse under View & scenarios. The real monitoring/history/control pages reuse these instruments without inventing readings or bypassing confirmation. See `../VISUAL-INSTRUMENTS.md` for data/scale/missing-value boundaries.
+
+The Rooms view now includes Power now / Recorded today comparison bars, reused by the actual landlord room page. Exact room records remain expandable. The bars do not grant wallet or control privileges and do not turn missing readings into zero. The frontend follow-up passed its build and six targeted browser checks after the full instrument regression.

@@ -32,3 +32,7 @@ This increment covers the core electrical monitoring/history/control surfaces. I
 No SQL migration is required. Existing external-project SQL, provider setup and physical acceptance boundaries remain as documented in the launch checkpoint.
 
 Verified visual checkpoint: 61 real PostgreSQL/GoTrue API integration tests, 37 production-browser checks, production build and native policy checks pass. The scoped history test excludes pre-occupancy samples; uncertain source clocks do not become verified gauges or animated measured flow. Separate investor screenshots were refreshed and desktop/mobile images inspected. No SQL migration or physical switching change.
+
+## Room-comparison follow-up
+
+Real landlord rooms and the investor Rooms view now use shared Power now / Recorded today comparison bars. Stale current readings have hatched missing bars; no private tenant balances or switching privileges are added. Exact measurement tables remain expandable. Unverified/stale gauge status dots are muted as well as labelled. After the full61 API/37-browser instrument checkpoint, this frontend follow-up passed its production build and six focused browser checks, including the real landlord claim/invite/purchase journey and the room-comparison interactions.
