@@ -1,4 +1,5 @@
 "use client";
+import {ElectricalTrends} from '@/components/EnergyInstruments';
 import { useState, useEffect } from "react";
 import RecordWorkspace, { RecordTable } from "@/components/RecordWorkspace";
 import { apiFetch, formatKwh } from "@/lib/api";
@@ -10,7 +11,7 @@ function Readings({ id }: { id: string }) {
     setLoading(true);
     setError("");
     const c = new AbortController();
-    apiFetch(`/devices/${id}/events`, { signal: c.signal })
+    const fetchReadings=()=>apiFetch(`/devices/${id}/events`, { signal: c.signal })
       .then((d) => setItems(d.items))
       .catch((e) => {
         if (!c.signal.aborted) setError(e.message);
@@ -18,7 +19,9 @@ function Readings({ id }: { id: string }) {
       .finally(() => {
         if (!c.signal.aborted) setLoading(false);
       });
-    return () => c.abort();
+    void fetchReadings();
+    const timer=setInterval(()=>{if(document.visibilityState==='visible')void fetchReadings();},15000);
+    return () => {clearInterval(timer);c.abort();};
   }, [id]);
   return (
     <section className="card">
@@ -28,7 +31,8 @@ function Readings({ id }: { id: string }) {
         <p role="status">Loading measurements…</p>
       ) : (
         <>
-          <RecordTable
+          <ElectricalTrends samples={items.slice().reverse().map(r=>({at:r.occurred_at_ms,voltage:r.quality==='valid'&&r.clock_quality==='trusted'&&r.voltage_mv!=null?r.voltage_mv/1000:null,current:r.quality==='valid'&&r.clock_quality==='trusted'&&r.current_ma!=null?r.current_ma/1000:null,power:r.quality==='valid'&&r.clock_quality==='trusted'&&r.real_power_mw!=null?r.real_power_mw/1000:null}))}/>
+          <details className="instrument-data"><summary>Measurement records</summary><RecordTable
             items={items}
             columns={[
               {
@@ -61,7 +65,7 @@ function Readings({ id }: { id: string }) {
               { key: "clock_quality", label: "Clock confidence" },
             ]}
           />
-          <p>
+          </details><p>
             Cumulative counters are not period totals. Gaps remain unknown; they
             are not converted to zero usage. Showing up to 50 recent records.
           </p>

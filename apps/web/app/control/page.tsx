@@ -1,4 +1,5 @@
 "use client";
+import {PowerSwitch,RelayDial} from '@/components/EnergyInstruments';
 import { useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import { apiFetch } from "@/lib/api";
@@ -52,21 +53,8 @@ export default function Page() {
                   ))}
                 </select>
               </label>
-              <label>
-                Requested power
-                <select
-                  className="input"
-                  value={state}
-                  disabled={busy || !!challenge}
-                  onChange={(e) => {
-                    setState(e.target.value);
-                    setCommand(null);
-                  }}
-                >
-                  <option value="off">Turn off</option>
-                  <option value="on">Turn on</option>
-                </select>
-              </label>
+              <div><span>Confirmed relay</span><RelayDial on={devices.find((d:any)=>d.id===id)?.relay?.observed ?? null} pending={!!command}/></div>
+              <div><span>Requested power</span><PowerSwitch label="Requested power" on={state==='on'} disabled={busy||!!challenge||!controls?.can_request} onChange={on=>{setState(on?'on':'off');setCommand(null);}}/></div>
               {!challenge ? (
                 <button
                   className="btn btn-primary"

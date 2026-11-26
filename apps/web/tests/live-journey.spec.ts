@@ -59,6 +59,8 @@ test("real auth/database: landlord creates room, links device, invites resident 
   await page.getByRole("link", { name: "Open my dashboard" }).click();
   await expect(page).toHaveURL(/dashboard\/tenant/);
   await page.goto("/history");
+  await expect(page.getByText("Waiting for measured readings",{exact:true}).first()).toBeVisible();
+  await page.getByText("Measurement records",{exact:true}).click();
   await expect(
     page.getByText(
       "No records yet. New records will appear here once received.",

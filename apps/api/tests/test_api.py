@@ -121,6 +121,17 @@ class LiveIntegration(unittest.TestCase):
     def attest(self,u,p):
         result=self.client.post('/api/v1/payments/'+str(p['id'])+'/confirm-meter-entry',json={'confirmed':True},headers=self.headers(u))
         self.assertEqual(result.status_code,200,result.json)
+    def test_uncertain_clock_keeps_trends_and_voltage_advisories_unverified(self):
+        owner=self.user('homeowner');dev=self.provision(owner)
+        settings={'VOLTAGE_WARNING_LOW_MV':'180000','VOLTAGE_WARNING_HIGH_MV':'250000'};previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
+        try:
+            event=self.envelope(dev,clock_quality='estimated',metrics={'voltage_mv':165000,'current_ma':1200,'real_power_mw':188100,'import_mwh':0,'export_mwh':0})
+            self.assertEqual(self.client.post('/api/v1/device/events',json=event).status_code,200)
+            response=self.client.get('/api/v1/dashboard/homeowner',headers=self.headers(owner));self.assertEqual(response.status_code,200,response.json);payload=response.json
+            self.assertEqual(payload['devices'][0]['electrical']['clock_quality'],'estimated');self.assertEqual(payload['devices'][0]['electrical']['voltage_status'],'unknown')
+            self.assertIsNone(payload['electrical_history'][0]['voltage']);self.assertIsNone(payload['electrical_history'][0]['current']);self.assertIsNone(payload['electrical_history'][0]['power'])
+        finally:self.app.config.update(previous)
+
     def test_electrical_projection_reports_units_and_only_fresh_voltage_advisories(self):
         owner=self.user('homeowner');dev=self.provision(owner)
         settings={'VOLTAGE_WARNING_LOW_MV':'180000','VOLTAGE_WARNING_HIGH_MV':'250000'};previous={k:self.app.config.get(k) for k in settings};self.app.config.update(settings)
@@ -780,11 +791,13 @@ class LiveIntegration(unittest.TestCase):
         invite=self.client.post(f'/api/v1/rooms/{rid}/invitations',json={},headers=self.headers(landlord));self.assertEqual(invite.status_code,201,invite.json)
         token=invite.json['invite_link'].split('token=')[1];join=self.client.post('/api/v1/invitations/accept',json={'token':token},headers=self.headers(tenant));self.assertEqual(join.status_code,200,join.json)
         self.assertEqual(self.client.post('/api/v1/invitations/accept',json={'token':token},headers=self.headers(outsider)).status_code,404)
+        old_sample=self.envelope(dev,occurred_at_ms=int(datetime.now(timezone.utc).timestamp()*1000)-60000,metrics={'voltage_mv':123000,'current_ma':1000,'real_power_mw':110000,'import_mwh':0,'export_mwh':0});self.assertEqual(self.client.post('/api/v1/device/events',json=old_sample).status_code,200)
         event=self.envelope(dev);self.assertEqual(self.client.post('/api/v1/device/events',json=event).status_code,200);self.drain()
         room=self.client.get(f'/api/v1/buildings/{bid}/rooms',headers=self.headers(landlord)).json['items'][0];self.assertEqual(room['tenant_id'],tenant['id']);self.assertEqual(room['device_id'],dev['id'])
         self.assertEqual(room['monitoring']['power_w'],1150);self.assertEqual(room['monitoring']['voltage_v'],230);self.assertEqual(room['monitoring']['current_a'],5);self.assertTrue(room['monitoring']['fresh']);self.assertNotIn('wallet',room)
         for user in(landlord,tenant):
             context=self.client.get('/api/v1/users/me/context',headers=self.headers(user));self.assertEqual(context.status_code,200,context.json);self.assertIn(dev['id'],[d['id'] for d in context.json['devices']]);self.assertEqual(context.json['devices'][0]['measurement']['value'],1150)
+        own_history=self.client.get('/api/v1/users/me/context',headers=self.headers(tenant)).json['electrical_history'];self.assertNotIn(123,[p['voltage'] for p in own_history]);self.assertIn(230,[p['voltage'] for p in own_history])
         self.assertEqual(self.client.get('/api/v1/devices/'+dev['id']+'/events',headers=self.headers(outsider)).status_code,404)
     def test_owner_payment_usage_and_late_readings_journey(self):
         owner=self.user('homeowner');d=self.provision(owner);p=self.payment(owner,d);self.assertEqual(self.signed_webhook(p).status_code,200);self.drain();self.attest(owner,p)

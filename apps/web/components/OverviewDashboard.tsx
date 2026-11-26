@@ -2,9 +2,9 @@
 import { hasSession } from "@/lib/session";
 import { useState, useEffect, useCallback } from "react";
 import AppShell from "./AppShell";
+import {ElectricalGauge,ElectricalTrends,SupplyFlow,RelayDial} from './EnergyInstruments';
 import UsageChart from "./UsageChart";
 import WalletCard from "./WalletCard";
-import { LiveMetric, StatusBadge } from "./LiveMetric";
 import Icon from "./Icon";
 import { apiFetch } from "@/lib/api";
 export default function OverviewDashboard({
@@ -16,8 +16,8 @@ export default function OverviewDashboard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [auth, setAuth] = useState(false);
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet=false) => {
+    if(!quiet)setLoading(true);
     setError("");
     if (!hasSession()) {
       setAuth(true);
@@ -34,14 +34,15 @@ export default function OverviewDashboard({
           : "We couldn’t load your overview. Please try again.",
       );
     } finally {
-      setLoading(false);
+      if(!quiet)setLoading(false);
     }
   }, [role]);
   useEffect(() => {
     void load();
+    const timer=setInterval(()=>{if(document.visibilityState==='visible')void load(true);},15000);
     const refreshed = () => void load();
     window.addEventListener("smartclamp:session-updated", refreshed);
-    return () => window.removeEventListener("smartclamp:session-updated", refreshed);
+    return () => {clearInterval(timer);window.removeEventListener("smartclamp:session-updated", refreshed);};
   }, [load]);
   const device = data?.devices?.[0];
   const measured = device?.measurement;
@@ -51,6 +52,7 @@ export default function OverviewDashboard({
     observed &&
     Number.isFinite(Date.parse(observed)) &&
     Date.now() - Date.parse(observed) < 180000;
+  const readingStatus=!fresh?'stale':measured?.quality!=='valid'||device?.electrical?.clock_quality!=='trusted'?'Unverified reading':'fresh';
   const watts = measured?.value ?? data?.live_watts ?? null;
   const relay = device?.relay;
   const hasControl =
@@ -141,11 +143,7 @@ export default function OverviewDashboard({
                     </span>
                   </div>
                 )}
-                <StatusBadge
-                  supply={fresh ? device?.supply_state : "unknown"}
-                  connectivity={fresh ? device?.connectivity : "unknown"}
-                  relay={{ observed: fresh ? relay?.observed : null }}
-                />
+                <SupplyFlow supply={fresh ? device?.supply_state : 'unknown'} relay={fresh ? relay?.observed ?? null : null} power={readingStatus==='fresh' ? watts : null}/>
                 <div className="grid-12 overview-metrics">
                   <div style={{ gridColumn: "span 4" }}>
                     <WalletCard
@@ -156,38 +154,16 @@ export default function OverviewDashboard({
                     />
                   </div>
                   <div style={{ gridColumn: "span 4" }}>
-                    <LiveMetric
-                      label={fresh ? "Power right now" : "Last recorded power"}
-                      value={watts}
-                      unit={measured?.unit || "W"}
-                      observedAt={observed}
-                      quality={measured?.quality || "unknown"}
-                      coverage={measured?.coverage}
-                    />
+                    <ElectricalGauge label="Real power" value={watts} unit="W" scale={1000} status={readingStatus}/>
                   </div>
                   <div style={{ gridColumn: "span 4" }}>
-                    <LiveMetric
-                      label="Observed relay state"
-                      value={
-                        relay?.observed === true
-                          ? "ON"
-                          : relay?.observed === false
-                            ? "OFF"
-                            : data?.relay_state === true
-                              ? "ON"
-                              : data?.relay_state === false
-                                ? "OFF"
-                                : null
-                      }
-                      unit=""
-                      observedAt={relay?.observed_at}
-                      quality="observed"
-                    />
+                    <section className="card"><h2 style={{fontSize:18}}>Observed relay state</h2><RelayDial on={fresh ? relay?.observed ?? null : null}/><a className="text-link" href="/control">Power control ↗</a></section>
                   </div>
                   {['voltage_v','current_a'].map((key) => <div style={{gridColumn:"span 6"}} key={key}>
-                    <LiveMetric label={(fresh ? "" : "Last recorded ")+(key==='voltage_v'?'Voltage':'Current')} value={device?.electrical?.[key] ?? null} unit={key==='voltage_v'?'V':'A'} observedAt={device?.electrical?.observed_at} quality={device?.electrical?.quality || 'unknown'}/>
+                    <ElectricalGauge label={key==='voltage_v'?'Voltage':'Current'} value={device?.electrical?.[key] ?? null} unit={key==='voltage_v'?'V':'A'} scale={key==='voltage_v'?300:10} status={readingStatus!=='fresh'?readingStatus:key==='voltage_v'&&['low','high'].includes(device?.electrical?.voltage_status)?device.electrical.voltage_status:'fresh'}/>
                   </div>)}
                   {['low','high'].includes(device?.electrical?.voltage_status) && <div className="overview-note" role="status" style={{gridColumn:"span 12"}}>Voltage is {device.electrical.voltage_status==='low'?'below':'above'} your configured advisory band ({device.electrical.warning_band.low_v}–{device.electrical.warning_band.high_v} V). This display warning does not confirm a protective switch action.</div>}
+                  <div style={{gridColumn:"span 12"}}><ElectricalTrends samples={data?.electrical_history || []}/></div>
                   <div style={{ gridColumn: "span 8" }}>
                     <UsageChart data={data?.usage_history} />
                   </div>

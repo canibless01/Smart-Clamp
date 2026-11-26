@@ -39,15 +39,21 @@ def projection(c):
             band={'low_v':low/1000,'high_v':high/1000}
         except (ValueError,TypeError):pass
         voltage_status='unknown'
-        if fresh and r['quality']=='valid' and voltage is not None:
+        if fresh and r['quality']=='valid' and r['clock_quality']=='trusted' and voltage is not None:
             if devices[-1]['supply_state']=='absent':voltage_status='no_supply'
             elif band:voltage_status='low' if voltage<low else 'high' if voltage>high else 'within_band'
             else:voltage_status='limits_unconfigured'
-        devices[-1]['electrical']={'voltage_v':voltage/1000 if voltage is not None else None,'current_a':r['current_ma']/1000 if r and r['current_ma'] is not None else None,'observed_at':at,'quality':r['quality'] if r else 'unavailable','voltage_status':voltage_status,'warning_band':band,'advisory_only':True}
+        devices[-1]['electrical']={'voltage_v':voltage/1000 if voltage is not None else None,'current_a':r['current_ma']/1000 if r and r['current_ma'] is not None else None,'observed_at':at,'quality':r['quality'] if r else 'unavailable','clock_quality':r['clock_quality'] if r else 'unknown','voltage_status':voltage_status,'warning_band':band,'advisory_only':True}
         allowed,code,message,_=control_eligibility(c,g.actor,dev)
         devices[-1]['controls']={'can_request':allowed,'unavailable_code':code,'unavailable_reason':message}
-    usage=[]
+    usage=[];electrical_history=[]
     if devices:
+        samples=rows(c,"""SELECT r.occurred_at_ms,r.voltage_mv,r.current_ma,r.real_power_mw,r.quality,r.clock_quality FROM readings r
+          WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000))
+          ORDER BY r.occurred_at_ms DESC NULLS LAST,r.received_at DESC LIMIT 120""",id=devices[0]['id'],room=one(c,'SELECT room_id FROM devices WHERE id=:id',id=devices[0]['id'])['room_id'],role=g.actor['role'],uid=g.actor['id'])
+        for sample in reversed(samples):
+            valid=sample['quality']=='valid' and sample['clock_quality']=='trusted'
+            electrical_history.append({'at':sample['occurred_at_ms'],'voltage':sample['voltage_mv']/1000 if valid and sample['voltage_mv'] is not None else None,'current':sample['current_ma']/1000 if valid and sample['current_ma'] is not None else None,'power':sample['real_power_mw']/1000 if valid and sample['real_power_mw'] is not None else None})
         periods=rows(c,"""SELECT r.occurred_at_ms,u.consumed_mwh FROM usage_postings u JOIN readings r ON r.id=u.reading_id
           WHERE r.device_id=:id AND u.accounting_quality='measured'
           AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o JOIN devices d ON d.room_id=o.room_id
@@ -56,7 +62,7 @@ def projection(c):
         usage=[{'time':datetime.fromtimestamp(p['occurred_at_ms']/1000,timezone(timedelta(hours=1))).strftime('%d %b %H:%M'),'kwh':p['consumed_mwh']/1000000} for p in reversed(periods)]
     actions=['view_dashboard','recharge'] if devices else ['view_dashboard']
     if any(d['controls']['can_request'] for d in devices):actions.append('relay_toggle')
-    return {'snapshot_version':int(scalar(c,"SELECT coalesce(max(id),0) FROM audit_log WHERE actor_id=:uid",uid=g.actor['id']) or 0),'generated_at':datetime.now(timezone.utc),'usage_history':usage,'authorized_context':{'user_id':g.actor['id'],'role':g.actor['role']},'devices':devices,'allowed_actions':actions}
+    return {'snapshot_version':int(scalar(c,"SELECT coalesce(max(id),0) FROM audit_log WHERE actor_id=:uid",uid=g.actor['id']) or 0),'generated_at':datetime.now(timezone.utc),'usage_history':usage,'electrical_history':electrical_history,'authorized_context':{'user_id':g.actor['id'],'role':g.actor['role']},'devices':devices,'allowed_actions':actions}
 
 @bp.get('/api/v1/dashboard/tenant')
 @bp.get('/api/v1/dashboard/homeowner')
@@ -174,7 +180,7 @@ def history(device_id):
     with transaction() as c:
         d=device(c,g.actor,device_id)
         # A current tenant sees only its active occupancy interval, even if the device predates it.
-        return page(rows(c,"""SELECT r.id,r.occurred_at_ms,r.quality,r.clock_quality,r.voltage_mv,r.real_power_mw,r.import_mwh,r.export_mwh FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST LIMIT :limit""",id=device_id,role=g.actor['role'],room=d['room_id'],uid=g.actor['id'],limit=limit()))
+        return page(rows(c,"""SELECT r.id,r.occurred_at_ms,r.quality,r.clock_quality,r.voltage_mv,r.current_ma,r.real_power_mw,r.import_mwh,r.export_mwh FROM readings r WHERE r.device_id=:id AND(:role<>'tenant' OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=:room AND o.tenant_id=:uid AND o.end_at IS NULL AND r.occurred_at_ms>=extract(epoch FROM o.start_at)*1000)) ORDER BY r.occurred_at_ms DESC NULLS LAST LIMIT :limit""",id=device_id,role=g.actor['role'],room=d['room_id'],uid=g.actor['id'],limit=limit()))
 
 @bp.get('/api/v1/feature-flags/active')
 @authenticated

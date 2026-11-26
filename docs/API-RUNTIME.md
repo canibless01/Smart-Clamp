@@ -114,3 +114,7 @@ Both workflow endpoints additionally accept `assign` (superadmin only, requiring
 Dashboard/context devices now include `electrical` with voltage_v/current_a, observation time/quality, an optional configured voltage warning band and advisory-only status. Set both `VOLTAGE_WARNING_LOW_MV` and `VOLTAGE_WARNING_HIGH_MV` to reviewed millivolt limits if display advisories are wanted. Missing/invalid limits produce no inferred safety rule. These settings do not change firmware, relay protection, or authorization.
 
 The ownership-scoped building room list now includes `monitoring`: supply_state, power_w, voltage_v, current_a, recorded_today_kwh, fresh and observed_at. Day boundaries use Africa/Lagos; only measured posted intervals are summed. Missing data is null, not fabricated zero, and no private tenant wallet is included. Existing room linking/invitations remain. `/demo` is a separate frontend simulation, not a new real-device API or Auth bypass.
+
+## Sampled electrical trends —26 November2026
+
+Dashboard/context projection adds `electrical_history` with up to120 chronological samples (`at`, `voltage`, `current`, `power`). The history uses current occupancy boundaries for tenants. Unknown-clock/invalid measurements have null channels, preserving chart gaps. The device events endpoint additionally returns `current_ma`. Core real overview/history refresh visible measurements every15seconds; production command authorization and physical receipt semantics are unchanged. See `VISUAL-INSTRUMENTS.md`. No SQL migration.

@@ -1,4 +1,4 @@
-# SmartClamp investor demo — 25 November 2026
+# SmartClamp investor demo — 26 November 2026
 
 This is a separate investor-demo folder. None of its screenshots were added to the earlier 86-image QA gallery. The images are actual browser captures of the new interactive `/demo` route, with the simulated-data banner visible.
 
@@ -59,10 +59,14 @@ Low current alone is not evidence of bad voltage: a room may simply have little 
 
 ## Validation
 
-The production web build and 60 real local API integration tests pass. Three new production-browser demo tests pass: independent room purchases and balanced joint allocation; offline/protection/manual-restore behavior without production API calls or tokens; WCAG AA checks and phone-width layout. All 35 production-browser regression checks pass, including the three new demo checks. Screenshots are captured from the running demo, not generated images. No production SQL or hardware commands were sent.
+The production web build and 61 real local API integration tests pass. Four production-browser demo tests pass: independent room purchases and balanced joint allocation; offline/protection/manual-restore behavior without production API calls or tokens; WCAG AA checks and phone-width layout. All 37 production-browser checks pass, including the updating-trace and uncertain-reading UI checks. Screenshots are captured from the running demo, not generated images. No production SQL or hardware commands were sent.
 
 The UI uses natural product wording with one persistent Interactive demo banner. Sample-data, prototype allocation, tariff and safety boundaries remain documented here; the screen no longer repeats simulated/demo labels on every metric or action.
 
 ## Verified hosted preview
 
 GitHub reports a successful Vercel deployment for 5225bc5 at https://smartclamp-b0gtke2aa-canibless01-5367s-projects.vercel.app/demo . A guest request redirects to Vercel login, so this is an owner/team preview, not a freely accessible investor link. Configure Vercel Deployment Protection or obtain an authorised share link before inviting outside investors. Subsequent Git pushes may create new preview URLs through the existing integration; no protection settings were changed by this work.
+
+## Visual instrument update
+
+The latest captures use shared arc gauges, separate voltage/current/power trend traces, an electricity-flow diagram and a standard power-symbol switch. The fictional stream updates every two seconds; reduced-motion preferences pause it. Phone controls remain readable and setup selectors collapse under View & scenarios. The real monitoring/history/control pages reuse these instruments without inventing readings or bypassing confirmation. See `../VISUAL-INSTRUMENTS.md` for data/scale/missing-value boundaries.
