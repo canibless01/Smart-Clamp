@@ -87,7 +87,7 @@ def utility_dashboard():
         ids=[s['device_id'] for s in scopes]
         if not ids:raise DomainError('utility_scope_required','Your organization needs an active contracted device scope before utility data is visible.',403)
         devices=rows(c,"SELECT id,profile,last_seen_at,supply_state,install_state FROM devices WHERE id=ANY(CAST(:ids AS uuid[])) ORDER BY id",ids=ids)
-        signals=rows(c,"SELECT id,device_id,kind,active,occurred_at_ms,clock_quality,received_at FROM device_signals WHERE device_id=ANY(CAST(:ids AS uuid[])) ORDER BY received_at DESC LIMIT 100",ids=ids)
+        signals=rows(c,"SELECT s.id,s.device_id,s.kind,s.active,s.occurred_at_ms,s.clock_quality,s.received_at,i.payload_sha256 AS signed_payload_sha256,r.ticket_id,t.status AS review_status FROM device_signals s JOIN device_inbox i ON i.id=s.inbox_id LEFT JOIN signal_reviews r ON r.signal_id=s.id AND r.reporter_id=:uid LEFT JOIN support_tickets t ON t.id=r.ticket_id WHERE s.device_id=ANY(CAST(:ids AS uuid[])) ORDER BY s.received_at DESC LIMIT 100",ids=ids,uid=g.actor['id'])
         audit(c,g.actor['id'],'utility_dashboard_viewed',metadata={'device_count':len(ids)})
     return jsonify(devices=devices,signals=signals,scope_count=len(ids),customer_identity_included=False)
 

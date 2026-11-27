@@ -199,9 +199,8 @@ def run_once():
                 if job['event_type']=='reading_committed':process_reading(c,job['payload']['reading_id'])
                 elif job['event_type'] in('supply_lost','supply_returned'):process_episode(c,job)
                 elif job['event_type'] in('protection','tamper'):
-                    d=one(c,'SELECT owner_id FROM devices WHERE id=:id',id=job['payload']['device_id'])
-                    message='Your device reported stable voltage and cleared its protection restriction. Other restrictions may still apply.' if job['event_type']=='protection' and job['payload'].get('active') is False else 'Your device reported a '+job['event_type']+' signal that needs review. Physical switching is not confirmed by this signal.'
-                    notify(c,d['owner_id'],job['event_type'],message+(' This signal asks for investigation; it does not prove theft.' if job['event_type']=='tamper' else ''),str(job['id']),details={'alert_type':job['event_type'] if job['payload'].get('active',True) else 'info','device_id':job['payload']['device_id']})
+                    from .trust import notify_signal
+                    notify_signal(c,job)
                 else:raise DomainError('unsupported_event','This event requires an implemented processor.',503)
         with transaction() as c:query(c,"UPDATE outbox SET status='done',lease_until=NULL,last_error=NULL WHERE id=:id",id=job['id'])
     except Exception as e:

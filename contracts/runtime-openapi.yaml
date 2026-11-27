@@ -4078,10 +4078,202 @@ paths:
               - state
               - authorization_ref
               additionalProperties: false
+  /devices/{device_id}/signals/{signal_id}/review:
+    post:
+      operationId: trust_request_review_post_devices_device_id_signals_signal_id_review
+      summary: Request review
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: signal_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
   /devices/{device_id}/supply-history:
     get:
       operationId: supply_history_supply_history_get_devices_device_id_supply_history
       summary: Supply history
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: device_id
+        in: path
+        required: true
+        schema:
+          type: string
+  /devices/{device_id}/trust:
+    get:
+      operationId: trust_trust_get_devices_device_id_trust
+      summary: Trust
       security:
       - bearerAuth: []
       responses:
@@ -4366,7 +4558,6 @@ paths:
                   nullable: true
                   minimum: 1
                   maximum: 8760
-              required: []
               additionalProperties: false
   /devices/{device_id}/viewers/{viewer_id}:
     delete:
@@ -10364,6 +10555,103 @@ paths:
         required: true
         schema:
           type: string
+  /support/tickets/{ticket_id}/inspection:
+    post:
+      operationId: trust_inspection_post_support_tickets_ticket_id_inspection
+      summary: Inspection
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
   /support/tickets/{ticket_id}/messages:
     post:
       operationId: live_resources_ticket_message_post_support_tickets_ticket_id_messages
@@ -11801,6 +12089,103 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+  /utility/signals/{signal_id}/review:
+    post:
+      operationId: trust_utility_review_post_utility_signals_signal_id_review
+      summary: Utility review
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: signal_id
+        in: path
+        required: true
+        schema:
+          type: string
       requestBody:
         required: true
         content:

@@ -220,9 +220,19 @@
     "handler": "live_devices.relay"
   },
   {
+    "method": "POST",
+    "path": "/api/v1/devices/{device_id}/signals/{signal_id}/review",
+    "handler": "trust.request_review"
+  },
+  {
     "method": "GET",
     "path": "/api/v1/devices/{device_id}/supply-history",
     "handler": "supply_history.supply_history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}/trust",
+    "handler": "trust.trust"
   },
   {
     "method": "GET",
@@ -561,6 +571,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/support/tickets/{ticket_id}/inspection",
+    "handler": "trust.inspection"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/support/tickets/{ticket_id}/messages",
     "handler": "live_resources.ticket_message"
   },
@@ -638,6 +653,11 @@
     "method": "POST",
     "path": "/api/v1/users/me/subscription/cancel",
     "handler": "live_auth.cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/utility/signals/{signal_id}/review",
+    "handler": "trust.utility_review"
   },
   {
     "method": "GET",

@@ -1,5 +1,6 @@
 "use client";
 import ShortId, {shortReference} from "@/components/ShortId";
+import DeviceTrust from "@/components/DeviceTrust";
 import DeviceViewers from "@/components/DeviceViewers";
 import RecordWorkspace from "@/components/RecordWorkspace";
 export default function Page({ params: { id } }: { params: { id: string } }) {
@@ -48,6 +49,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             </a>
           </div>
         </section>
+        <DeviceTrust deviceId={id}/>
         {d.can_manage_viewers&&<DeviceViewers deviceId={id}/>}
         </>
       )}

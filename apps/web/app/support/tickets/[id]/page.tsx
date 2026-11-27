@@ -1,4 +1,5 @@
 "use client";
+import ShortId from "@/components/ShortId";
 import Link from "next/link";
 import { useState } from "react";
 import RecordWorkspace from "@/components/RecordWorkspace";
@@ -24,6 +25,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             <p>{data.message}</p>
             <p>Status: {data.status}</p><p>{data.assigned_to_me ? "You own this request" : data.assigned_to ? "Assigned to a support colleague" : "Unassigned"}</p>
           </section>
+          {data.signal_review&&<section className="card"><h2>Signal investigation</h2><p>This request references a signed device signal. It does not establish theft.</p><details><summary>Source evidence</summary><p>{data.signal_review.kind} · reported {data.signal_review.active?'active':'cleared'} · clock {data.signal_review.clock_quality}</p><p>Key epoch {data.signal_review.key_epoch} · sequence {data.signal_review.seq}</p><p>Payload SHA-256: <ShortId value={data.signal_review.signed_payload_sha256}/></p></details>{data.signal_review.job_id?<p>Inspection: {(data.signal_review.inspection_status||'pending').replace(/_/g,' ')}. Field work and conclusions are recorded separately.</p>:data.can_manage&&data.assigned_to_me&&data.status!=='resolved'?<button type="button" className="btn btn-secondary" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await apiFetch(`/support/tickets/${id}/inspection`,{method:'POST',body:'{}'});reload();}catch(e){setError(e instanceof Error?e.message:'Inspection was not requested.');}finally{setBusy(false);}}}>Request field inspection</button>:<p>A support reviewer must claim this request before arranging an inspection.</p>}</section>}
           <div className="resource-list">
             {data.messages.map((m: any, i: number) => (
               <article className="card" key={i}>

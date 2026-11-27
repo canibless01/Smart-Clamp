@@ -9,7 +9,7 @@ projects are outside this action's scope.
 ## Current status
 
 **Prepared and locally tested; not yet applied to the external project.**
-The public Auth endpoint is reachable and returns HTTP401 without a key. No
+The last check on 26 November reached the general Management API (401 without credentials), but the target project failed proxy CONNECT (403). No
 Supabase management connector, `SUPABASE_ACCESS_TOKEN` or external `DATABASE_URL`
 was available in this workspace. The public project URL does not authorize SQL.
 The migration command stopped before remote access because the management token
@@ -17,7 +17,7 @@ is missing. No external migration receipt or success is claimed.
 
 ## Prepared migration
 
-[Review the complete 001–038 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
+[Review the complete 001–039 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
 It contains all current migration files, original SHA-256 checksums and a single
 transaction. It refuses untracked public tables or unknown migration history,
 skips matching applied migrations and stops on checksum drift. It creates no
@@ -72,6 +72,10 @@ supports `query` and `read_only`. No unsupported magic SQL RPC is assumed.
 
 The linked Supabase tag is visible in chat, but no callable Supabase connector was present in the active tool catalogue. Current Cloud environment status reports no configured secrets/runtime variables. The process and repository dotenv settings contain no `SUPABASE_ACCESS_TOKEN`, external `DATABASE_URL`, `SUPABASE_URL` or `SUPABASE_ANON_KEY`.
 
-Actual read-only network checks: `https://supabase.com` returned 200; `https://api.supabase.com/v1/projects` returned 401 (authentication required). The intended project host's `/auth/v1/health` and REST endpoint failed at the Cloud proxy's CONNECT stage with 403; an outside-sandbox retry of the same health URL failed identically. This does not establish that the project is down, paused, healthy or accessible through a Supabase account. No SQL, project changes or migration success are claimed. The prepared checksum-tracked bundle now includes 001–038.
+Actual read-only network checks: `https://supabase.com` returned 200; `https://api.supabase.com/v1/projects` returned 401 (authentication required). The intended project host's `/auth/v1/health` and REST endpoint failed at the Cloud proxy's CONNECT stage with 403; an outside-sandbox retry of the same health URL failed identically. This does not establish that the project is down, paused, healthy or accessible through a Supabase account. No SQL, project changes or migration success are claimed. The prepared checksum-tracked bundle now includes 001–039.
 
 Use the administration inputs in [LAUNCH-INPUTS](../LAUNCH-INPUTS.md). The existing target/action authorization remains valid; the missing requirement is actual admin connectivity/credentials, not another approval to migrate this project.
+
+## 27 November implementation update
+
+Migration 039 adds the resident/utility signal-to-support-to-inspection relationship with deny-by-default RLS. The bundle includes 001–039. It has been applied only to isolated QA in this chat. The owner assigned external SQL execution to another chat; inspect its migration receipt before any external operation.

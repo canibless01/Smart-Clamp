@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql','039_signal_investigations.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -2093,5 +2093,32 @@ $sc_source_9cf0976cc69ee2547b9b7ced4031767e8716215d0aae7ab468c0e034a421660e$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('038_signed_channel_manifests.sql','9cf0976cc69ee2547b9b7ced4031767e8716215d0aae7ab468c0e034a421660e');
   END IF;
 END $sc_step_37$;
+
+DO $sc_step_38$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='039_signal_investigations.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8' THEN RAISE EXCEPTION 'Migration checksum mismatch: 039_signal_investigations.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8$
+-- A signal requests investigation, never establishes theft or authorizes switching.
+create table signal_reviews (
+ id uuid primary key default gen_random_uuid(),
+ signal_id uuid not null references device_signals(id),
+ reporter_id uuid not null references profiles(id),
+ ticket_id uuid not null unique references support_tickets(id),
+ job_id uuid unique references jobs(id),
+ created_at timestamptz not null default now(),
+ unique(signal_id,reporter_id)
+);
+alter table signal_reviews enable row level security;
+revoke all on signal_reviews from anon,authenticated;
+create index signal_reviews_signal on signal_reviews(signal_id);
+
+$sc_source_80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('039_signal_investigations.sql','80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8');
+  END IF;
+END $sc_step_38$;
 
 COMMIT;

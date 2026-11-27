@@ -15,7 +15,7 @@ for rule in sorted(app.url_map.iter_rules(),key=lambda r:r.rule):
         paths.setdefault(path,{})[method.lower()]=op;routes.append({'method':method,'path':'/api/v1'+path,'handler':rule.endpoint})
 
 def body(path,method,properties,required):
-    paths[path][method]['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','properties':properties,'required':required,'additionalProperties':False}}}}
+    paths[path][method]['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','properties':properties,**({'required':required} if required else {}),'additionalProperties':False}}}}
 string={'type':'string'};uid={'type':'string','format':'uuid'}
 body('/disputes/{dispute_id}/workflow','post',{'action':{'type':'string','enum':['claim','assign','release','respond','escalate','close_no_adjustment','reopen']},'version':{'type':'integer','minimum':1},'assignee_id':uid,'note':{'type':'string','minLength':1,'maxLength':4000}},['action','version','note'])
 body('/disputes','post',{'bill_id':uid,'note':{'type':'string','minLength':1,'maxLength':4000}},['bill_id','note'])

@@ -339,7 +339,8 @@ def ticket_access(c,ticket_id):
 def ticket_detail(ticket_id):
     with transaction() as c:
         r=ticket_access(c,ticket_id);reviewers=case_assignment.responders(c,('internal_support','internal_superadmin'));messages=rows(c,'SELECT author_id,message,created_at FROM support_messages WHERE ticket_id=:id ORDER BY created_at',id=ticket_id)
-    return jsonify({**dict(r),'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin'),'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'responders':reviewers,'can_assign':g.actor['role']=='internal_superadmin'})
+        review=one(c,'SELECT review.signal_id,review.job_id,j.status AS inspection_status,s.kind,s.active,s.occurred_at_ms,s.clock_quality,i.payload_sha256 AS signed_payload_sha256,i.key_epoch,i.seq FROM signal_reviews review JOIN device_signals s ON s.id=review.signal_id JOIN device_inbox i ON i.id=s.inbox_id LEFT JOIN jobs j ON j.id=review.job_id WHERE review.ticket_id=:id',id=ticket_id)
+    return jsonify({**dict(r),'signal_review':dict(review) if review else None,'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin'),'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'responders':reviewers,'can_assign':g.actor['role']=='internal_superadmin'})
 
 @bp.post('/api/v1/support/tickets/<ticket_id>/messages')
 @authenticated

@@ -64,3 +64,13 @@ Family/guest sharing is discoverable in Settings → device. Expiring or ongoing
 Usage history now includes sampled hours of supply for 1/7/30 days, unknown hours, coverage and a previous equal period. It uses paired qualified voltage samples, not energy totals or connectivity. Gaps and transitions are unknown. The documented presence threshold does not alter protection settings.
 
 Verification: expanded real database/Auth suite 74 passed; additional lock-focused tests 2 passed; mobile sharing/revoke and supply-history browser journeys 2 passed; production build passed. No external SQL applied and no new migration in this batch. Budgets/schedules, device HALs, settlement and other checklist items remain open.
+
+## Signed-signal investigation checkpoint — 27 November 2026
+
+Device details now include Signals & trust: authenticated packet digest/epoch/sequence, source-time confidence, tamper/protection history, and a resident review request. A scoped utility user can request a review from its assigned-device signal queue without customer identity. Requests deduplicate per reporter/signal. Support must claim the ticket before creating one linked inspection work order; residents can track ticket and field-work state. Existing job assignment/field workflow remains authoritative. Signed signals never establish theft or authorize punitive switching. Resident/utility notification fanout respects active occupancy, role, membership and device scope; revoked utility scopes receive no subsequent signal alert.
+
+Migration 039_signal_investigations.sql and the checksum-tracked external bundle are prepared. 039 was applied only to isolated QA here. The other chat handles external Supabase execution; its receipt is required to claim that side complete.
+
+Verification: 76 real PostgreSQL/Auth API checks passed; four browser journeys passed across initial run and focused retry (utility notices, supply history, viewer access, signal-review/inspection). Production build, design lint, contract validation and native policy/crypto suites passed. The browser retry corrected its expectation for the legitimate support-queue landing route. OpenAPI export now omits empty required arrays.
+
+Next: budgets/schedules with durable device execution; installation limits/override qualification; hardware HAL integration; shared/unmetered settlement and reconciliation; auto-recharge/subscriptions; operations analytics. Do not present this as all features complete or environment-only readiness.

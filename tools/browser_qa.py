@@ -69,6 +69,8 @@ with t.app.app_context():
         if response_email.status_code!=200:raise RuntimeError('Could not create isolated email notice account')
         email_recipient.update(id=response_email.json['user_id'],token=response_email.json['access_token'])
         email_device=t.provision(email_recipient)
+signal=t.client.post('/api/v1/device/events',json=t.envelope(message_device,kind='tamper'))
+if signal.status_code!=200:raise RuntimeError('Could not create signed QA signal')
 a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
