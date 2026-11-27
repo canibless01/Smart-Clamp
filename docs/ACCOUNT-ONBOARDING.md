@@ -63,3 +63,9 @@ Local tests exercise real isolated GoTrue/PostgreSQL email/password and verified
 identity onboarding, consent/role enforcement, refresh and browser journeys.
 Google PKCE construction/invalid callback checks are contract tests. They are
 **not** evidence of a live Google consent round trip or delivered email/SMS.
+
+## Verified email enrollment acceptance — 27 November 2026
+
+The earlier email-contact validation gap is closed locally. Separate GoTrue with email auto-confirm **disabled** and non-relaying Mailpit exercised the real delivered email-change OTP. Two API tests passed: unconfirmed contacts stay unbound, wrong codes are rejected, a different signed-in account cannot bind the contact, a verified contact enables email/password sign-in, and changing an already bound email requires recovery support. One browser journey passed: settings → send code → read actual local SMTP code → verify → reload retains the bound email.
+
+The draft QA reader was corrected to parse GoTrue's actual email wording. It now uses the default OTP template without an unreachable host-template dependency and has explicit isolated DB/Auth/mail ports. No production bypass, real outbound email or new SQL migration. Provider-specific live SMTP/Google/SMS acceptance remains configuration work, not covered by these local results.

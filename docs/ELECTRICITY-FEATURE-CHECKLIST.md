@@ -6,7 +6,7 @@ Latest owner direction, 26 November 2026: retain the approved clean light UI, fo
 
 | Priority | Feature and discoverable location | Current implementation | Remaining completion/acceptance |
 |---|---|---|---|
-| 1 | Sign-up/login/profile, `/login`, `/signup`, account settings | Phone/email/password, Google PKCE, terms/profile completion, refresh/session guards | Real provider configuration and acceptance; unfinished email enrollment validation retained from earlier handoff |
+| 1 | Sign-up/login/profile, `/login`, `/signup`, account settings | Phone/email/password, Google PKCE, terms/profile completion, refresh/session guards | Real provider configuration and live acceptance. Verified email-contact enrollment now passed actual local GoTrue/SMTP OTP, wrong-code, cross-account and browser persistence checks. |
 | 1 | Room power first on overview; `/control` for full action | Shared operation-bound phone step-up and signed command panel, observed feedback, explicit pending/expired/rejected/uncertain states | Production actuator HAL and feedback qualification; signed physical ON/OFF acceptance remains required |
 | 1 | Monitoring-only variant | No power panel or switch; familiar Power position becomes Live; readings/supply remain | Production hardware manifest qualification across supported profiles; monitoring-only browser variant passed |
 | 1 | Remaining units and top-up, overview and `/billing` | Verified wallet units/cash, quotes, fees, checkout, callbacks, vending/requery, funding/usage ledgers | Production merchant/provider acceptance; UI reminder/low-credit actions; optional joint purchase allocation remains demo-only |

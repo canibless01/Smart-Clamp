@@ -176,3 +176,13 @@ Current follow-up checkpoint against pushed commit f94a51e. Includes removal of 
 - `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
 - `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
 - `tools/browser_qa.py`
+
+## Real SMTP email-contact acceptance
+
+- `apps/api/tests/test_email_enrollment.py`
+- `apps/web/tests/email-enrollment.spec.ts`
+- `docs/ACCOUNT-ONBOARDING.md`
+- `docs/BUILD_STATUS.md`
+- `docs/ELECTRICITY-FEATURE-CHECKLIST.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `tools/email_otp_qa.py`
