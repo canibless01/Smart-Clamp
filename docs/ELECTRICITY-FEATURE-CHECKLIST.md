@@ -43,4 +43,4 @@ Implement persistence/permissions, the user action, the device/provider adapter 
 - [Where each value originates](DATA-PROVENANCE.md)
 - [Detailed A-to-Z status](BUILD_STATUS.md)
 
-The external Supabase project has not been migrated; only isolated QA SQL has run. Provider and hardware acceptance must be reported separately from code implementation.
+The owner reports external Supabase 001–038 migration success with matching checksums. Migration 039 is prepared for the connected chat; its external execution is not yet reported. Provider and hardware acceptance must be reported separately from code implementation.

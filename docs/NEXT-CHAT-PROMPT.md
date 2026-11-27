@@ -1,3 +1,7 @@
+## External SQL handoff update — 27 November 2026
+
+Owner reports the other chat applied 001–038 from 4a2fd0e successfully with matching checksums. Receipt path `/workspace/scratch/smartclamp-fmjzskjkvdbffwkiujnu-migrations.json` is absent here. See `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`: apply only missing 039 and check live RLS/privileges/Auth/runtime. Do not repeat the old claim that external 001–038 is unapplied; distinguish reported results from this workspace's observations.
+
 ## Automation foundation — 27 November 2026
 
 Portable `automation_policy.hpp` and native tests now cover durable daily/monthly budget baselines, period rollover, extra daily allowance, weekly windows and independent restrictions. Cloud policy persistence/step-up/sync/receipts, UI and qualified application adapters are still open. The owner has been asked asynchronously for exact launch BOM/pin map; do not invent production sensor/relay/modem interfaces. This checkpoint is a foundation, not a completed schedule/budget feature.

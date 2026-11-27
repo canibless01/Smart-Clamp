@@ -8,7 +8,7 @@ projects are outside this action's scope.
 
 ## Current status
 
-**Prepared and locally tested; not yet applied to the external project.**
+**Owner reports 001–038 applied externally; 039 is prepared for follow-up.**
 The last check on 26 November reached the general Management API (401 without credentials), but the target project failed proxy CONNECT (403). No
 Supabase management connector, `SUPABASE_ACCESS_TOKEN` or external `DATABASE_URL`
 was available in this workspace. The public project URL does not authorize SQL.
@@ -79,3 +79,7 @@ Use the administration inputs in [LAUNCH-INPUTS](../LAUNCH-INPUTS.md). The exist
 ## 27 November implementation update
 
 Migration 039 adds the resident/utility signal-to-support-to-inspection relationship with deny-by-default RLS. The bundle includes 001–039. It has been applied only to isolated QA in this chat. The owner assigned external SQL execution to another chat; inspect its migration receipt before any external operation.
+
+## External SQL status reported by owner — 27 November 2026
+
+The connected chat reports applying 001–038 from 4a2fd0e with all checksums matching: 95 public tables with RLS enabled, 10 public functions, 24 enabled triggers and two policies. No reset or publication. Its receipt is in the other workspace and cannot be opened here at the reported path. Record these as owner-reported external results, not a local observation. Migration 039 remains the follow-up from this implementation batch. See [connected-chat follow-up](SUPABASE-FOLLOWUP-2026-11-27.md) for exact migration, live RLS/privilege, Auth and runtime checks.
