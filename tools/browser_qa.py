@@ -31,6 +31,10 @@ if area.status_code!=201:raise RuntimeError('Could not create isolated browser s
 assigned=t.client.post('/api/v1/ops/devices/'+message_device['id']+'/service-area',json={'area_id':area.json['id']},headers=t.headers(ops))
 if assigned.status_code!=201:raise RuntimeError('Could not assign isolated browser service area')
 utility=t.promote(t.user('homeowner'),'nepa_staff');admin=t.promote(t.user('homeowner'),'internal_superadmin')
+for rule_key,rule_value in [('reconciliation.collection_delay_ms',0),('reconciliation.consecutive_windows',3)]:
+    configured=t.client.post('/api/v1/ops/settings/'+rule_key,headers=t.headers(admin),json={'scope_type':'building','scope_ref':str(topology_building),'expected_version':0,'value':rule_value,'reason':'Isolated QA history display; no physical qualification implied.'})
+    if configured.status_code!=201:raise RuntimeError('Could not configure isolated history fixture')
+
 with t.app.app_context(),transaction() as c:
     utility_org=one(c,'INSERT INTO organizations(name,subdomain) VALUES(:name,:sub) RETURNING id',name='Browser QA utility',sub='qa-browser-'+uuid.uuid4().hex[:12])['id']
     query(c,"INSERT INTO memberships(user_id,role,organization_id) VALUES(:uid,'nepa_staff',:org)",uid=utility['id'],org=utility_org)

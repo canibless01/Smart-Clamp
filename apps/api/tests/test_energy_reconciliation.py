@@ -21,7 +21,7 @@ def test_scope_policy_aligned_sources_and_missing_coverage(self):
  self.assertEqual(self.client.get(path,headers=self.headers(other)).status_code,404)
  self.assertEqual(self.client.get(path,headers=self.headers(owner)).json['reason'],'comparison_policy_unconfigured')
  for key,value in [('max_gap_ms',900000),('boundary_skew_ms',0),('tolerance_bps',500)]:
-  r=self.client.post('/api/v1/ops/settings/reconciliation.'+key,headers=self.headers(admin),json={'scope_type':'building','scope_ref':bid,'expected_version':0,'value':value,'reason':'Isolated QA comparison policy approval'})
+  r=self.client.post('/api/v1/ops/settings/reconciliation.'+key,headers=self.headers(admin),json={'scope_type':'building','scope_ref':bid,'expected_version':0,'value':value,'reason':'Isolated QA comparison policy approval','effective_from':(start-timedelta(minutes=1)).isoformat()})
   self.assertEqual(r.status_code,201,r.json)
  for d,delta in zip(devices,[1000000,500000,400000]):
   for when,total in [(start,0),(end,delta)]:

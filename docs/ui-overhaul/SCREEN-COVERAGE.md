@@ -92,3 +92,7 @@ Touched landlord building rooms only: secondary incoming/branch comparison panel
 ## 27 November 2026 — recorded building topology
 
 Touched landlord building rooms: secondary expandable incoming/branch editor, short IDs/copy, spacing and mobile fieldset/select width. Save/reload verified against isolated real Auth/PostgreSQL/API at 390px. All other screens retain the approved UI; no physical commissioning certificate, control change or monetary effect is implied.
+
+## 27 November 2026 — closed-window evidence
+
+Touched landlord building rooms only: expandable recorded-window history, conservative review status, owner-triggered recording and checksum evidence download. History loads on expansion. Mobile unknown-coverage/export and topology flows passed at 390px. All other dashboards/public pages intentionally retain the approved UI; no redesign or relay/credit change.

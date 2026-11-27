@@ -131,6 +131,21 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation/history",
+    "handler": "energy_history.history"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation/history",
+    "handler": "energy_history.history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation/history/{record_id}",
+    "handler": "energy_history.evidence"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/buildings/{building_id}/rooms",
     "handler": "live_resources.rooms_route"
   },

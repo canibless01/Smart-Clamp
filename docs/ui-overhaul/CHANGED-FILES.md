@@ -353,3 +353,32 @@ No additional product screen was redesigned in this verification batch.
 - `tools/browser_qa.py`
 - `tools/render_build_register.py`
 - `apps/web/components/BuildingTopology.tsx`
+
+## 27 November 2026 — immutable closed-window evidence and consecutive review
+
+- `apps/api/app/__init__.py`
+- `apps/api/app/business_rules.py`
+- `apps/api/app/energy_reconciliation.py`
+- `apps/api/tests/test_energy_reconciliation.py`
+- `apps/web/components/EnergyReconciliation.tsx`
+- `apps/web/tests/live-journey.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/CONFIGURATION-INVENTORY.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/IMPLEMENTATION-WORK-PACKAGES.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`
+- `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
+- `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
+- `docs/implementation/complete-register.json`
+- `docs/ui-overhaul/SCREEN-COVERAGE.md`
+- `tools/browser_qa.py`
+- `tools/render_build_register.py`
+- `apps/api/app/energy_history.py`
+- `apps/api/tests/test_energy_history.py`
+- `apps/web/components/EnergyComparisonHistory.tsx`
+- `database/migrations/044_energy_comparison_history.sql`
+- `docs/verification/2026-11-27-energy-history.md`

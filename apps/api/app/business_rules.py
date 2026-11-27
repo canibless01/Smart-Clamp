@@ -8,6 +8,8 @@ from .idempotency import idempotent
 bp=Blueprint('business_rules',__name__)
 # Bounds protect representation/approved software capacity; values are not invented prices.
 SPECS={
+ 'reconciliation.collection_delay_ms':dict(label='Closed energy window collection delay (ms)',kind='int',default=None,nullable=True,min=0,max=900000),
+ 'reconciliation.consecutive_windows':dict(label='Consecutive qualified energy review windows',kind='int',default=None,nullable=True,min=2,max=96),
  'reconciliation.max_gap_ms':dict(label='Energy comparison maximum sample gap (ms)',kind='int',default=None,nullable=True,min=1000,max=900000),
  'reconciliation.boundary_skew_ms':dict(label='Energy comparison permitted boundary skew (ms)',kind='int',default=None,nullable=True,min=0,max=60000),
  'reconciliation.tolerance_bps':dict(label='Energy comparison approved tolerance (basis points)',kind='int',default=None,nullable=True,min=0,max=10000),

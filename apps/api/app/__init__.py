@@ -65,6 +65,7 @@ def create_app(settings=None):
         return jsonify(status='api_ready' if ready else 'migration_required',database='connected',schema='current' if ready else 'incomplete_or_changed',worker='not_checked',merchant_and_hardware='not_checked'),200 if ready else 503
     @app.get('/api/v1/openapi.yaml')
     def spec():return app.response_class((root/'contracts/runtime-openapi.yaml').read_text(),mimetype='application/yaml')
+    from .energy_history import bp as energy_history
     from .energy_reconciliation import bp as energy_reconciliation
     from .business_rules import bp as business_rules
     from .automation import bp as automation
@@ -84,5 +85,5 @@ def create_app(settings=None):
     from .communications import bp as communications
     from .onesignal_push import bp as onesignal_push
     from .audiences import bp as audiences
-    for bp in(energy_reconciliation,business_rules,automation,trust,supply_history,live_stream,auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences,email_receipts):app.register_blueprint(bp)
+    for bp in(energy_history,energy_reconciliation,business_rules,automation,trust,supply_history,live_stream,auth,resources,devices,payments,workflows,firmware,reports,prepaid,web_push,communications,onesignal_push,audiences,email_receipts):app.register_blueprint(bp)
     return app
