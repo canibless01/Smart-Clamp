@@ -1,4 +1,4 @@
 "use client";
 import RecordWorkspace from "@/components/RecordWorkspace";
 import PowerControlPanel from "@/components/PowerControlPanel";
-export default function Page(){return <RecordWorkspace title="Power control" description="Control your own relay-equipped SmartClamp. Device feedback confirms physical changes; supply and local restrictions remain separate." endpoint="/users/me/context">{data=><PowerControlPanel context={data}/>}</RecordWorkspace>;}
+export default function Page(){return <RecordWorkspace title="Power control" description="Control your own relay-equipped SmartClamp. Device feedback confirms physical changes; supply and local restrictions remain separate." endpoint="/users/me/context">{data=><><PowerControlPanel context={data}/><section className="card"><h2>Plan your usage</h2><div className="resource-actions">{data.devices.filter((device:any)=>device.capabilities.includes('relay')&&device.wallet).map((device:any,index:number)=><a key={device.id} className="btn btn-secondary" href={`/devices/${device.id}/automation`}>SmartClamp {index+1} · budgets & schedules</a>)}</div></section></>}</RecordWorkspace>;}

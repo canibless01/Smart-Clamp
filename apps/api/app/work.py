@@ -130,6 +130,11 @@ def process_reading(c,reading_id):
     eligible=r['quality']=='valid' and r['clock_quality']=='trusted' and r['import_mwh'] is not None and previous and previous['quality']=='valid' and previous['clock_quality']=='trusted' and previous['import_mwh'] is not None and previous['boot_id']==r['boot_id'] and r['import_mwh']>=previous['import_mwh']
     newer=r['occurred_at_ms'] is not None and (checkpoint['accounted_at_ms'] is None or r['occurred_at_ms']>checkpoint['accounted_at_ms'])
     eligible=eligible and newer and checkpoint['accounted_boot_id']==r['boot_id'] and checkpoint['accounted_counter_mwh'] is not None and r['import_mwh']>=checkpoint['accounted_counter_mwh']
+    if eligible:
+        occupancy=one(c,'SELECT start_at FROM occupancies WHERE room_id=:room AND end_at IS NULL',room=checkpoint['room_id'])
+        if occupancy and checkpoint['accounted_at_ms']<int(occupancy['start_at'].timestamp()*1000):
+            audit(c,None,'occupancy_boundary_usage_unallocated',str(r['id']),{'device_id':str(r['device_id']),'interval_start_ms':checkpoint['accounted_at_ms'],'interval_end_ms':r['occurred_at_ms'],'counter_delta_mwh':r['import_mwh']-checkpoint['accounted_counter_mwh'],'reason':'counter_interval_crosses_resident_boundary'})
+            eligible=False
     if eligible:consumed=r['import_mwh']-checkpoint['accounted_counter_mwh']
     if newer and r['quality']=='valid' and r['clock_quality']=='trusted' and r['import_mwh'] is not None:
         if checkpoint['accounted_boot_id']!=r['boot_id'] or checkpoint['accounted_counter_mwh'] is None or r['import_mwh']>=checkpoint['accounted_counter_mwh']:

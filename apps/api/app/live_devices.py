@@ -103,7 +103,9 @@ def poll():
         firmware=offer(c,d,p)
         from .prepaid import policy_offer
         prepaid=policy_offer(c,d,p)
-    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time,firmware=firmware,prepaid_policy=prepaid)
+        from .automation import offer as automation_offer
+        automation=automation_offer(c,d,p)
+    return jsonify(commands=[r['signed_envelope'] for r in commands],acks=[ack],signed_time=signed_time,firmware=firmware,prepaid_policy=prepaid,automation_policy=automation)
 
 @bp.post('/api/v1/device/receipts')
 def receipt():
@@ -139,7 +141,8 @@ def receipt():
 
 def control_eligibility(c,actor,d):
     if actor['role'] not in ('tenant','homeowner'):return False,'resident_control_required','Individual power control belongs to the resident/homeowner. Landlord maintenance requires its separately approved workflow.',403
-    writable=str(d['owner_id'])==str(actor['id']) or bool(scalar(c,'SELECT count(*) FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=actor['id']))
+    occupant=one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL',room=d['room_id'])
+    writable=str(occupant['tenant_id'])==str(actor['id']) if occupant else str(d['owner_id'])==str(actor['id'])
     if not writable:return False,'read_only_device','This device is shared for viewing only.',403
     if 'relay' not in d['capabilities'] or d['install_state']!='commissioned' or d['calibration_status']!='qualified':return False,'capability_unavailable','Control needs a fitted, commissioned relay and qualified sensing.',422
     if actor['subscription_tier']!='pro' and d['profile']!='house_full':return False,'entitlement_required','An eligible control plan is required.',403

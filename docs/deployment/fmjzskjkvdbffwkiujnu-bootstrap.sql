@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql','039_signal_investigations.sql','040_transport_reports.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql','039_signal_investigations.sql','040_transport_reports.sql','041_automation_policy_sync.sql','042_revoke_browser_sequence_access.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -2151,5 +2151,65 @@ $sc_source_1fcbaa7b0e124ac1e5445dad0442f2798a4f598494bdec9e3d43bfb91173d5f5$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('040_transport_reports.sql','1fcbaa7b0e124ac1e5445dad0442f2798a4f598494bdec9e3d43bfb91173d5f5');
   END IF;
 END $sc_step_39$;
+
+DO $sc_step_40$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='041_automation_policy_sync.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '0c3f923de6caa7d48a9c9c5b0b8969d78301d59ed474003ce01b5c48d6dfc5f8' THEN RAISE EXCEPTION 'Migration checksum mismatch: 041_automation_policy_sync.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_0c3f923de6caa7d48a9c9c5b0b8969d78301d59ed474003ce01b5c48d6dfc5f8$
+-- Qualification is never granted by a resident form or a policy acknowledgement.
+alter table devices add column automation_policy_qualified boolean not null default false;
+create table device_automation_policies (
+ id uuid primary key default gen_random_uuid(),
+ device_id uuid not null references devices(id),
+ seq bigint not null check(seq>0),
+ requested_by uuid not null references profiles(id),
+ body jsonb not null,
+ body_sha256 text not null check(body_sha256 ~ '^[0-9a-f]{64}$'),
+ created_at timestamptz not null default now(),
+ unique(device_id,seq)
+);
+create table device_automation_receipts (
+ id uuid primary key default gen_random_uuid(),
+ policy_id uuid not null references device_automation_policies(id),
+ inbox_id uuid not null unique references device_inbox(id),
+ result text not null check(result in('accepted','rejected')),
+ reason_code text not null,
+ observed_at_ms bigint,
+ clock_quality text not null check(clock_quality in('trusted','estimated','unknown')),
+ created_at timestamptz not null default now()
+);
+alter table device_automation_policies enable row level security;
+alter table device_automation_receipts enable row level security;
+revoke all on device_automation_policies,device_automation_receipts from anon,authenticated;
+create trigger automation_policy_immutable before update or delete on device_automation_policies for each row execute function private.immutable_record();
+create trigger automation_receipt_immutable before update or delete on device_automation_receipts for each row execute function private.immutable_record();
+
+$sc_source_0c3f923de6caa7d48a9c9c5b0b8969d78301d59ed474003ce01b5c48d6dfc5f8$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('041_automation_policy_sync.sql','0c3f923de6caa7d48a9c9c5b0b8969d78301d59ed474003ce01b5c48d6dfc5f8');
+  END IF;
+END $sc_step_40$;
+
+DO $sc_step_41$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='042_revoke_browser_sequence_access.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM '46b218e6ef7857185ff6d8d95745de9663fc7ccc84c25c2060e24b6009738f87' THEN RAISE EXCEPTION 'Migration checksum mismatch: 042_revoke_browser_sequence_access.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_46b218e6ef7857185ff6d8d95745de9663fc7ccc84c25c2060e24b6009738f87$
+-- Browser roles cannot manipulate backend audit/evidence identity counters.
+-- Backend database owners retain their own privileges. RLS is not a sequence boundary.
+revoke all on sequence public.audit_log_id_seq,public.usage_event_chain_id_seq from public,anon,authenticated;
+-- Also prevent browser grants on future sequences created by the migration owner.
+alter default privileges in schema public revoke all on sequences from public,anon,authenticated;
+
+$sc_source_46b218e6ef7857185ff6d8d95745de9663fc7ccc84c25c2060e24b6009738f87$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('042_revoke_browser_sequence_access.sql','46b218e6ef7857185ff6d8d95745de9663fc7ccc84c25c2060e24b6009738f87');
+  END IF;
+END $sc_step_41$;
 
 COMMIT;

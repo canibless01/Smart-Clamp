@@ -2,7 +2,7 @@ from datetime import datetime,timezone,timedelta
 from decimal import Decimal
 import hashlib,json,secrets,uuid
 from flask import Blueprint,request,jsonify,g,current_app
-from .db import transaction,one,rows,query,scalar,DomainError,device,building,audit,json_text,uuid_string,reading_since
+from .db import transaction,one,rows,query,scalar,DomainError,device,building,audit,json_text,uuid_string,reading_since,resident_authority
 from .live_auth import authenticated,staff
 from .providers import validate_meter,config,electricity_services
 from .idempotency import idempotent
@@ -25,7 +25,7 @@ def owned_device_ids(c):
 
 def financial_device_ids(c):
     # A read-only device viewer is not a wallet/ledger/bill account holder.
-    return rows(c,"SELECT d.id FROM devices d WHERE d.owner_id=:uid OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL)",uid=g.actor['id'])
+    return rows(c,"SELECT d.id FROM devices d WHERE (d.owner_id=:uid AND NOT EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.end_at IS NULL AND o.tenant_id<>:uid)) OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL)",uid=g.actor['id'])
 
 def projection(c):
     from .live_devices import control_eligibility
@@ -35,6 +35,8 @@ def projection(c):
         fresh=at and 0<=(datetime.now(timezone.utc)-at).total_seconds()<180
         pending=one(c,"SELECT command_id FROM commands WHERE device_id=:id AND status IN('pending','pending_delivery') AND expires_at>now() ORDER BY created_at DESC LIMIT 1",id=d['id'])
         devices.append({'id':str(dev['id']),'role':dev['profile'],'capabilities':dev['capabilities'],'supply_state':dev['supply_state'] if dev['supply_clock_quality']=='trusted' and dev['supply_observed_at_ms'] is not None and 0<=datetime.now(timezone.utc).timestamp()*1000-dev['supply_observed_at_ms']<180000 else 'unknown','connectivity':'online' if dev['last_seen_at'] and (datetime.now(timezone.utc)-dev['last_seen_at']).total_seconds()<180 else 'stale' if dev['last_seen_at'] else 'unknown','relay':{'observed':dev['relay_observed'],'observed_at':dev['relay_observed_at'],'pending_command_id':pending['command_id'] if pending else None,'off_reasons':[x['reason'] for x in rows(c,"SELECT reason FROM off_reasons WHERE device_id=:id AND active AND(expires_at IS NULL OR expires_at>now())",id=d['id'])]},'measurement':{'value':float(Decimal(r['real_power_mw'])/1000) if r and r['real_power_mw'] is not None else None,'unit':'W','observed_at':at,'quality':r['quality'] if r else 'unavailable','coverage':None},'wallet':{'id':wallet['id'],'available':wallet['available_kobo'],'reserved':wallet['reserved_kobo'],'available_mwh':wallet['available_mwh'],'unit':'kobo','ledger_version':wallet['ledger_version'],'updated_at':wallet['updated_at'],'payment_token':wallet['payment_token']} if wallet else None})
+        authority=resident_authority(c,g.actor,dev)
+        devices[-1]['access']={'can_issue_report':authority,'can_control':g.actor['role'] in ('tenant','homeowner') and authority,'can_view_finances':bool(wallet)}
         latest=one(c,"SELECT c.command_id AS id,c.on_state AS requested,CASE WHEN c.status IN('pending','pending_delivery') AND c.expires_at<=now() THEN 'expired' ELSE c.status END AS status,c.expires_at,r.result,r.observed_on,r.observed_at_ms,r.reason_code FROM commands c LEFT JOIN command_receipts r ON r.command_id=c.command_id WHERE c.device_id=:id ORDER BY c.created_at DESC LIMIT 1",id=d['id'])
         devices[-1]['relay']['latest_command']=dict(latest) if latest else None
         voltage=r['voltage_mv'] if r else None
@@ -157,6 +159,8 @@ def accept_invitation(room_id=None):
         if not inv or(room_id and str(inv['room_id'])!=room_id):raise DomainError('not_found','This invitation is invalid or expired.',404)
         if g.actor['role']!='tenant':raise DomainError('forbidden','A tenant account is required.',403)
         query(c,'SELECT id FROM rooms WHERE id=:id FOR UPDATE',id=inv['room_id'])
+        from .automation import clear_for_transfer
+        clear_for_transfer(c,inv['room_id'])
         query(c,'UPDATE device_viewers SET revoked_at=now() WHERE device_id IN(SELECT id FROM devices WHERE room_id=:id)',id=inv['room_id'])
         query(c,'INSERT INTO occupancies(room_id,tenant_id) VALUES(:rid,:uid)',rid=inv['room_id'],uid=g.actor['id']);query(c,'UPDATE invitations SET accepted_at=now(),accepted_by=:uid WHERE id=:id',uid=g.actor['id'],id=inv['id']);audit(c,g.actor['id'],'invitation_accepted',inv['room_id'])
     return jsonify(status='joined',room_id=inv['room_id'])
@@ -185,6 +189,11 @@ def transfer(room_id):
         room=one(c,'SELECT * FROM rooms WHERE id=:id FOR UPDATE',id=uuid_string(room_id))
         if not room:raise DomainError('not_found','Room not found.',404)
         building(c,g.actor,room['building_id'])
+        from .automation import clear_for_transfer
+        clear_for_transfer(c,room_id)
+        device_ids=rows(c,'SELECT id FROM devices WHERE room_id=:room ORDER BY id FOR UPDATE',room=room_id)
+        pending=scalar(c,"SELECT count(*) FROM outbox WHERE aggregate_id=ANY(CAST(:ids AS uuid[])) AND event_type='reading_committed' AND status<>'done'",ids=[item['id'] for item in device_ids]) if device_ids else 0
+        if pending:raise DomainError('usage_settlement_pending','Process the room’s outstanding measurements before settling and transferring occupancy.',409)
         owing=scalar(c,'SELECT count(*) FROM wallets w JOIN devices d ON d.id=w.device_id WHERE d.room_id=:id AND (w.available_mwh>0 OR w.reserved_mwh>0 OR w.unpaid_mwh>0 OR w.available_kobo>0)',id=room_id)
         if owing:raise DomainError('settlement_required','Settle the outgoing resident’s balance before transferring this room.',409)
         tenant=one(c,"SELECT id FROM profiles WHERE id=:id AND role='tenant'",id=uuid_string(body().get('tenant_id')))
@@ -198,7 +207,7 @@ def details(device_id):
     with transaction() as c:
         d=device(c,g.actor,device_id)
         from .prepaid import state
-        return jsonify({**{k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')},'prepaid_policy':state(c,d) if any(str(item['id'])==str(d['id']) for item in financial_device_ids(c)) else None,'can_manage_viewers':bool((not one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL AND tenant_id<>:uid',room=d['room_id'],uid=g.actor['id'])) and (str(d['owner_id'])==str(g.actor['id']) or one(c,'SELECT id FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=g.actor['id'])))})
+        return jsonify({**{k:d[k] for k in('id','profile','capabilities','config_epoch','calibration_status','last_seen_at','install_state','firmware_version')},'prepaid_policy':state(c,d) if any(str(item['id'])==str(d['id']) for item in financial_device_ids(c)) else None,'can_manage_automation':bool(g.actor['role'] in ('tenant','homeowner') and 'relay' in d['capabilities'] and (str(d['owner_id'])==g.actor['id'] or one(c,'SELECT id FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=g.actor['id'])) and not one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL AND tenant_id<>:uid',room=d['room_id'],uid=g.actor['id'])),'can_manage_viewers':bool((not one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL AND tenant_id<>:uid',room=d['room_id'],uid=g.actor['id'])) and (str(d['owner_id'])==str(g.actor['id']) or one(c,'SELECT id FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=d['room_id'],uid=g.actor['id'])))})
 
 @bp.get('/api/v1/devices/<device_id>/events')
 @authenticated

@@ -74,3 +74,5 @@ Signal investigation follow-up: `/devices/[id]` adds Signals & trust; `/support/
 Operations follow-up: `/ops` adds sourced onboarding, profile, command/queue and cellular usage views. Shared shells/branding remain unchanged; unmodified screens retain their prior functionality and the reasons above.
 
 Report follow-up: `/reports` and shared `/verification-reports/[token]` gain print/PDF and signed-evidence download. Private freshly issued reports can show a locally generated sharing QR. Existing scope, expiry, revocation and qualification wording are preserved.
+
+Latest: `/devices/[id]/automation` adds qualified-device budget/window configuration. `/control` and device details expose the proper entry points. Read-only accounts do not receive control/report-publication affordances. Other page-specific designs remain intact. The full current route inventory is `docs/implementation/ROUTE-INVENTORY.md`.

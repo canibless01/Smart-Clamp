@@ -19,7 +19,7 @@ namespace sc {
 class CloudAgent {
  DynamicJsonDocument cfg_{10000};Preferences state_;
  std::array<uint8_t,32> telemetry_{},command_{};
- std::string id_,origin_,ca_,boot_,role_,rejectedCreditPolicy_;unsigned epoch_=0,config_=0;uint64_t sequence_=0;
+ std::string id_,origin_,ca_,boot_,role_,rejectedCreditPolicy_,rejectedAutomationPolicy_;unsigned epoch_=0,config_=0;uint64_t sequence_=0;
  bool ready_=false,trusted_=false;uint64_t anchorMs_=0,anchorUptime_=0;uint32_t lastPoll_=0,lastBeat_=0;
  uint64_t uptime()const{return static_cast<uint64_t>(esp_timer_get_time()/1000);}
  uint64_t utc()const{return trusted_?anchorMs_+uptime()-anchorUptime_:0;}
@@ -54,7 +54,7 @@ class CloudAgent {
   File f=LittleFS.open(path,"r");if(!f)return false;
   std::string body=f.readString().c_str();f.close();DynamicJsonDocument env(16000),p(10000),ack(4096);
   if(deserializeJson(env,body)||!verifyJson(env.as<JsonVariantConst>(),telemetry_,id_,epoch_,p))return false;
-  const std::string kind=p["kind"].as<std::string>();const char* endpoint=kind=="command_receipt"?"/device/receipts":kind=="firmware_receipt"?"/device/firmware/receipts":kind=="prepaid_policy_receipt"?"/device/prepaid-policy/receipts":"/device/events";
+  const std::string kind=p["kind"].as<std::string>();const char* endpoint=kind=="command_receipt"?"/device/receipts":kind=="firmware_receipt"?"/device/firmware/receipts":kind=="prepaid_policy_receipt"?"/device/prepaid-policy/receipts":kind=="automation_policy_receipt"?"/device/automation/receipts":"/device/events";
   std::string reply;if(request(endpoint,body,reply)!=200||deserializeJson(ack,reply))return false;
   const auto payload=canonicalJson(p.as<JsonVariantConst>());
   if(ack["committed"].as<bool>()&&ack["device_id"].as<std::string>()==id_&&ack["key_epoch"].as<unsigned>()==epoch_&&ack["boot_id"].as<std::string>()==p["boot_id"].as<std::string>()&&ack["seq"].as<uint64_t>()==p["seq"].as<uint64_t>()&&ack["payload_sha256"].as<std::string>()==sha256(payload))return LittleFS.remove(path);
@@ -133,6 +133,15 @@ class CloudAgent {
   DynamicJsonDocument p(4096);identity(p,"prepaid_policy_receipt");p["policy_id"]=id;p["policy_seq"]=policy["policy_seq"];p["body_sha256"]=policy["body_sha256"];p["result"]="rejected";p["reason_code"]="hardware_unqualified";p["import_mwh"]=nullptr;p["counter_epoch"]=policy["counter_epoch"];
   if(enqueue(p,String("p-")+id.c_str()+"-"+boot_.c_str()))rejectedCreditPolicy_=id;
  }
+ void automationPolicy(JsonVariantConst env,uint64_t requestSequence){
+  if(env.isNull()||!trusted_)return;
+  DynamicJsonDocument policy(6000);const auto seconds=utc()/1000;
+  if(!verifyJson(env,command_,id_,epoch_,policy)||policy["kind"]!="automation_policy"||policy["request_boot_id"].as<std::string>()!=boot_||policy["request_seq"].as<uint64_t>()!=requestSequence||policy["config_epoch"].as<unsigned>()!=config_||policy["expires_at_s"].as<uint64_t>()<=seconds||policy["expires_at_s"].as<uint64_t>()-seconds>120)return;
+  const auto id=policy["policy_id"].as<std::string>();if(id.empty()||id==rejectedAutomationPolicy_)return;
+  // This commissioning image cannot attest to qualified offline storage/counter/actuator execution.
+  DynamicJsonDocument p(4096);identity(p,"automation_policy_receipt");p["policy_id"]=id;p["policy_seq"]=policy["policy_seq"];p["body_sha256"]=policy["body_sha256"];p["result"]="rejected";p["reason_code"]="hardware_unqualified";
+  if(enqueue(p,String("a-")+id.c_str()+"-"+boot_.c_str()))rejectedAutomationPolicy_=id;
+ }
  void poll(){
   DynamicJsonDocument p(4096);identity(p,"poll");std::string response;
   if(request("/device/poll",signJson(p.as<JsonVariantConst>(),telemetry_,id_,epoch_),response)!=200)return;
@@ -148,7 +157,7 @@ class CloudAgent {
    DynamicJsonDocument rejection(4096);identity(rejection,"command_receipt");rejection["command_id"]=command["command_id"];rejection["command_seq"]=seq;rejection["result"]="rejected";rejection["observed_on"]=nullptr;rejection["observed_at_ms"]=utc();rejection["reason_code"]="hardware_unqualified";
    if(enqueue(rejection,String("c-")+command["command_id"].as<const char*>()))state_.putULong64("command_seq",seq);
   }
-  creditPolicy(reply["prepaid_policy"],p["seq"].as<uint64_t>());confirmBoot();firmware(reply["firmware"],p["seq"].as<uint64_t>());
+  automationPolicy(reply["automation_policy"],p["seq"].as<uint64_t>());creditPolicy(reply["prepaid_policy"],p["seq"].as<uint64_t>());confirmBoot();firmware(reply["firmware"],p["seq"].as<uint64_t>());
  }
  public:
  bool begin(const char* role){

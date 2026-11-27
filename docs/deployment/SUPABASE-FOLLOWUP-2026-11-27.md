@@ -1,3 +1,5 @@
+> BUILD IN PROGRESS — historical interim instructions below are superseded. The owner requested one final consolidated SQL/configuration handoff after implementation. Do not run this interim checklist now. Known owner-reported live state is 001–039; current local development is 040–042 and may advance. The sequence fix is 042 here, not the conflicting external draft 040.
+
 # Supabase follow-up for the connected chat
 
 Target only: `fmjzskjkvdbffwkiujnu`. Branch: `ui-revamp`, use its latest pushed revision.

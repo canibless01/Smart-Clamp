@@ -171,6 +171,11 @@
   },
   {
     "method": "POST",
+    "path": "/api/v1/device/automation/receipts",
+    "handler": "automation.policy_receipt"
+  },
+  {
+    "method": "POST",
     "path": "/api/v1/device/events",
     "handler": "live_devices.events"
   },
@@ -203,6 +208,16 @@
     "method": "GET",
     "path": "/api/v1/devices/{device_id}",
     "handler": "live_resources.details"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/devices/{device_id}/automation",
+    "handler": "automation.settings"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/devices/{device_id}/automation",
+    "handler": "automation.settings"
   },
   {
     "method": "GET",

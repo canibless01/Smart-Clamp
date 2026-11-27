@@ -8,7 +8,7 @@ struct Store:sc::AutomationStore{
 };
 int main(){
  Store store;sc::Automation device(store,1,2,3);assert(!device.ready());
- sc::AutomationPolicy p;p.seq=1;p.keyEpoch=1;p.configEpoch=2;p.counterEpoch=3;p.anchorMwh=100;p.dailyMwh=1000;p.monthlyMwh=20000;
+ sc::AutomationPolicy p;p.subject[0]=1;p.seq=1;p.keyEpoch=1;p.configEpoch=2;p.counterEpoch=3;p.anchorMwh=100;p.dailyMwh=1000;p.monthlyMwh=20000;
  assert(!device.apply(p,false));assert(device.apply(p,true));
  // 2026-11-26 12:00 UTC; the offset is Lagos, not the host timezone.
  const uint64_t noon=1795694400;assert(device.observe(100,3,noon,true,true));assert(!device.budgetRestricted());
@@ -33,5 +33,8 @@ int main(){
  // Monthly rollover retains the last durable counter, never the first new-month value.
  Store monthlyStore;sc::Automation monthly(monthlyStore,1,2,3);p.seq=1;p.scheduleEnabled=false;p.windowCount=0;p.dailyMwh=0;p.extraDailyMwh=0;p.monthlyMwh=1000;p.anchorMwh=0;assert(monthly.apply(p,true));
  const uint64_t nov30=1796079599;assert(monthly.observe(900,3,nov30,true,true));assert(monthly.observe(1100,3,nov30+2,true,true));assert(monthly.state().monthlyBase==900);assert(!monthly.budgetRestricted());
+ // A signed new resident scope gets a fresh qualified anchor; same-resident edits do not.
+ auto newResident=allowed;newResident.seq=6;newResident.subject[0]=2;newResident.anchorMwh=2800;newResident.dailyMwh=1000;newResident.monthlyMwh=20000;newResident.extraDailyMwh=0;newResident.scheduleEnabled=false;
+ assert(!reboot.apply(newResident,false));assert(reboot.apply(newResident,true));assert(!reboot.ready());assert(reboot.observe(2800,3,nextMidnight+300,true,true));assert(!reboot.budgetRestricted());assert(reboot.state().dailyBase==2800);
  std::cout<<"Automation checks passed: durable budgets, period rollover, conservative gaps, weekly windows, epoch/replay, independent restrictions and storage failure.\n";
 }

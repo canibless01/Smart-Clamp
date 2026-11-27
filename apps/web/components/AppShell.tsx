@@ -59,7 +59,7 @@ export default function AppShell({
   const path = usePathname();
   const session = useWorkspaceSession();
   const live=useWorkspaceLive();
-  const hasRelay=session.context?.devices?.some((device:any)=>device.capabilities?.includes("relay"));
+  const hasRelay=session.context?.devices?.some((device:any)=>device.capabilities?.includes("relay")&&(device.access?.can_control===true||device.controls?.can_request===true));
   role = session.role || role;
   const [online, setOnline] = useState(true);
   useEffect(() => {

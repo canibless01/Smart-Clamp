@@ -1,0 +1,30 @@
+"""Render the audited, source-traceable register. Status is curated, never inferred from a route count."""
+from pathlib import Path
+from collections import Counter
+import json,re
+ROOT=Path(__file__).resolve().parents[1]
+data=json.loads((ROOT/'docs/implementation/complete-register.json').read_text())
+items=data['items'];assert len({r['id'] for r in items})==len(items)
+assert all(r['status'] in ('Built','Partial','Stub','Missing') and r['scope'] in ('Launch','Deferred') for r in items)
+for row in items:
+ for evidence in row['evidence'].split('; '):
+  if evidence and not (ROOT/evidence).exists():raise RuntimeError('Unknown evidence path: '+row['id']+' '+evidence)
+def cell(value):return str(value).replace('|','\\|').replace('\n',' ')
+lines=['# Complete SmartClamp build register','',f"Updated {data['updated']} (Africa/Lagos). {len(items)} curated requirements across A–Z. This is the authoritative current register; [historical status](BUILD_STATUS-HISTORY-2026-11-27.md) is retained separately.",'','The owner approved a focused electricity launch. Deferred requirements remain in this inventory, with flags off and no claim of launch availability. Preserve the approved light UI and familiar navigation. Status describes the named software path, not provider approval, certification, hardware qualification or live deployment.','', '**Built:** described software path exists and has local evidence. **Partial:** working pieces exist but the complete flow/acceptance is unfinished. **Stub:** schema/page/gate exists without full execution. **Missing:** execution is not implemented. Current automation/resident-authority/sequence changes are a tested working checkpoint until its next push; do not interpret them as production hardware readiness.','', 'The machine-readable source is [complete-register.json](implementation/complete-register.json). [Work packages and scope decisions](IMPLEMENTATION-WORK-PACKAGES.md) explain how another chat can contribute without migration collisions. [Configuration inventory](CONFIGURATION-INVENTORY.md) distinguishes existing settings from required future controls.','','## Status by scope','','| Scope | Built | Partial | Stub | Missing | Total |','|---|---:|---:|---:|---:|---:|']
+for scope in ('Launch','Deferred'):
+ count=Counter(r['status'] for r in items if r['scope']==scope);lines.append('| '+scope+' | '+' | '.join(str(count[s]) for s in ('Built','Partial','Stub','Missing'))+' | '+str(sum(count.values()))+' |')
+lines+=['','Counts are an inventory, not a completion percentage. One missing physical adapter can block several otherwise implemented loops.','', '## Sources and conflict handling','','Read [source reconciliation](IMPLEMENTATION-WORK-PACKAGES.md#source-reconciliation) before applying older document instructions. Business values must be configured, validated and audited; cryptographic integrity and rated hardware constraints remain enforced. The supplement is preserved [verbatim](sources/SmartClamp-Supplement-Complete-Coverage.md).','']
+for area in data['areas']:
+ lines += ['## '+area['id']+'. '+area['title'],'','Source: '+area['source']+'.','', '| ID / feature | Status / scope | Code evidence and current boundary | Remaining work | Configuration / lane |','|---|---|---|---|---|']
+ for r in items:
+  if r['area']!=area['id']:continue
+  lines.append('| '+cell(r['id']+' '+r['feature'])+' | '+r['status']+' / '+r['scope']+' | '+cell(r['evidence'] or 'No executable implementation identified.')+' | '+cell(r['remaining'])+' | '+cell(r['settings']+'; '+r['lane'])+' |')
+lines+=['','## Current external and acceptance boundaries','','- Owner reports external migrations 001–039 verified with matching checksums. 039 hash: `80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8`. The receipts are in the other chat’s checkout; this workspace has not read those files.','- Development migrations 040–042 are local pending work for one final consolidated handoff. The other chat’s proposed sequence fix must not overwrite this branch’s existing 040 transport migration.','- Supabase project health now responds HTTP 401 here. No callable Supabase connector or configured administrative/runtime credentials are exposed in this chat. No review accounts have been created here.','- Live Auth findings relayed by the owner: email confirmation on; SMTP unset; Google and phone disabled; localhost Site URL; no redirect allowlist; JWT 3600s, refresh rotation enabled. Production API/worker/TLS and app-level checks remain unverified behind the protected preview.','- Latest API checkpoint: 82 tests run, one separate SMTP class skipped (81 passed). The actual SMTP suite separately passed two API checks and one browser journey. Repeat relevant checks after new code changes.','- All six ESP profiles compiled in the automation checkpoint; native policy tests pass. This does not instantiate production sensing, actuation, BLE, GSM or local-link adapters.','- Exact launch BOM/pin map is still requested. No new price, payout, loss-allocation policy or claimed certification is invented.','']
+(ROOT/'docs/BUILD_STATUS.md').write_text('\n'.join(lines))
+pages=sorted((ROOT/'apps/web/app').glob('**/page.tsx'));routes=['# Current route inventory','','Generated from current App Router files. An existing route does not prove its feature is complete; match it to the register above.','', '| Route | File | Page-specific treatment |','|---|---|---|']
+for page in pages:
+ route='/'+str(page.parent.relative_to(ROOT/'apps/web/app'));route='/' if route=='/.' else route
+ body=page.read_text();treatment='Existing explicit availability gate; not feature completion.' if re.search('UnavailableFeature|FeatureUnavailable|GatedFeature',body) else 'Existing page/shared components retained; see register for functionality and gaps.'
+ routes.append('| `'+route+'` | `'+str(page.relative_to(ROOT))+'` | '+treatment+' |')
+(ROOT/'docs/implementation/ROUTE-INVENTORY.md').write_text('\n'.join(routes)+'\n')
+print('Rendered',len(items),'requirements and',len(pages),'route entries.')

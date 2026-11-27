@@ -50,10 +50,10 @@ test("real auth/database: engineering uploads the built ESP32 binary and queues 
   await expect(targetRow.getByRole("cell", { name: "boot_confirmed", exact: true })).toHaveCount(0);
 });
 
-test("real auth/database: owner issues a fixed report, downloads CSV and revokes its public link", async ({ page, context }) => {
+test("real auth/database: resident issues a fixed report, downloads CSV and revokes its public link", async ({ page, context }) => {
   test.skip(!file, "Requires isolated real auth/API/database services.");
   const f = JSON.parse(fs.readFileSync(file!, "utf8"));
-  await page.goto("/login"); await page.getByLabel("Phone number").fill(f.owner.phone); await page.getByLabel("Password", { exact: true }).fill(f.owner.password);
+  await page.goto("/login"); await page.getByLabel("Phone number").fill(f.message_recipient.phone); await page.getByLabel("Password", { exact: true }).fill(f.message_recipient.password);
   await page.getByRole("button", { name: "Log in", exact: true }).click(); await expect(page).toHaveURL(/dashboard/);
   await page.goto("/reports");
   const end = new Date(), start = new Date(end.getTime() - 2 * 86400000);

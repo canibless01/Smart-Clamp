@@ -47,6 +47,7 @@ export default function Page({ params: { id } }: { params: { id: string } }) {
             <a className="btn btn-secondary" href="/support">
               Installation help
             </a>
+            {d.can_manage_automation&&<a className="btn btn-secondary" href={`/devices/${id}/automation`}>Budgets & schedules</a>}
           </div>
         </section>
         <DeviceTrust deviceId={id}/>

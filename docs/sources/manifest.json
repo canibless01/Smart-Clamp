@@ -10,5 +10,9 @@
   {
     "path": "contracts/openapi.source.yaml",
     "sha256": "caefa50433bcb52efa9a3cff7be317fb8741e295add2499551f0513a5dde499d"
+  },
+  {
+    "path": "docs/sources/SmartClamp-Supplement-Complete-Coverage.md",
+    "sha256": "c5230c682d5c617d00d8fc175d9c818a56cccb18a8068ae7943c9e3e5a81fd38"
   }
 ]

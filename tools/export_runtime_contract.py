@@ -4,7 +4,7 @@ root=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(root/'app
 from app import create_app
 app=create_app({'DATABASE_URL':''})
 paths={};routes=[]
-public={'resend_receipt','auth_options','oauth_start','oauth_exchange','signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','download','firmware_receipt','public_report','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
+public={'resend_receipt','auth_options','oauth_start','oauth_exchange','signup','login','verify_phone','refresh','recovery','phone_recovery','complete_phone_recovery','meter_validate','electricity_providers','events','poll','receipt','download','firmware_receipt','policy_receipt','public_report','webhook','payment_public','transfer_instructions','unsupported_webhook','organization','capabilities','health','spec'}
 for rule in sorted(app.url_map.iter_rules(),key=lambda r:r.rule):
     if not rule.rule.startswith('/api/v1/'):continue
     path=rule.rule[len('/api/v1'):];params=re.findall(r'<(?:[^:>]+:)?([^>]+)>',path);path=re.sub(r'<(?:[^:>]+:)?([^>]+)>',r'{\1}',path)

@@ -7,6 +7,7 @@ struct AllowedWindow {uint16_t start=0,end=0;}; // Monday 00:00=0, end exclusive
 struct AutomationPolicy {
  uint64_t seq=0,anchorMwh=0,dailyMwh=0,monthlyMwh=0,extraDailyMwh=0,extraDay=0;
  uint32_t keyEpoch=0,configEpoch=0,counterEpoch=0;
+ std::array<uint8_t,16> subject{}; // Authenticated resident UUID from the signed policy.
  bool scheduleEnabled=false;uint8_t windowCount=0;std::array<AllowedWindow,8> windows{};
 };
 struct AutomationState {
@@ -22,12 +23,13 @@ struct AutomationStore {
 class Automation {
  AutomationStore& store_;AutomationState state_{};uint32_t key_,config_,counter_;bool healthy_=false,fresh_=false;
  static bool same(const AutomationPolicy& a,const AutomationPolicy& b){
-  if(a.seq!=b.seq||a.anchorMwh!=b.anchorMwh||a.dailyMwh!=b.dailyMwh||a.monthlyMwh!=b.monthlyMwh||a.extraDailyMwh!=b.extraDailyMwh||a.extraDay!=b.extraDay||a.keyEpoch!=b.keyEpoch||a.configEpoch!=b.configEpoch||a.counterEpoch!=b.counterEpoch||a.scheduleEnabled!=b.scheduleEnabled||a.windowCount!=b.windowCount)return false;
+  if(a.seq!=b.seq||a.anchorMwh!=b.anchorMwh||a.dailyMwh!=b.dailyMwh||a.monthlyMwh!=b.monthlyMwh||a.extraDailyMwh!=b.extraDailyMwh||a.extraDay!=b.extraDay||a.keyEpoch!=b.keyEpoch||a.configEpoch!=b.configEpoch||a.counterEpoch!=b.counterEpoch||a.scheduleEnabled!=b.scheduleEnabled||a.windowCount!=b.windowCount||a.subject!=b.subject)return false;
   for(unsigned i=0;i<a.windowCount;++i)if(a.windows[i].start!=b.windows[i].start||a.windows[i].end!=b.windows[i].end)return false;
   return true;
  }
  bool valid(const AutomationPolicy& p)const{
-  if(!p.seq||p.keyEpoch!=key_||p.configEpoch!=config_||p.counterEpoch!=counter_||p.windowCount>8||p.dailyMwh>std::numeric_limits<uint64_t>::max()-p.extraDailyMwh)return false;
+  bool subjectKnown=false;for(auto byte:p.subject)subjectKnown=subjectKnown||byte!=0;
+  if(!subjectKnown||!p.seq||p.keyEpoch!=key_||p.configEpoch!=config_||p.counterEpoch!=counter_||p.windowCount>8||p.dailyMwh>std::numeric_limits<uint64_t>::max()-p.extraDailyMwh)return false;
   if(!p.dailyMwh&&p.extraDailyMwh)return false;
   for(unsigned i=0;i<p.windowCount;++i)if(p.windows[i].start>=p.windows[i].end||p.windows[i].end>10080)return false;
   return true;
@@ -47,15 +49,15 @@ class Automation {
  bool apply(const AutomationPolicy& policy,bool signatureAndRequestBindingVerified){
   if(!healthy_||!signatureAndRequestBindingVerified||!valid(policy))return false;
   if(state_.known){if(policy.seq<state_.policy.seq)return false;if(policy.seq==state_.policy.seq)return same(policy,state_.policy);}
-  auto next=state_;next.policy=policy;
+  auto next=state_;const bool subjectChanged=state_.known&&policy.subject!=state_.policy.subject;next.policy=policy;
   // Editing limits does not reset consumption or mint a new daily/monthly allowance.
-  if(!next.known){next.dailyBase=policy.anchorMwh;next.monthlyBase=policy.anchorMwh;}
+  if(!next.known||subjectChanged){next.dailyBase=policy.anchorMwh;next.monthlyBase=policy.anchorMwh;next.counterKnown=false;fresh_=false;}
   next.known=true;return save(next);
  }
  bool observe(uint64_t importMwh,uint32_t epoch,uint64_t utcSeconds,bool trustedClock,bool qualifiedCounter){
   fresh_=false;
   if(!healthy_||!state_.known||!trustedClock||!qualifiedCounter||epoch!=counter_||utcSeconds<1700000000ULL||utcSeconds>4102444800ULL||
-     (state_.counterKnown&&(utcSeconds<state_.lastUtc||importMwh<state_.counter))||importMwh<state_.dailyBase||importMwh<state_.monthlyBase)return false;
+     (state_.lastUtc&&(utcSeconds<state_.lastUtc||importMwh<state_.counter))||importMwh<state_.dailyBase||importMwh<state_.monthlyBase)return false;
   auto next=state_;const auto day=(utcSeconds+3600)/86400,month=monthForDay(day);
   // Charge a boundary-straddling/unobserved increment conservatively to the new period.
   // A reboot or delayed first reading cannot forgive energy by rebasing at the new counter.

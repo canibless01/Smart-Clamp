@@ -39,7 +39,7 @@ def test_resident_manages_room_sharing(self):
   room=one(c,"INSERT INTO rooms(building_id,label) VALUES(:id,'Room') RETURNING id",id=building)['id']
   query(c,'UPDATE devices SET room_id=:room,building_id=:building WHERE id=:id',room=room,building=building,id=d['id']);query(c,'INSERT INTO occupancies(room_id,tenant_id) VALUES(:room,:uid)',room=room,uid=tenant['id'])
  base='/api/v1/devices/'+d['id']+'/viewers'
- self.assertEqual(self.client.post(base,headers=self.headers(landlord),json={'viewer_phone':guest['phone']}).status_code,403)
+ self.assertEqual(self.client.post(base,headers=self.headers(landlord),json={'viewer_phone':guest['phone']}).status_code,404)
  self.assertFalse(self.client.get('/api/v1/devices/'+d['id'],headers=self.headers(landlord)).json['can_manage_viewers'])
  response=self.client.post(base,headers=self.headers(tenant),json={'viewer_phone':guest['phone'],'expires_in_hours':24});self.assertEqual(response.status_code,201,response.json)
 ViewerIntegration.test_resident_manages_room_sharing=test_resident_manages_room_sharing

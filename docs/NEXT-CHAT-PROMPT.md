@@ -1,3 +1,19 @@
+## Current scope and checkpoint — 27 November 2026
+
+Read `docs/BUILD_STATUS.md` first: the new authoritative 224-item A–Z register merges the original spec, supplement, source PRD/build guide and code audit. Read `docs/IMPLEMENTATION-WORK-PACKAGES.md` and `docs/CONFIGURATION-INVENTORY.md`. The owner approved the focused electricity launch and deferred agent/referrer/commissions, white-label, advanced analytics, water/gas/accessories and expanded business dashboards. Preserve approved light UI. Do not revive older redesign instructions. No subagents are active.
+
+The automation/resident-authority checkpoint adds migration 041 signed settings/configuration receipts and 042 browser audit/evidence sequence revocation. 040 remains transport reporting; do not overwrite it with the other chat’s proposed 040 security file. Owner reports external 001–039 success (039 checksum matches local), proper live RLS isolation, no SECURITY DEFINER bypass, but broad sequence privileges. Local tests prove the new revoke and backend appends. No external SQL was executed here. Owner wants ONE final SQL/configuration handoff after building, not repeated interim requests.
+
+Cloud automation settings, action-bound confirmation, signed offers, immutable policy/receipt history and native durable budget/weekly-window foundations are present. The commissioning agent explicitly rejects unqualified execution. Actual qualified runtime adapters, trigger receipts, remaining-budget telemetry and alerts are still incomplete. Occupied-room physical owners no longer receive resident write/financial rights; handover blocks outstanding usage and uncleared automation. Boundary-spanning usage is unallocated/audited, not charged to the next tenant.
+
+Verification: full API run 82 tests, 1 separate SMTP class skipped (81 passed). SMTP separately passed 2 actual GoTrue/SMTP API tests and 1 browser journey. Production build, native/contract checks and all six ESP profile builds pass. Main browser run 48 passed/1 failed, then corrected report test passed separately: it had tried to report a period before a new tenant joined, which the privacy guard correctly rejected. The successful report test uses its own homeowner account. All 49 main checks accepted across runs; OneSignal SDK and dedicated SMTP runs excluded from that main batch.
+
+No connected Supabase tool or secure admin/runtime keys are exposed here. Specific project Auth now returns 401, not the old proxy CONNECT403. User requested real populated review accounts; none created. Need a guarded staging/review seeder and secure Auth admin/database access, deployment routing and environment provenance; never create fake Gmail mailboxes or unlabelled production metrology/credits. Exact hardware BOM/pin map remains requested asynchronously.
+
+Continue implementation, push tested checkpoints, and update the structured register (then run tools/render_build_register.py). Current next priority is typed audited business configuration/feature rules, then shared-meter reconciliation/settlement and remaining launch loops. Keep missing implementations distinct from provider/hardware acceptance.
+
+---
+
 
 ## Report sharing and export checkpoint — 27 November 2026
 

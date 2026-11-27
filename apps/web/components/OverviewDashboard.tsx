@@ -148,7 +148,7 @@ export default function OverviewDashboard({
                     </span>
                   </div>
                 )}
-                {device?.capabilities?.includes('relay')&&<PowerControlPanel context={data} deviceId={device.id}/>}
+                {device?.capabilities?.includes('relay')&&(device.access?.can_control===true||device.controls?.can_request===true)&&<PowerControlPanel context={data} deviceId={device.id}/>}
                 <SupplyFlow hasRelay={device?.capabilities?.includes('relay')===true} supply={fresh ? device?.supply_state : 'unknown'} relay={relayFresh ? relay?.observed ?? null : null} power={readingStatus==='fresh' ? watts : null}/>
                 <div className="grid-12 overview-metrics">
                   <div style={{ gridColumn: "span 4" }}>

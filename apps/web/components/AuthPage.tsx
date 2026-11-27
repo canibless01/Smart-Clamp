@@ -144,7 +144,7 @@ export default function AuthPage({ signup = false }: { signup?: boolean }) {
                 { name: "My home", value: "homeowner", icon: "home" },
                 { name: "My room", value: "tenant", icon: "bulb" },
                 { name: "My building", value: "landlord", icon: "building" },
-              ].map((r) => (
+              ].filter(r=>!options?.public_roles||options.public_roles.includes(r.value)).map((r) => (
                 <button
                   type="button"
                   key={r.value}

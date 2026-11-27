@@ -51,7 +51,7 @@ def uuid_string(value):
 def device(conn,actor,device_id,write=False):
     did=uuid_string(device_id)
     row=one(conn,"""SELECT d.* FROM devices d WHERE d.id=:id AND (
-      d.owner_id=:uid OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL)
+      (d.owner_id=:uid AND(:readonly OR NOT EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.end_at IS NULL AND o.tenant_id<>:uid))) OR EXISTS(SELECT 1 FROM occupancies o WHERE o.room_id=d.room_id AND o.tenant_id=:uid AND o.end_at IS NULL)
       OR (:readonly AND (EXISTS(SELECT 1 FROM buildings b LEFT JOIN rooms r ON r.building_id=b.id WHERE b.landlord_id=:uid AND (b.id=d.building_id OR r.id=d.room_id))
       OR EXISTS(SELECT 1 FROM device_viewers v WHERE v.device_id=d.id AND v.viewer_user_id=:uid AND v.revoked_at IS NULL AND(v.expires_at IS NULL OR v.expires_at>now())))))""",id=did,uid=actor['id'],readonly=not write)
     if not row:raise DomainError('not_found','Device not found.',404)
@@ -70,4 +70,10 @@ def reading_since(conn,actor,d):
     if str(d['owner_id'])==str(actor['id']):return None
     grant=one(conn,'SELECT created_at FROM device_viewers WHERE device_id=:id AND viewer_user_id=:uid AND revoked_at IS NULL AND(expires_at IS NULL OR expires_at>now())',id=d['id'],uid=actor['id'])
     if grant:return max(grant['created_at'],occupancy['start_at']) if occupancy else grant['created_at']
-    return None # A separately authorized building manager retains its existing monitoring scope.
+    if one(conn,'SELECT b.id FROM buildings b LEFT JOIN rooms r ON r.building_id=b.id WHERE b.landlord_id=:uid AND(b.id=:building OR r.id=:room)',uid=actor['id'],building=d['building_id'],room=d['room_id']):return None
+    raise DomainError('not_found','Device access changed. Refresh your workspace.',404)
+
+
+def resident_authority(conn,actor,d):
+    occupant=one(conn,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL',room=d['room_id'])
+    return str(occupant['tenant_id'])==str(actor['id']) if occupant else str(d['owner_id'])==str(actor['id'])

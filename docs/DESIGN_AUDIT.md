@@ -1,3 +1,7 @@
+## Current owner-approved direction — 27 November 2026
+
+The clean light/forest/sage UI and familiar navigation are authoritative. Older distinct-shape/purple/dark-bento demands below are historical and superseded by the owner. Functional completion is the goal. The current register is `BUILD_STATUS.md`; source conflicts and deferrals are in `IMPLEMENTATION-WORK-PACKAGES.md`. Current browser checks cover all three widths and preserve unknown/source/receipt semantics. No new dashboard overhaul is authorized by copying the supplement.
+
 # Instrument design audit
 
 ## Before the A-to-Z attachment (26 November 2026)

@@ -15,7 +15,7 @@ export default function PowerControlPanel({context,deviceId}:{context:any;device
     [busy, setBusy] = useState(false),
     [command, setCommand] = useState<any>(null);
         const devices = data.devices.filter((d: any) =>
-            d.capabilities.includes("relay"),
+            d.capabilities.includes("relay")&&(d.access?.can_control===true||d.controls?.can_request===true),
           ),
           id = deviceId || selected || devices[0]?.id,
           controls = devices.find((d: any) => d.id === id)?.controls;
@@ -23,9 +23,9 @@ export default function PowerControlPanel({context,deviceId}:{context:any;device
         const tracked=command&&relay?.latest_command?.id===command.id?relay.latest_command:command,pending=!!relay?.pending_command_id||tracked&&['pending','pending_delivery'].includes(tracked.status);
         return !devices.length ? (
           <div className="workspace-empty">
-            <h2>No relay-equipped device linked.</h2>
+            <h2>No controllable SmartClamp linked.</h2>
             <p>
-              Monitoring hardware cannot switch power. Control requires a
+              Read-only sharing and monitoring hardware cannot switch power. Control requires a
               compatible installed relay and an eligible plan.
             </p>
           </div>

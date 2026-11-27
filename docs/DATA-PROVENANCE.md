@@ -37,3 +37,11 @@ Onboarding counts come from persisted profiles; fleet qualification and contact 
 ## Downloaded reports
 
 The signed JSON download preserves the server's exact canonical bytes, SHA-256, signature, public key and key fingerprint, alongside the parsed snapshot and qualification wording. New snapshots sign their issuing environment, including isolated QA. Integrity verification must use the canonical bytes and establish trust in the issuer's key fingerprint independently; an embedded public key alone is not proof of issuer identity. Print/save-PDF retains the signature reference, source coverage, limitations and QA disclosure. Sharing QR codes are generated locally from the issued revocable link, without third-party QR requests. Revocation blocks future public access but cannot erase copies already downloaded or printed.
+
+## Automation and resident handover
+
+Cloud policy acceptance is a signed configuration receipt, not a physical relay observation. Requested daily/monthly caps and weekly windows are labelled as requested. The commissioning image explicitly rejects automation enforcement because its production counter/storage/actuator adapters are not qualified. No timer or policy ACK changes the relay display.
+
+Native budget state binds the signed resident UUID, key/config/counter epochs and monotonically versioned settings. Same-resident edits preserve measured consumption. A signed change to the current resident scope requires a new qualified anchor and fresh observation before readiness. A room cannot transfer while an old active automation policy remains or a disabled policy lacks its device acknowledgement. Pending reading work must settle before a transfer. Counter intervals crossing the occupancy boundary are not assigned to the incoming tenant: they remain unavailable for charging, with an immutable unallocated-usage audit record for reconciliation. This is not a forgiven or invented zero-energy interval.
+
+Physical owners in occupied rooms retain authorised monitoring, but cannot control the tenant's relay, manage their viewers, publish their private report or inspect/spend their wallet merely because they own the hardware. Every write still checks current server authority.

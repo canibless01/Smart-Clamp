@@ -1,4 +1,6 @@
-# Electricity feature completion checklist
+# Electricity launch summary
+
+The authoritative complete inventory is [BUILD_STATUS.md](BUILD_STATUS.md), generated from the 224-item [register](implementation/complete-register.json). The owner approved the focused launch/deferred split in [work packages](IMPLEMENTATION-WORK-PACKAGES.md). This shorter older table is a summary, not the full scope.
 
 Latest owner direction, 26 November 2026: retain the approved clean light UI, fonts and navigation. Make only small semantic tints/icons. Fill missing functionality, feature by feature. Put power control, remaining units, buying units and budgets ahead of electrical detail. Monitoring-only devices must not show a disabled permanent ON/OFF control. Water/gas are outside the electricity launch and remain gated.
 
@@ -11,8 +13,8 @@ Latest owner direction, 26 November 2026: retain the approved clean light UI, fo
 | 1 | Monitoring-only variant | No power panel or switch; familiar Power position becomes Live; readings/supply remain | Production hardware manifest qualification across supported profiles; monitoring-only browser variant passed |
 | 1 | Remaining units and top-up, overview and `/billing` | Verified wallet units/cash, quotes, fees, checkout, callbacks, vending/requery, funding/usage ledgers | Production merchant/provider acceptance; UI reminder/low-credit actions; optional joint purchase allocation remains demo-only |
 | 1 | One live data connection | Authenticated, scoped, bounded SSE; overview/control/notifications share it; history follows new device observations; reconnection retains timestamps | Streaming deployment capacity; broader role dashboards need equivalent event updates. Shared navigation/stream browser regression passed. |
-| 1 | Daily/monthly budget, overview shortcut and control settings | Tested portable daily/monthly budget engine, durable counter/calendar baselines, dated extra allowance and independent restrictions; not an executable product feature yet | Cloud persistence, step-up edits, signed sync/receipts, qualified runtime integration, user add-allowance flow and alert integration |
-| 1 | Schedules, control settings | Tested portable weekly allowed-window engine with replay/clock/storage checks; manual OFF remains independent | Signed cloud policy/UI/audit, qualified runtime integration and per-trigger physical receipts |
+| 1 | Daily/monthly budget, overview shortcut and control settings | Tested portable daily/monthly budget engine, durable counter/calendar baselines, dated extra allowance and independent restrictions; not an executable product feature yet | Cloud persistence, step-up edits, settings UI and signed configuration receipts now exist. Remaining: qualified runtime integration, per-trigger feedback, reported remaining allowance and alert integration. |
+| 1 | Schedules, control settings | Tested portable weekly allowed-window engine with replay/clock/storage checks; manual OFF remains independent | Signed cloud policy/UI/audit now exists. Qualified runtime integration and per-trigger physical receipts remain. |
 | 1 | Installation voltage/current settings and protection | Signed channel declarations, independent display ranges/advisory bands; portable fixed-policy reference code | Installer configuration UI, signed device-enforced limits/modes, acknowledgement, persistence and physical acceptance; display-only advice is not configuration |
 | 1 | Override/recovery and appliance guidance | Server restrictions prevent unsafe unsupported restore; full override workflow absent | Risk acknowledgement, installation hard limits, expiry/recovery on device, audit, step-up, guidance inventory; no invented success |
 | 1 | Supply lost/restored and notification preferences | Signed supply episodes, timestamp/quality checks, event catalogue, opt-in audio/haptic preferences, ack/snooze/history and persisted channel outcomes | Full expanded event catalogue, all clearing/escalation scenarios, real SMS/email/push acceptance |
@@ -43,4 +45,4 @@ Implement persistence/permissions, the user action, the device/provider adapter 
 - [Where each value originates](DATA-PROVENANCE.md)
 - [Detailed A-to-Z status](BUILD_STATUS.md)
 
-The owner reports external Supabase 001–038 migration success with matching checksums. Migrations 039–040 are prepared for the connected chat; their external execution is not yet reported. Provider and hardware acceptance must be reported separately from code implementation.
+The owner reports external Supabase 001–039 migration success with matching checksums. Development migrations 040–042 are local, awaiting one final consolidated handoff after implementation. Provider and hardware acceptance must be reported separately from code implementation.

@@ -6,7 +6,13 @@ from flask import Blueprint,request,jsonify,g,current_app
 from .db import transaction,one,rows,query,DomainError,audit,json_text,uuid_string
 from .providers import auth_request
 bp=Blueprint('live_auth',__name__)
-PUBLIC_ROLES={'tenant','landlord','homeowner','agent','referrer'}
+PUBLIC_ROLES={'tenant','landlord','homeowner'}
+
+def enabled_public_roles():
+    roles=set(PUBLIC_ROLES)
+    for role in ('agent','referrer'):
+        if str(current_app.config.get('ROLE_'+role.upper()+'_ENABLED','false')).lower()=='true':roles.add(role)
+    return roles
 
 def authenticated(fn):
     @wraps(fn)
@@ -59,12 +65,12 @@ def session_response(data,c):
 @bp.get('/api/v1/auth/options')
 def auth_options():
     settings=auth_request('settings');external=settings.get('external') or {}
-    return jsonify(**legal_versions(),email_enabled=bool(external.get('email')),phone_enabled=bool(external.get('phone')),google_enabled=bool(external.get('google')))
+    return jsonify(**legal_versions(),public_roles=sorted(enabled_public_roles()),email_enabled=bool(external.get('email')),phone_enabled=bool(external.get('phone')),google_enabled=bool(external.get('google')))
 
 @bp.post('/api/v1/auth/signup')
 def signup():
     d=request.get_json() or {};phone=str(d.get('phone','')).replace(' ','');email=str(d.get('email','')).strip().lower();role=d.get('role','tenant');name=str(d.get('full_name','')).strip()
-    if role not in PUBLIC_ROLES:raise DomainError('forbidden','Professional or utility roles require an invitation.',403)
+    if role not in enabled_public_roles():raise DomainError('forbidden','Professional or utility roles require an invitation.',403)
     require_consent(d)
     if bool(phone)==bool(email) or (phone and not re.fullmatch(r'\+[1-9]\d{7,14}',phone)) or (email and not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email)) or not isinstance(d.get('password'),str) or len(d['password'])<8 or not 1<=len(name)<=160:
         raise DomainError('validation_error','Enter a name, one email or international phone number, and a password of at least 8 characters.')
@@ -106,7 +112,7 @@ def onboarding():
         d=request.get_json() or {};require_consent(d);name=str(d.get('full_name','')).strip();role=d.get('role','homeowner')
         if not 1<=len(name)<=160:raise DomainError('validation_error','Enter your full name.')
         if not phone and not email:raise DomainError('verification_required','Verify an email or phone with your sign-in provider.',403)
-        if not p and role not in PUBLIC_ROLES:raise DomainError('forbidden','This account type requires an invitation.',403)
+        if not p and role not in enabled_public_roles():raise DomainError('forbidden','This account type requires an invitation.',403)
         if p:
             # Existing trusted roles are immutable through public onboarding.
             query(c,'UPDATE profiles SET full_name=:name,phone=:phone,email=:email,onboarding_completed_at=now(),updated_at=now() WHERE id=:id',id=uid,name=name,phone=phone,email=email)

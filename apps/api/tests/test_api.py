@@ -611,7 +611,7 @@ class LiveIntegration(unittest.TestCase):
         self.assertEqual(self.client.get('/api/v1/alerts',headers=self.headers(owner)).json['items'][0]['template_key'],'utility.notice')
         self.assertFalse(self.client.get('/api/v1/alerts',headers=self.headers(other)).json['items'])
     def test_privileged_role_cannot_self_register(self):
-        for role in('internal_superadmin','nepa_staff','installer'):
+        for role in('internal_superadmin','nepa_staff','installer','agent','referrer'):
             r=self.client.post('/api/v1/auth/signup',json={'phone':'+15550001001','password':'valid-password-123','full_name':'No privileges','role':role});self.assertEqual(r.status_code,403)
     def test_administrator_handoffs_and_staff_release_preserve_scope(self):
         owner=self.user('homeowner');admin=self.promote(self.user(),'internal_superadmin');outsider=self.user();dev=self.provision(owner)
