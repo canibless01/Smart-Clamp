@@ -289,3 +289,18 @@ Typed immutable settings, fees frozen with provenance, advisory defaults separat
 - `apps/web/app/ops/settings/`
 - `apps/web/components/ConfiguredPlanPrice.tsx`
 - `database/migrations/043_versioned_business_rules.sql`
+
+## 27 November 2026 — own consent history and viewer withdrawal
+
+- `apps/api/app/live_auth.py`
+- `apps/api/app/onesignal_push.py`
+- `apps/api/app/web_push.py`
+- `apps/web/app/settings/page.tsx`
+- `apps/web/tests/operations-journey.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/implementation/complete-register.json`
+- `docs/ui-overhaul/SCREEN-COVERAGE.md`
+- `apps/api/tests/test_consent_history.py`
+- `apps/web/components/ConsentHistory.tsx`

@@ -1,3 +1,5 @@
+> Latest: own legal/communication history and optional-channel withdrawal are now in Settings. Shared viewer grants are listed and recipients can leave only their own grant; API tests confirm read access ends. No new migration for this batch. Full API run 86 tests: 85 passed / one SMTP-only skip; subsequent viewer tests 2/2 passed. Production build and mobile consent browser test passed. Complete register still tracks missing launch features honestly; do not claim production hardware or subscription checkout is ready.
+
 > Current checkpoint: migration 043 adds immutable scoped business rules and `/ops/settings`. API suite 85 tests: 84 passed, one SMTP-only class skipped; production web and native contracts passed. Live target remains confirmed only through 039 by owner-relayed receipt. Do not apply intermediate SQL, seed live financial/device data, or publish. One consolidated handoff is still required after remaining launch work. Read `docs/BUILD_STATUS.md` for the full register; do not equate configured prices with a finished subscription checkout.
 
 ## Current scope and checkpoint — 27 November 2026

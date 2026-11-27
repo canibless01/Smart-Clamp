@@ -11582,6 +11582,180 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
+  /users/me/consents:
+    get:
+      operationId: live_auth_consents_get_users_me_consents
+      summary: Consents
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    post:
+      operationId: live_auth_consents_post_users_me_consents
+      summary: Consents
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
   /users/me/context:
     get:
       operationId: live_auth_context_get_users_me_context
@@ -12725,6 +12899,96 @@ paths:
             schema:
               type: object
               additionalProperties: true
+  /users/me/viewer-grants/{grant_id}:
+    delete:
+      operationId: live_auth_leave_viewer_grant_delete_users_me_viewer_grants_grant_id
+      summary: Leave viewer grant
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Committed result or current record
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '201':
+          description: Created record, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '202':
+          description: Accepted or verification/pending outcome, when applicable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          description: Authentication or verification required
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '403':
+          description: Role/scope/entitlement denied
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '404':
+          description: Resource not found within authorized scope
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '409':
+          description: State conflict or idempotency mismatch
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '422':
+          description: Unsupported action or missing qualification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '503':
+          description: Integration, rollout or database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+      parameters:
+      - name: grant_id
+        in: path
+        required: true
+        schema:
+          type: string
   /utility/signals/{signal_id}/review:
     post:
       operationId: trust_utility_review_post_utility_signals_signal_id_review

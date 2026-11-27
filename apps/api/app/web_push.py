@@ -13,7 +13,7 @@ from flask import Blueprint,current_app,g,request,jsonify
 from pywebpush import webpush,WebPushException
 from .db import transaction,one,rows,query,json_text,DomainError,outbox,audit
 from .providers import config
-from .live_auth import authenticated
+from .live_auth import authenticated,save_preferences
 
 bp=Blueprint('web_push',__name__)
 HOSTS={'fcm.googleapis.com','updates.push.services.mozilla.com','web.push.apple.com'}
@@ -70,7 +70,7 @@ def subscriptions():
         prior=one(c,'SELECT user_id FROM push_subscriptions WHERE endpoint_hash=:hash FOR UPDATE',hash=digest)
         if prior and str(prior['user_id'])!=g.actor['id']:raise DomainError('push_account_conflict','Disable notifications from the previous account on this browser first.',409)
         row=one(c,'INSERT INTO push_subscriptions(user_id,endpoint_hash,encrypted_subscription) VALUES(:uid,:hash,:encrypted) ON CONFLICT(endpoint_hash) DO UPDATE SET enabled=true,encrypted_subscription=excluded.encrypted_subscription,updated_at=now() RETURNING id',uid=g.actor['id'],hash=digest,encrypted=encrypted)
-        query(c,"INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb)) ON CONFLICT(user_id) DO UPDATE SET value=user_preferences.value||excluded.value,version=user_preferences.version+1,updated_at=now()",uid=g.actor['id'],value=json_text({'push_enabled':True}))
+        save_preferences(c,g.actor['id'],{'push_enabled':True})
         audit(c,g.actor['id'],'push_subscription_enabled',row['id'])
     return jsonify(id=row['id'],status='enabled'),201
 

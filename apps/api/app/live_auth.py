@@ -175,6 +175,16 @@ def context():
     result['authorized_context']=context_identity()
     return jsonify(result)
 
+def save_preferences(c,uid,patch):
+    # Serialize absent-row creation too: the audit before-value must describe the actual edit.
+    query(c,'SELECT pg_advisory_xact_lock(hashtextextended(:key,0))',key='account-preferences:'+str(uid))
+    previous=one(c,'SELECT value FROM user_preferences WHERE user_id=:id FOR UPDATE',id=uid)
+    old=previous['value'] if previous else {}
+    changes={key:{'before':old.get(key),'after':new} for key,new in patch.items() if old.get(key)!=new}
+    if not changes:return
+    query(c,"INSERT INTO user_preferences(user_id,value) VALUES(:id,CAST(:v AS jsonb)) ON CONFLICT(user_id) DO UPDATE SET value=user_preferences.value||excluded.value,version=user_preferences.version+1,updated_at=now()",id=uid,v=json_text(patch))
+    audit(c,uid,'account_preferences_changed',uid,{'changes':changes})
+
 @bp.route('/api/v1/users/me/preferences',methods=['GET','PATCH'])
 @authenticated
 def preferences():
@@ -191,13 +201,51 @@ def preferences():
             if d.get('email_enabled') is True and not g.actor.get('email'):raise DomainError('email_verification_required','A verified account email is required before enabling email notices.',409)
             if 'language' in d and d['language']!='en':raise DomainError('validation_error','This language is not supported yet.')
             if 'theme' in d and d['theme'] not in ('light','dark','system'):raise DomainError('validation_error','Choose a supported theme.')
-            query(c,"INSERT INTO user_preferences(user_id,value) VALUES(:id,CAST(:v AS jsonb)) ON CONFLICT(user_id) DO UPDATE SET value=user_preferences.value||excluded.value,version=user_preferences.version+1,updated_at=now()",id=g.actor['id'],v=json_text(d))
+            save_preferences(c,g.actor['id'],d)
         p=one(c,'SELECT value,version FROM user_preferences WHERE user_id=:id',id=g.actor['id'])
         from .notifications import sms_configured
         from .web_push import configured as push_configured
         from .email_delivery import configured as email_configured
+        from .onesignal_push import configured as onesignal_configured
         return jsonify({**(dict(p) if p else {'value':{},'version':0}),
-                        'notification_channels':{'sms':bool(sms_configured()),'email':bool(email_configured()),'push':bool(push_configured())}})
+                        'notification_channels':{'sms':bool(sms_configured()),'email':bool(email_configured()),'push':bool(push_configured() or onesignal_configured())}})
+
+
+@bp.route('/api/v1/users/me/consents',methods=['GET','POST'])
+@authenticated
+def consents():
+    versions=legal_versions()
+    with transaction() as c:
+        if request.method=='POST':
+            data=request.get_json() or {}
+            if set(data)-{'accepted_terms','terms_version','privacy_version'}:raise DomainError('validation_error','Only explicit legal acceptance belongs in this request.')
+            require_consent(data)
+            exists=one(c,'SELECT id FROM account_consents WHERE user_id=:uid AND terms_version=:terms_version AND privacy_version=:privacy_version',uid=g.actor['id'],**versions)
+            record_consent(c,g.actor['id'],data)
+            if not exists:audit(c,g.actor['id'],'account_terms_accepted',g.actor['id'],versions)
+        raw=request.args.get('before')
+        if raw is not None and(not re.fullmatch('[0-9]{1,19}',raw) or int(raw)>9223372036854775807):raise DomainError('validation_error','Use the returned history cursor.')
+        history=rows(c,"SELECT id,created_at,metadata FROM audit_log WHERE actor_id=:uid AND action='account_preferences_changed' AND(CAST(:before AS bigint) IS NULL OR id<CAST(:before AS bigint)) ORDER BY id DESC LIMIT 51",uid=g.actor['id'],before=int(raw) if raw is not None else None)
+        accepted=rows(c,'SELECT terms_version,privacy_version,accepted_at FROM account_consents WHERE user_id=:uid ORDER BY accepted_at DESC LIMIT 101',uid=g.actor['id'])
+        current=one(c,'SELECT id FROM account_consents WHERE user_id=:uid AND terms_version=:terms_version AND privacy_version=:privacy_version',uid=g.actor['id'],**versions)
+        pref=one(c,'SELECT value,version FROM user_preferences WHERE user_id=:uid',uid=g.actor['id'])
+        grants=rows(c,"SELECT id,device_id,created_at,expires_at,CASE WHEN viewer_user_id=:uid THEN 'received' ELSE 'issued' END AS direction,CASE WHEN expires_at<=now() THEN 'expired' ELSE 'active' END AS status FROM device_viewers WHERE(viewer_user_id=:uid OR added_by=:uid) AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 101",uid=g.actor['id'])
+    return jsonify(viewer_grants=grants[:100],viewer_grants_truncated=len(grants)>100,current_legal=versions,current_legal_accepted=bool(current),acceptances=accepted[:100],acceptances_truncated=len(accepted)>100,
+        preferences=pref['value'] if pref else {},preference_version=pref['version'] if pref else 0,
+        history=history[:50],next_before=str(history[49]['id']) if len(history)>50 else None,
+        history_note='Preference history is recorded from the consent-history release onward; earlier choices were not reconstructed.',
+        purposes={'sms_enabled':'Optional account SMS to your verified phone','email_enabled':'Optional account notices to your verified email','push_enabled':'Optional browser push','utility_notices_enabled':'Notices from the reviewed utility organisation assigned to your device'},
+        service_notice='Changing optional channels does not delete your account, financial evidence or in-app safety records. Utility scope and sender authority are checked separately.')
+
+@bp.delete('/api/v1/users/me/viewer-grants/<grant_id>')
+@authenticated
+def leave_viewer_grant(grant_id):
+    with transaction() as c:
+        found=one(c,'SELECT device_id FROM device_viewers WHERE id=:id AND viewer_user_id=:uid',id=uuid_string(grant_id),uid=g.actor['id'])
+        if not found:raise DomainError('not_found','Shared access not found.',404)
+        query(c,'UPDATE device_viewers SET revoked_at=coalesce(revoked_at,now()) WHERE id=:id AND viewer_user_id=:uid',id=grant_id,uid=g.actor['id'])
+        audit(c,g.actor['id'],'viewer_access_declined',found['device_id'],{'grant_id':grant_id})
+    return jsonify(status='revoked')
 
 @bp.patch('/api/v1/users/me/report-preferences')
 @authenticated

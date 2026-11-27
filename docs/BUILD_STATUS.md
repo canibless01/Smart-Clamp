@@ -12,7 +12,7 @@ The machine-readable source is [complete-register.json](implementation/complete-
 
 | Scope | Built | Partial | Stub | Missing | Total |
 |---|---:|---:|---:|---:|---:|
-| Launch | 59 | 81 | 3 | 45 | 188 |
+| Launch | 59 | 82 | 3 | 44 | 188 |
 | Deferred | 0 | 5 | 5 | 26 | 36 |
 
 Counts are an inventory, not a completion percentage. One missing physical adapter can block several otherwise implemented loops.
@@ -254,7 +254,7 @@ Source: AtoZ P; supplement 1.7.
 | P01 Family viewer and expiring guest management | Built / Launch | apps/web/components/DeviceViewers.tsx; apps/api/app/live_resources.py | Live account acceptance; preserve read-only finance/control boundaries. | No business value introduced by this item.; Core |
 | P02 Viewer grant floor, expiry/revoke and resident authority | Built / Launch | apps/api/app/db.py; apps/api/tests/test_viewers.py | Current occupied-room authority changes need final browser regression. | No business value introduced by this item.; Core |
 | P03 Viewer read/access audit | Partial / Launch | apps/api/app/live_resources.py | Record scoped viewer reads/exports, not only grant/revoke events. | Proposed: access audit retention; Core |
-| P04 Unified consent centre | Missing / Launch | No executable implementation identified. | List channel/utility/analytics/verified-record/viewer consents, last change and revoke actions. | Proposed: consent purposes and disclosure versions; Core |
+| P04 Unified consent centre | Partial / Launch | apps/api/app/live_auth.py; apps/web/components/ConsentHistory.tsx; apps/api/tests/test_consent_history.py | Own legal acceptances, audited channel changes, optional-channel withdrawal, shared-viewing inventory and recipient self-revocation are built. Purpose-specific analytics/verified-record sharing remains unimplemented; issued viewing grants are managed on each device. | Proposed: consent purposes and disclosure versions; Core |
 | P05 Personal profile and source-aware settings | Built / Launch | apps/web/app/settings/page.tsx | Complete missing source/policy links without changing approved navigation. | No business value introduced by this item.; Core |
 | P06 Language and cosmetic dark-mode choice | Missing / Deferred | No executable implementation identified. | Localisation and optional theme, preserving approved green default. | Proposed: enabled locales/theme preference; Core |
 | P07 PWA install/offline shell and reconnect honesty | Built / Launch | apps/web/public/sw.js; apps/web/components/PwaControls.tsx | Deployed install/browser push acceptance; never cache private account data in shared offline assets. | No business value introduced by this item.; Core |

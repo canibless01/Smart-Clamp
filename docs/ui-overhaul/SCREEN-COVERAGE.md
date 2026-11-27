@@ -80,3 +80,7 @@ Latest: `/devices/[id]/automation` adds qualified-device budget/window configura
 ## 27 November 2026 — business settings
 
 Touched `/ops/settings` (new typed editor and history), `/pricing` (approved price readout), `/reports` (time-limited link wording) and workspace navigation (settings discovery for authorised staff). Other public, resident, landlord, installer and utility screens intentionally retain the approved layout; backend rule enforcement is shared without a visual redesign.
+
+## 27 November 2026 — consent history
+
+Touched `/settings` only: own legal/communication history, optional-channel withdrawal, shared viewing inventory and leave action. Existing approved layout preserved; all other screens intentionally untouched. This extends existing audit/consent/viewer tables and adds no migration.

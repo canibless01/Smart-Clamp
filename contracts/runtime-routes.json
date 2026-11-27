@@ -626,6 +626,16 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/users/me/consents",
+    "handler": "live_auth.consents"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/users/me/consents",
+    "handler": "live_auth.consents"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/users/me/context",
     "handler": "live_auth.context"
   },
@@ -688,6 +698,11 @@
     "method": "POST",
     "path": "/api/v1/users/me/subscription/cancel",
     "handler": "live_auth.cancel"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/users/me/viewer-grants/{grant_id}",
+    "handler": "live_auth.leave_viewer_grant"
   },
   {
     "method": "POST",

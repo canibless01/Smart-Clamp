@@ -86,3 +86,11 @@ test('real auth/database: administrator publishes scoped settings and operations
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
  await login(f.ops);await page.getByRole('button',{name:'Load selected scope'}).click();await expect(page.getByRole('button',{name:'Publish reviewed setting'})).toBeDisabled();
 });
+
+test('real auth/database: resident reviews consent history and withdraws optional delivery',async({page})=>{
+ test.skip(!file,'Requires isolated real auth/API/database services.');const f=JSON.parse(fs.readFileSync(file!,'utf8'));
+ await page.goto('/login');await page.getByLabel('Phone number').fill(f.message_recipient.phone);await page.getByLabel('Password',{exact:true}).fill(f.message_recipient.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page).toHaveURL(/\/dashboard(?:\/homeowner)?$/);await page.goto('/settings');
+ const utility=page.getByRole('checkbox',{name:'Allow service notices from the reviewed utility organization assigned to my device'});await utility.check();await page.getByRole('button',{name:'Save preferences',exact:true}).click();await expect(page.getByText('Preferences saved.',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Withdraw optional communication permissions',exact:true}).click();await expect(utility).not.toBeChecked();await page.getByText('Communication preference history',{exact:true}).click();await expect(page.getByText(/Notices from the reviewed utility organisation assigned to your device: Allowed → Not allowed/)).toBeVisible();
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});

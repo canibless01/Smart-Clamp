@@ -6,7 +6,7 @@ from cryptography.fernet import Fernet,InvalidToken
 import requests
 from flask import Blueprint,current_app,request,jsonify,g
 from .db import transaction,one,rows,scalar,query,json_text,uuid_string,audit,DomainError
-from .live_auth import authenticated
+from .live_auth import authenticated,save_preferences
 from .providers import config
 from .email_routing import onesignal_endpoint
 
@@ -49,7 +49,7 @@ def preference(registration_id):
     with transaction() as c:
         row=one(c,'UPDATE onesignal_push_devices SET enabled=:enabled,updated_at=now() WHERE id=:id AND user_id=:uid RETURNING id',id=uuid_string(registration_id),uid=g.actor['id'],enabled=d['enabled'])
         if not row:raise DomainError('scope_denied','This browser registration does not belong to your account.',403)
-        if d['enabled']:query(c,'INSERT INTO user_preferences(user_id,value) VALUES(:uid,CAST(:value AS jsonb)) ON CONFLICT(user_id) DO UPDATE SET value=user_preferences.value||excluded.value,version=user_preferences.version+1,updated_at=now()',uid=g.actor['id'],value=json_text({'push_enabled':True}))
+        if d['enabled']:save_preferences(c,g.actor['id'],{'push_enabled':True})
         audit(c,g.actor['id'],'onesignal_browser_preference',row['id'],{'enabled':d['enabled']})
     return jsonify(status='enabled' if d['enabled'] else 'disabled')
 
