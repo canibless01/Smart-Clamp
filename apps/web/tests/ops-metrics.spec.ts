@@ -1,0 +1,5 @@
+import {test,expect} from '@playwright/test';
+import fs from 'node:fs';
+test('real auth/database: operations exposes sourced platform and reported modem metrics',async({page})=>{
+ const file=process.env.SMARTCLAMP_BROWSER_FIXTURE;test.skip(!file,'Requires isolated API/Auth/PostgreSQL');const f=JSON.parse(fs.readFileSync(file!,'utf8'));await page.goto('/login');await page.getByLabel('Phone number').fill(f.ops.phone);await page.getByLabel('Password',{exact:true}).fill(f.ops.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page).toHaveURL(/\/ops/);for(const title of ['People & platform','Fleet by device profile','Command outcomes · 24 hours','Processing queue','Reported cellular usage'])await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();await expect(page.getByText('-75 dBm',{exact:true}).first()).toBeVisible();await expect(page.getByText('Stored JSON payload size · 24 hours:',{exact:false})).toBeVisible();await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});

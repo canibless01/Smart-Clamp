@@ -1,3 +1,10 @@
+
+## Operations metrics and transport checkpoint — 27 November 2026
+
+`/ops` now includes persisted onboarding counts, fleet qualification by profile, command outcome counts, processing queues, signed-packet/JSON storage totals and reported cellular usage. Signed gateway heartbeats can report modem session byte counters/RSSI/network type. API rejects duplicates, inappropriate device profiles, invalid types and counter rollback without a new session. Usage is paired trusted-source counter deltas; unknown/reset intervals are never invented. Modem counters are separate from JSON byte size and SIM billing. Actual production GSM HAL still awaits the approved hardware BOM.
+
+Migration 040 adds transport reports with RLS and no direct browser access. External bundle and connected-chat handoff now include both missing 039–040; owner-reported 001–038 remain unchanged. Verification: 77 real API checks, production web build, and mobile operations browser journey passed. Native automation tests also pass; the portable engine is not a completed device/cloud schedule product yet.
+
 ## External SQL handoff update — 27 November 2026
 
 Owner reports the other chat applied 001–038 from 4a2fd0e successfully with matching checksums. Receipt path `/workspace/scratch/smartclamp-fmjzskjkvdbffwkiujnu-migrations.json` is absent here. See `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`: apply only missing 039 and check live RLS/privileges/Auth/runtime. Do not repeat the old claim that external 001–038 is unapplied; distinguish reported results from this workspace's observations.

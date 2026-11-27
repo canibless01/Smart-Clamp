@@ -151,3 +151,28 @@ Current follow-up checkpoint against pushed commit f94a51e. Includes removal of 
 - `docs/ui-overhaul/SCREEN-COVERAGE.md`
 - `tools/browser_qa.py`
 - `tools/export_runtime_contract.py`
+
+## Automation foundation and operations follow-up
+
+- `firmware/include/automation_policy.hpp`
+- `firmware/tests/automation_test.cpp`
+- `firmware/README.md`
+- `tools/verify.sh`
+- `apps/api/app/live_devices.py`
+- `apps/api/app/live_workflows.py`
+- `apps/api/app/ops_metrics.py`
+- `apps/api/tests/test_ops_metrics.py`
+- `apps/web/app/ops/page.tsx`
+- `apps/web/components/OperationsMetrics.tsx`
+- `apps/web/tests/ops-metrics.spec.ts`
+- `contracts/device-protocol.md`
+- `database/migrations/040_transport_reports.sql`
+- `docs/BUILD_STATUS.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/ELECTRICITY-FEATURE-CHECKLIST.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`
+- `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
+- `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
+- `tools/browser_qa.py`

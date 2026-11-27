@@ -107,8 +107,10 @@ def ops_summary():
         from .email_routing import quota_summary
         from datetime import datetime,timezone
         email_budget=quota_summary(c,datetime.now(timezone.utc))
+        from .ops_metrics import snapshot
+        operations=snapshot(c)
         audit(c,g.actor['id'],'ops_summary_viewed')
-    return jsonify(email_feedback_review=feedback,email_routing=email_budget,fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
+    return jsonify(operations=operations,email_feedback_review=feedback,email_routing=email_budget,fleet=dict(counts),job_counts=jobcounts,jobs=jobs,sms_delivery_issues=deliveries,notification_delivery_issues=deliveries,payment_recovery_issues=recovery,unavailable_metrics=['MRR','CAC','runway','churn','confirmed_theft'])
 
 @bp.post('/api/v1/ops/jobs')
 @authenticated

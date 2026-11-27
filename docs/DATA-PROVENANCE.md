@@ -29,3 +29,7 @@ A pole/transformer channel enables upstream-to-downstream comparison only where 
 ## Sampled hours of supply
 
 `GET /devices/:id/supply-history?days=1|7|30` pairs adjacent signed readings only when both have valid sensing, trusted timestamps, non-null voltage, the same supply classification and a gap no larger than 180 seconds. Other intervals remain unknown. The current and previous equal periods both expose coverage. No coverage returns null hours, never fabricated zero. The configurable `SUPPLY_PRESENT_MIN_MV` defaults to 50000 (50 V), the reference presence threshold, and does not configure protection. These sampled hours are not a continuous-availability guarantee, theft evidence or a utility credit determination. Scope starts at the tenant occupancy/viewer grant where applicable.
+
+## Operations and cellular data
+
+Onboarding counts come from persisted profiles; fleet qualification and contact counts come from the device registry; queue/outcome counts come from outbox and commands. Cellular usage comes only from authenticated gateway modem counter reports, paired within the same counter session and trusted source time. Missing or reset intervals are unknown. Signal strength is current only with trusted time and observation age below 180 seconds. Stored JSON text byte size is shown separately and is not network traffic or a SIM billing estimate. The production modem HAL remains dependent on the approved BOM.

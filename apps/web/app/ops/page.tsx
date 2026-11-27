@@ -1,4 +1,5 @@
 "use client";
+import OperationsMetrics from "@/components/OperationsMetrics";
 import StaffAlertQueue from "@/components/StaffAlertQueue";
 import RecordWorkspace, { RecordTable } from "@/components/RecordWorkspace";
 import { apiFetch } from "@/lib/api";
@@ -19,6 +20,7 @@ export default function Page() {
       {(data, reload) => (
         <>
           <StaffAlertQueue/>
+          <OperationsMetrics data={data.operations}/>
           <div className="grid-12">
             {Object.entries(data.fleet).map(([key, value]) => (
               <div className="card" style={{ gridColumn: "span 3" }} key={key}>

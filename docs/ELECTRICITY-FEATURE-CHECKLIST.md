@@ -27,7 +27,7 @@ Latest owner direction, 26 November 2026: retain the approved clean light UI, fo
 | 2 | Reports, `/reports` and issued public snapshot | Signed immutable snapshot, exact observations, CSV, revocable public link and verification seal | QR/print/PDF and scheduled delivery; acceptance of hardware-derived evidence |
 | 2 | Disputes and meeting mode | Persistent scoped cases, responder handoff and shared meeting view | Auto-attached measured period, agreed payment plans/instalments, fulfilment/missed-state handling; no punitive power consequence |
 | 2 | Utility/NEPA decision panels | Assigned-device/signal views, scoped notice audiences and dispatch | Automatic community supply aggregates with coverage; comparative supply hours, substantiated chain flags, evidence/inspection workflow and consent-ready APIs |
-| 2 | Internal operations | Fleet records, work orders, staff notices, signed OTA artifacts/cohorts | User/device onboarding counters, connectivity/command/delivery queues, topology overview, modem-reported GSM usage, compliance/audit summaries |
+| 2 | Internal operations | Fleet records, work orders, staff notices, signed OTA artifacts/cohorts | Onboarding counts, fleet qualification/profile counts, command/outbox queues, authenticated modem session counters, signal freshness and observed cellular deltas are implemented. Remaining: topology overview, production GSM HAL, expanded compliance summaries and SIM-provider billing reconciliation. |
 | 2 | Community supply information | Public community functionality gated | Privacy-safe automatic transformer/pole aggregates, minimum coverage/population rules; no crowd report needed where measured sources exist |
 | 2 | Restoration estimates/notices | No unsupported prediction emitted | Sourced utility schedules/notices or a validated labelled predictor with uncertainty; never infer a guaranteed future restoration from a present reading |
 | 2 | Electricity insights | Some qualified readings/history and integrity trail exist | Source-backed bill forecast, outage-credit estimate, pattern study, peer aggregation, qualified power factor, validated appliance models; no fabricated appliance attribution |
@@ -43,4 +43,4 @@ Implement persistence/permissions, the user action, the device/provider adapter 
 - [Where each value originates](DATA-PROVENANCE.md)
 - [Detailed A-to-Z status](BUILD_STATUS.md)
 
-The owner reports external Supabase 001–038 migration success with matching checksums. Migration 039 is prepared for the connected chat; its external execution is not yet reported. Provider and hardware acceptance must be reported separately from code implementation.
+The owner reports external Supabase 001–038 migration success with matching checksums. Migrations 039–040 are prepared for the connected chat; their external execution is not yet reported. Provider and hardware acceptance must be reported separately from code implementation.

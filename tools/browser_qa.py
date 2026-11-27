@@ -69,6 +69,10 @@ with t.app.app_context():
         if response_email.status_code!=200:raise RuntimeError('Could not create isolated email notice account')
         email_recipient.update(id=response_email.json['user_id'],token=response_email.json['access_token'])
         email_device=t.provision(email_recipient)
+gateway=t.provision(ops,'pole_gateway');session=uuid.uuid4().hex;report_at=int(datetime.now(timezone.utc).timestamp()*1000)
+for age,rx,tx in [(60000,1000000,200000),(1000,2500000,700000)]:
+    transport_response=t.client.post('/api/v1/device/events',json=t.envelope(gateway,kind='heartbeat',occurred_at_ms=report_at-age,transport={'counter_session':session,'rx_bytes':rx,'tx_bytes':tx,'signal_dbm':-75,'network_type':'4g'}))
+    if transport_response.status_code!=200:raise RuntimeError('Could not create signed QA modem report')
 signal=t.client.post('/api/v1/device/events',json=t.envelope(message_device,kind='tamper'))
 if signal.status_code!=200:raise RuntimeError('Could not create signed QA signal')
 a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)

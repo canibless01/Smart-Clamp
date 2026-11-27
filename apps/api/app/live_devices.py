@@ -51,6 +51,8 @@ def events():
         if kind not in('telemetry','heartbeat','supply_lost','supply_returned','protection','tamper','config'):raise DomainError('unsupported_device_event','This event kind is not supported.')
         iid,ack,duplicate=inbox(c,d,p)
         if duplicate:return jsonify(ack)
+        from .ops_metrics import ingest_transport
+        ingest_transport(c,d,p,iid)
         if kind=='config':
             from .datastreams import save_manifest
             save_manifest(c,d,p,iid)

@@ -70,3 +70,5 @@
 Follow-up: `/settings` adds device/access discovery; `/devices/[id]` adds family and guest management; `/history` adds sampled supply hours with coverage and equal-period comparison. Other page-specific content is retained to preserve the approved UI and avoid another visual redesign.
 
 Signal investigation follow-up: `/devices/[id]` adds Signals & trust; `/support/tickets/[id]` adds source evidence and claimed inspection handoff; `/dashboard/utility` adds scoped review actions and packet references. Other screen content remains as recorded above.
+
+Operations follow-up: `/ops` adds sourced onboarding, profile, command/queue and cellular usage views. Shared shells/branding remain unchanged; unmodified screens retain their prior functionality and the reasons above.
