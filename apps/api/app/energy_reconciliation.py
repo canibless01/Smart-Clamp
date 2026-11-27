@@ -4,6 +4,7 @@ from flask import Blueprint,g,request,jsonify
 from .db import transaction,building,one,rows,DomainError
 from .live_auth import authenticated
 from .business_rules import resolve
+from .idempotency import idempotent
 bp=Blueprint('energy_reconciliation',__name__)
 
 def interval(samples,start,end,max_gap,skew):
@@ -70,3 +71,40 @@ def compare(building_id):
         ratio=abs(delta)*10000/incoming
         result.update(difference_bps=ratio,status='review' if abs(delta)*10000>incoming*rules['tolerance_bps']['value'] else 'within_tolerance',reason=None)
     return jsonify(result)
+
+@bp.route('/api/v1/buildings/<building_id>/topology',methods=['GET','POST'])
+@authenticated
+@idempotent
+def topology(building_id):
+    from .db import query,uuid_string,audit
+    with transaction() as c:
+        b=building(c,g.actor,building_id)
+        # A topology edit is a metadata declaration, never a commissioning certificate.
+        if request.method=='POST':
+            b=one(c,'SELECT * FROM buildings WHERE id=:id FOR UPDATE',id=building_id)
+        devices=rows(c,"SELECT d.id,d.profile,d.room_id,r.label AS room_label,d.install_state,d.calibration_status FROM devices d LEFT JOIN rooms r ON r.id=d.room_id WHERE coalesce(d.building_id,r.building_id)=:bid ORDER BY d.id LIMIT 257"+(' FOR UPDATE OF d' if request.method=='POST' else ''),bid=building_id)
+        ids=[str(d['id']) for d in devices]
+        edges=rows(c,'SELECT id,parent_device_id,parent_meter_id,child_device_id,valid_from FROM topology_edges WHERE child_device_id=ANY(CAST(:ids AS uuid[])) AND valid_to IS NULL ORDER BY child_device_id',ids=ids)
+        if request.method=='GET':return jsonify(version=b['topology_version'],devices=devices[:256],devices_truncated=len(devices)>256,edges=edges,physical_wiring_verified=False)
+        data=request.get_json() or {}
+        if set(data)-{'expected_version','parent_device_id','child_device_ids','reason'}:raise DomainError('validation_error','Unsupported topology field.')
+        if type(data.get('expected_version')) is not int or data['expected_version']!=b['topology_version']:raise DomainError('version_conflict','The building topology changed. Refresh before saving.',409)
+        if len(devices)>256:raise DomainError('topology_capacity','This building needs a reviewed larger topology workflow.',422)
+        parent=uuid_string(data.get('parent_device_id'));children=data.get('child_device_ids')
+        if not isinstance(children,list) or not 1<=len(children)<=64:raise DomainError('validation_error','Select between one and 64 measured branches.')
+        children=[uuid_string(did) for did in children]
+        if len(set(children))!=len(children) or parent in children:raise DomainError('validation_error','The incoming source and each branch must be different devices.')
+        if any(did not in ids for did in [parent]+children):raise DomainError('not_found','Every source must belong to this building.',404)
+        if next(d for d in devices if str(d['id'])==parent)['room_id'] is not None:raise DomainError('validation_error','Choose a dedicated incoming device, not a room device.')
+        reason=data.get('reason')
+        if not isinstance(reason,str) or not 10<=len(reason.strip())<=2000:raise DomainError('validation_error','Explain the recorded wiring in 10–2000 characters.')
+        # Refuse external links instead of silently taking a source from another topology.
+        crossing=one(c,'SELECT id FROM topology_edges WHERE valid_to IS NULL AND((parent_device_id=ANY(CAST(:ids AS uuid[])) AND NOT(child_device_id=ANY(CAST(:ids AS uuid[])))) OR(child_device_id=ANY(CAST(:ids AS uuid[])) AND(parent_meter_id IS NOT NULL OR NOT(parent_device_id=ANY(CAST(:ids AS uuid[])))))) LIMIT 1',ids=ids)
+        if crossing:raise DomainError('external_topology_requires_review','Existing external or meter-source links require reviewed migration before replacement.',409)
+        if any(edge['valid_from']>datetime.now(timezone.utc) for edge in edges):raise DomainError('topology_pending','A future topology record requires review before replacement.',409)
+        now=one(c,'SELECT clock_timestamp() AS at')['at']
+        query(c,'UPDATE topology_edges SET valid_to=:at WHERE child_device_id=ANY(CAST(:ids AS uuid[])) AND valid_to IS NULL',ids=ids,at=now)
+        for child in children:query(c,'INSERT INTO topology_edges(parent_device_id,child_device_id,valid_from) VALUES(:parent,:child,:at)',parent=parent,child=child,at=now)
+        version=one(c,'UPDATE buildings SET topology_version=topology_version+1,updated_at=now() WHERE id=:id RETURNING topology_version',id=building_id)['topology_version']
+        audit(c,g.actor['id'],'building_topology_recorded',building_id,{'previous_version':b['topology_version'],'version':version,'old_edges':edges,'parent_device_id':parent,'child_device_ids':children,'reason':reason.strip(),'physical_wiring_verified':False})
+    return jsonify(version=version,status='recorded',physical_wiring_verified=False)

@@ -141,6 +141,16 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/topology",
+    "handler": "energy_reconciliation.topology"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/buildings/{building_id}/topology",
+    "handler": "energy_reconciliation.topology"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/communications/context",
     "handler": "communications.context"
   },

@@ -335,3 +335,21 @@ No additional product screen was redesigned in this verification batch.
 - `apps/api/app/energy_reconciliation.py`
 - `apps/api/tests/test_energy_reconciliation.py`
 - `apps/web/components/EnergyReconciliation.tsx`
+
+## 27 November 2026 — recorded building topology
+
+- `apps/api/app/energy_reconciliation.py`
+- `apps/api/tests/test_energy_reconciliation.py`
+- `apps/web/app/dashboard/landlord/buildings/[id]/rooms/page.tsx`
+- `apps/web/components/EnergyReconciliation.tsx`
+- `apps/web/tests/live-journey.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/IMPLEMENTATION-WORK-PACKAGES.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/implementation/complete-register.json`
+- `tools/browser_qa.py`
+- `tools/render_build_register.py`
+- `apps/web/components/BuildingTopology.tsx`

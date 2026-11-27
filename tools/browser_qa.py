@@ -14,6 +14,12 @@ parser=argparse.ArgumentParser();parser.add_argument('--fixture',type=pathlib.Pa
 LiveIntegration.setUpClass();t=LiveIntegration();t.setUp()
 owner=t.user('landlord');tenant=t.user();ops=t.promote(t.user('homeowner'),'internal_ops');d=t.provision(owner)
 installer=t.promote(t.user('homeowner'),'installer');engineer=t.promote(t.user('homeowner'),'internal_engineering')
+# Separate landlord fixture for recording a comparison group; no physical topology certified.
+topology_owner=t.user('landlord');topology_devices=[t.provision(topology_owner) for _ in range(2)]
+with t.app.app_context(),transaction() as c:
+    topology_building=one(c,"INSERT INTO buildings(landlord_id,name,address,meter_type) VALUES(:uid,'Isolated QA topology','QA','with_meter') RETURNING id",uid=topology_owner['id'])['id']
+    for source in topology_devices:query(c,'UPDATE devices SET building_id=:bid WHERE id=:id',bid=topology_building,id=source['id'])
+
 support_reviewer=t.promote(t.user('homeowner'),'internal_support');finance_reviewer=t.promote(t.user('homeowner'),'internal_finance')
 message_recipient=t.user('homeowner');message_device=t.provision(message_recipient)
 # QA-only issued bill, not a production bill-issuance adapter.
@@ -75,7 +81,7 @@ for age,rx,tx in [(60000,1000000,200000),(1000,2500000,700000)]:
     if transport_response.status_code!=200:raise RuntimeError('Could not create signed QA modem report')
 signal=t.client.post('/api/v1/device/events',json=t.envelope(message_device,kind='tamper'))
 if signal.status_code!=200:raise RuntimeError('Could not create signed QA signal')
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'topology_owner':topology_owner,'topology_building_id':str(topology_building),'topology_incoming_id':topology_devices[0]['id'],'topology_branch_id':topology_devices[1]['id'],'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

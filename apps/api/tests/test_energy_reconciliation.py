@@ -50,3 +50,23 @@ class WindowQualification(unittest.TestCase):
   self.assertEqual(interval([a,b],1000,2100,1000,0)[1],'boundary_unaligned')
   self.assertEqual(interval([a,b],1000,2000,999,0)[1],'coverage_gap')
   self.assertEqual(interval([],1000,2000,1000,0)[1],'boundary_missing')
+
+def test_versioned_topology_recording_is_scoped_idempotent_and_preserves_history(self):
+ owner=self.user('landlord');other=self.user('landlord');devices=[self.provision(owner) for _ in range(3)];foreign=self.provision(other)
+ with self.app.app_context(),transaction() as c:
+  bid=str(one(c,"INSERT INTO buildings(landlord_id,name,address,meter_type) VALUES(:uid,'QA topology','QA','with_meter') RETURNING id",uid=owner['id'])['id'])
+  for d in devices:query(c,'UPDATE devices SET building_id=:bid WHERE id=:id',bid=bid,id=d['id'])
+ path='/api/v1/buildings/'+bid+'/topology';initial=self.client.get(path,headers=self.headers(owner));self.assertEqual(initial.status_code,200,initial.json);self.assertEqual(len(initial.json['devices']),3)
+ body={'expected_version':1,'parent_device_id':devices[0]['id'],'child_device_ids':[d['id'] for d in devices[1:]],'reason':'QA recorded downstream branches; no physical certificate'}
+ self.assertEqual(self.client.post(path,headers=self.headers(other),json=body).status_code,404)
+ self.assertEqual(self.client.post(path,headers=self.headers(owner),json={**body,'child_device_ids':[foreign['id']]}).status_code,404)
+ self.assertEqual(self.client.post(path,headers=self.headers(owner),json={**body,'child_device_ids':[devices[0]['id']]}).status_code,400)
+ headers=self.headers(owner);created=self.client.post(path,headers=headers,json=body);self.assertEqual(created.status_code,200,created.json);self.assertFalse(created.json['physical_wiring_verified'])
+ self.assertEqual(self.client.post(path,headers=headers,json=body).json,created.json)
+ self.assertEqual(self.client.post(path,headers=self.headers(owner),json=body).status_code,409)
+ replaced=self.client.post(path,headers=self.headers(owner),json={**body,'expected_version':2,'child_device_ids':[devices[1]['id']]});self.assertEqual(replaced.status_code,200,replaced.json)
+ with self.app.app_context(),transaction() as c:
+  self.assertEqual(one(c,'SELECT count(*) AS n FROM topology_edges WHERE parent_device_id=:id AND valid_to IS NOT NULL',id=devices[0]['id'])['n'],2)
+  self.assertEqual(one(c,'SELECT count(*) AS n FROM topology_edges WHERE parent_device_id=:id AND valid_to IS NULL',id=devices[0]['id'])['n'],1)
+  self.assertEqual(one(c,'SELECT count(*) AS n FROM audit_log WHERE target_id=:id AND action=\'building_topology_recorded\'',id=bid)['n'],2)
+ReconciliationIntegration.test_versioned_topology_recording_is_scoped_idempotent_and_preserves_history=test_versioned_topology_recording_is_scoped_idempotent_and_preserves_history

@@ -29,7 +29,7 @@ These packages are ready to delegate if the owner wants parallel work. No second
 | Qualified firmware adapters | C07–C08, E03–E04, G02–G07, R02–R06, Z05–Z06 | Requires actual launch BOM/pin map and bench. Implement actual sensor/relay/feedback/GSM/local links/BLE and resumable relayed OTA. Preserve signed protocol and all independent restrictions. Report physical tests separately. |
 | Core application | Remaining launch IDs | Current chat: automation, resident authority, shared money/reconciliation, safe control, essential role flows, consolidated register and launch evidence. |
 
-Do not let two chats push overlapping changes directly to the same branch without fetching/reviewing. Return a branch/commit, file list, tests and remaining constraints for integration. Keep all SQL immutable after application; new migration numbers require coordination. The current development range is through 042.
+Do not let two chats push overlapping changes directly to the same branch without fetching/reviewing. Return a branch/commit, file list, tests and remaining constraints for integration. Keep all SQL immutable after application; new migration numbers require coordination. The current development range is through 043.
 
 ## Source reconciliation
 

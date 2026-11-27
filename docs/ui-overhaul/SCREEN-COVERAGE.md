@@ -88,3 +88,7 @@ Touched `/settings` only: own legal/communication history, optional-channel with
 ## 27 November 2026 — measured building reconciliation
 
 Touched landlord building rooms only: secondary incoming/branch comparison panel with unknown states, native meters and exact-source disclosure. Approved dashboard, public, tenant/homeowner and staff layouts remain untouched. No new migration or physical topology qualification.
+
+## 27 November 2026 — recorded building topology
+
+Touched landlord building rooms: secondary expandable incoming/branch editor, short IDs/copy, spacing and mobile fieldset/select width. Save/reload verified against isolated real Auth/PostgreSQL/API at 390px. All other screens retain the approved UI; no physical commissioning certificate, control change or monetary effect is implied.
