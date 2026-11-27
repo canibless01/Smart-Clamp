@@ -382,3 +382,20 @@ No additional product screen was redesigned in this verification batch.
 - `apps/web/components/EnergyComparisonHistory.tsx`
 - `database/migrations/044_energy_comparison_history.sql`
 - `docs/verification/2026-11-27-energy-history.md`
+
+## 27 November 2026 — responsive forms and Auth readiness profile
+
+- `apps/web/app/experience.css`
+- `apps/web/tests/redesign.spec.ts`
+- `docs/BUILD_STATUS.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/ui-overhaul/SCREEN-COVERAGE.md`
+- `tools/check_config.py`
+- `tools/render_build_register.py`
+- `apps/web/tests/responsive-coverage.spec.ts`
+- `docs/ui-overhaul/RESPONSIVE-AUDIT-2026-11-27.md`
+- `docs/verification/2026-11-27-responsive-auth.md`
+- `tools/tests/test_check_config.py`
+
+Shared styling affects form bounds/wrapping across pages. Individual page designs and backend state/control behaviour were intentionally untouched. Coverage and remaining states are documented in RESPONSIVE-AUDIT-2026-11-27.md.

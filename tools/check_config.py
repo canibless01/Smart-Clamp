@@ -10,19 +10,20 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa,ec
 root=Path(__file__).resolve().parents[1]
 
-def validate(values):
-    required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
-    if values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
-    if values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','RESEND_WEBHOOK_SECRET','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
-    if values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
-    if values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
-    if values.get('ONESIGNAL_EMAIL_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY']
-    if values.get('ONESIGNAL_PUSH_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY','PUSH_ENCRYPTION_KEY']
-    required+=['LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
+def validate(values,profile='full'):
+    if profile not in ('auth','full'):raise ValueError('Unknown readiness profile')
+    required=['DATABASE_URL','SUPABASE_URL','SUPABASE_ANON_KEY','APP_ORIGIN','LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION']
+    if profile=='full':required+=['DEVICE_HMAC_ENCRYPTION_KEY','PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS','REPORT_SIGNING_KEY_FILE']
+    if profile=='full' and values.get('SMS_ENABLED')=='true':required+=['AT_USERNAME','AT_API_KEY','AT_SENDER_ID']
+    if profile=='full' and values.get('EMAIL_ENABLED')=='true':required+=['RESEND_API_KEY','RESEND_WEBHOOK_SECRET','EMAIL_FROM','EMAIL_ENCRYPTION_KEY']
+    if profile=='full' and values.get('OTA_ENABLED')=='true':required+=['OTA_SIGNING_KEY_FILE']
+    if profile=='full' and values.get('WEB_PUSH_ENABLED')=='true':required+=['VAPID_PRIVATE_KEY_FILE','VAPID_SUBJECT','PUSH_ENCRYPTION_KEY']
+    if profile=='full' and values.get('ONESIGNAL_EMAIL_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY']
+    if profile=='full' and values.get('ONESIGNAL_PUSH_ENABLED')=='true':required+=['ONESIGNAL_APP_ID','ONESIGNAL_REST_API_KEY','PUSH_ENCRYPTION_KEY']
     missing=[name for name in required if not values.get(name)];invalid=[]
     for name in ('LEGAL_TERMS_VERSION','LEGAL_PRIVACY_VERSION'):
         if values.get(name) and (values[name].lower().startswith('preview') or len(values[name])>100):invalid.append(name+' must identify an approved published legal document, not a preview')
-    if not values.get('VTPASS_ELECTRICITY_SERVICES_JSON') and not values.get('VTPASS_ELECTRICITY_SERVICE_ID'):missing.append('VTPASS_ELECTRICITY_SERVICES_JSON (or single service ID)')
+    if profile=='full' and not values.get('VTPASS_ELECTRICITY_SERVICES_JSON') and not values.get('VTPASS_ELECTRICITY_SERVICE_ID'):missing.append('VTPASS_ELECTRICITY_SERVICES_JSON (or single service ID)')
     for name in ['SUPABASE_URL','SUPABASE_AUTH_URL','APP_ORIGIN','AT_SMS_URL']:
         if values.get(name):
             u=urlparse(values[name])
@@ -112,11 +113,11 @@ def check_database(url):
     return failures
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--database',action='store_true',help='Read-only validation of applied migration names/checksums');a=p.parse_args()
-    load_dotenv(root/'.env');load_dotenv(root/'apps/api/.env');missing,invalid=validate(os.environ)
+    p=argparse.ArgumentParser();p.add_argument('--database',action='store_true',help='Read-only validation of applied migration names/checksums');p.add_argument('--profile',choices=['auth','full'],default='full',help='Auth checks identity/backend inputs without requiring payment, metrology or notification credentials');a=p.parse_args()
+    load_dotenv(root/'.env');load_dotenv(root/'apps/api/.env');missing,invalid=validate(os.environ,a.profile)
     for name in missing:print('Missing:',name)
     for name in invalid:print('Invalid:',name)
     db_errors=check_database(os.environ['DATABASE_URL']) if a.database and os.environ.get('DATABASE_URL') else []
     for error in db_errors:print(error)
-    if not missing and not invalid and not db_errors:print('Configuration formats'+(' and applied migration checksums' if a.database else '')+' passed. Merchant activation, actual hardware and remaining implementation/launch gates are not approved by this check.')
+    if not missing and not invalid and not db_errors:print(a.profile.capitalize()+' configuration formats'+(' and applied migration checksums' if a.database else '')+' passed. Merchant activation, actual hardware and remaining implementation/launch gates are not approved by this check.')
     sys.exit(1 if missing or invalid or db_errors else 0)

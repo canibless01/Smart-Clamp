@@ -96,3 +96,7 @@ Touched landlord building rooms: secondary expandable incoming/branch editor, sh
 ## 27 November 2026 — closed-window evidence
 
 Touched landlord building rooms only: expandable recorded-window history, conservative review status, owner-triggered recording and checksum evidence download. History loads on expansion. Mobile unknown-coverage/export and topology flows passed at 390px. All other dashboards/public pages intentionally retain the approved UI; no redesign or relay/credit change.
+
+## 27 November 2026 — shared responsive form audit
+
+Every App Router page entry is represented by the responsive matrix, with valid fixture detail pages and explicit guest/invalid-token/not-found states where full fixtures are absent. Shared form geometry/wrapping/spacing changed; individual page layouts, navigation, gauges and palette were intentionally preserved. Read RESPONSIVE-AUDIT-2026-11-27.md for remaining populated-state acceptance. Full feature implementation remains in BUILD_STATUS.md.

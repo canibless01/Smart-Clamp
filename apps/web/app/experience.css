@@ -32,3 +32,16 @@
  body:has(.measurement-report),body:has(.measurement-report) :has(.measurement-report){display:block!important;background:#fff!important;color:#172d25!important;margin:0!important;padding:0!important;width:auto!important;max-width:none!important;min-height:0!important;box-shadow:none!important}
  .measurement-report{display:block!important;color:#172d25!important;font-size:10pt}.measurement-report .report-controls{display:none!important}.measurement-report .report-print-proof{display:block!important;font-size:9pt}.measurement-report .card{box-shadow:none;border:1px solid #ccd7cc;background:#fff;break-inside:auto;padding:16px}.measurement-report h2,.measurement-report h3{break-after:avoid}.measurement-report table{display:table!important;width:100%!important;table-layout:fixed}.measurement-report thead{display:table-header-group!important}.measurement-report tbody{display:table-row-group!important}.measurement-report tr{display:table-row!important;break-inside:avoid}.measurement-report th,.measurement-report td{display:table-cell!important;font-size:9pt;overflow-wrap:anywhere;padding:7px}.measurement-report td::before{display:none!important}.measurement-report .report-seal{box-shadow:none}.measurement-report a{color:#172d25!important}.measurement-report .report-sharing-qr{border-radius:0}
 }
+
+/* Shared form geometry: shrink native controls without hiding overflowing content. */
+fieldset{min-inline-size:0;max-inline-size:100%}
+legend{max-inline-size:100%;white-space:normal;overflow-wrap:anywhere}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:16px;min-width:0}
+.form-grid>*,.resource-form>*{min-width:0;max-width:100%}
+.form-grid label{display:grid;gap:7px}
+:is(.resource-form,.form-grid) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){min-width:0;max-width:100%;width:100%;min-height:48px;border:1px solid var(--border);border-radius:9px;padding:12px 14px;background:var(--surface,#fff);color:var(--text);font-size:16px}
+.resource-form fieldset{margin:0;border:1px solid var(--border);border-radius:12px;padding:16px}
+.form-check-row input:is([type=checkbox],[type=radio]){inline-size:20px;min-inline-size:20px;max-inline-size:20px;block-size:20px;min-block-size:20px;max-block-size:20px;padding:0;align-self:start;justify-self:start;box-sizing:border-box}
+.form-check-content{overflow-wrap:anywhere}
+:where(.main-content,.auth-card,.marketing-page) :where(p,dd,li,.text-link){overflow-wrap:anywhere}
+.main-content>.card+.card{margin-top:16px}
