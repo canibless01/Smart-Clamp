@@ -84,3 +84,7 @@ Touched `/ops/settings` (new typed editor and history), `/pricing` (approved pri
 ## 27 November 2026 — consent history
 
 Touched `/settings` only: own legal/communication history, optional-channel withdrawal, shared viewing inventory and leave action. Existing approved layout preserved; all other screens intentionally untouched. This extends existing audit/consent/viewer tables and adds no migration.
+
+## 27 November 2026 — measured building reconciliation
+
+Touched landlord building rooms only: secondary incoming/branch comparison panel with unknown states, native meters and exact-source disclosure. Approved dashboard, public, tenant/homeowner and staff layouts remain untouched. No new migration or physical topology qualification.

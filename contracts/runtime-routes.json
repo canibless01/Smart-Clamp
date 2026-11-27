@@ -126,6 +126,11 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation",
+    "handler": "energy_reconciliation.compare"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/buildings/{building_id}/rooms",
     "handler": "live_resources.rooms_route"
   },

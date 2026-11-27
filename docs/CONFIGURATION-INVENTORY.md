@@ -18,7 +18,7 @@
 | Supply analytics | `SUPPLY_PRESENT_MIN_MV`; explicitly sampled coverage | Validated observation-gap/coverage rules and source threshold provenance; never confuse this threshold with protection |
 | Protection | Display manifests/advisory ranges; reference firmware still has fixed limits | Signed installer-approved per-device V/A/W limits, noise/debounce, modes, stability, override durations and immutable rated bounds |
 | Budgets/schedules | WIP signed per-device settings; `AUTOMATION_ENABLED`; separate device qualification | Qualified runtime integration, per-trigger feedback, reported remaining allowance, thresholds/templates and period policy; edits cannot mint paid energy |
-| Reconciliation | No complete drift engine | Calibrated comparison-specific tolerance, persistence/window/coverage, topology, statistical history and privacy cohort size |
+| Reconciliation | Read-only qualified building comparison; typed scoped `reconciliation.max_gap_ms`, `reconciliation.boundary_skew_ms`, `reconciliation.tolerance_bps` (all unset until approved) | Calibrated comparison-specific tolerance, persistence/window/coverage, topology, statistical history and privacy cohort size |
 | Shared-meter settlement | Private room wallets; actual vend/funded FIFO accounting | Central-source balance/credit adapter, unallocated energy and transparent participant agreement for any gap |
 | No-meter settlement | Deliberately gated | Per-building running/per-bill mode, approved pass-through formula/correction inputs, custody, due dates, external payment evidence and shortfall agreement |
 | Disputes | Versioned cases and immutable bill evidence | Proposed agreements, instalment cadence/limits, monetary adjustment approval, evidence/SLA and hold/release rules |

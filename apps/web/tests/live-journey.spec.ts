@@ -80,3 +80,11 @@ test("real auth/database: landlord creates room, links device, invites resident 
     page.getByText("Payment confirmed, vending completed", { exact: false }),
   ).toHaveCount(0);
 });
+
+test('real auth/database: building comparison keeps unconfigured incoming energy unknown on mobile',async({page})=>{
+ test.skip(!file,'Requires isolated real API/Auth/database services.');const f=JSON.parse(fs.readFileSync(file!,'utf8'));
+ await page.goto('/login');await page.getByLabel('Phone number').fill(f.owner.phone);await page.getByLabel('Password',{exact:true}).fill(f.owner.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page).toHaveURL(/dashboard/);
+ await page.goto('/dashboard/landlord/buildings/new');await page.getByLabel('Building name').fill('QA reconciliation '+Date.now());await page.getByLabel('Address',{exact:true}).fill('Isolated QA address');await page.getByRole('button',{name:'Continue to rooms'}).click();await expect(page).toHaveURL(/\/rooms$/);
+ const panel=page.locator('section').filter({has:page.getByRole('heading',{name:'Incoming energy & rooms',exact:true})});await expect(panel.getByRole('status')).toHaveText('Comparison unknown');await expect(panel.getByText('An authorised administrator must approve timing and tolerance settings before comparison.')).toBeVisible();await expect(panel.locator('dd').filter({hasText:'—'})).toHaveCount(3);
+ await page.getByRole('combobox',{name:'Comparison period'}).selectOption('60');await expect(panel.getByRole('status')).toHaveText('Comparison unknown');await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+});

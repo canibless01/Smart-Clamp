@@ -1,4 +1,5 @@
 "use client";
+import EnergyReconciliation from "@/components/EnergyReconciliation";
 import BuildingInstruments from "@/components/BuildingInstruments";
 import {RoomLoadComparison} from '@/components/EnergyInstruments';
 import RecordWorkspace, {RecordTable} from "@/components/RecordWorkspace";
@@ -28,6 +29,7 @@ export default function Page({ params }: { params: { id: string } }) {
             {key:'today',label:'Recorded today',render:r=>r.monitoring?.recorded_today_kwh!=null?`${r.monitoring.recorded_today_kwh.toFixed(3)} kWh`:'Not recorded'},
             {key:'fresh',label:'Reading state',render:r=>r.monitoring?.fresh?'Fresh':r.monitoring?.observed_at?'Last recorded · '+new Date(r.monitoring.observed_at).toLocaleString():'Unavailable'}
           ]}/></details></section>
+          <EnergyReconciliation buildingId={params.id}/>
           <form
             className="resource-form"
             onSubmit={async (e) => {

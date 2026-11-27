@@ -318,3 +318,20 @@ Typed immutable settings, fees frozen with provenance, advisory defaults separat
 - `docs/verification/`
 
 No additional product screen was redesigned in this verification batch.
+
+## 27 November 2026 — measured building reconciliation
+
+- `apps/api/app/__init__.py`
+- `apps/api/app/business_rules.py`
+- `apps/web/app/dashboard/landlord/buildings/[id]/rooms/page.tsx`
+- `apps/web/tests/live-journey.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/CONFIGURATION-INVENTORY.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/implementation/complete-register.json`
+- `apps/api/app/energy_reconciliation.py`
+- `apps/api/tests/test_energy_reconciliation.py`
+- `apps/web/components/EnergyReconciliation.tsx`
