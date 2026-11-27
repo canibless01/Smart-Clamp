@@ -431,6 +431,21 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/ops/settings",
+    "handler": "business_rules.catalogue"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/ops/settings/{rule_key}",
+    "handler": "business_rules.rule"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/ops/settings/{rule_key}",
+    "handler": "business_rules.rule"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/ops/summary",
     "handler": "live_workflows.ops_summary"
   },
@@ -498,6 +513,11 @@
     "method": "GET",
     "path": "/api/v1/portal/referrals",
     "handler": "live_resources.portal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/public/business-settings",
+    "handler": "business_rules.public_settings"
   },
   {
     "method": "GET",

@@ -11,7 +11,7 @@ export default function Page() {
   async function perform(work: () => Promise<void>) {
     setBusy(true); setError(""); try { await work(); } catch (e) { setError(e instanceof Error ? e.message : "Unable to complete report action."); } finally { setBusy(false); }
   }
-  return <RecordWorkspace title="Measurement reports" description="Issue a fixed snapshot, export its readings, or share it with a revocable seven-day link." endpoint="/users/me/context">
+  return <RecordWorkspace title="Measurement reports" description="Issue a fixed snapshot, export its readings, or share it with a revocable time-limited link." endpoint="/users/me/context">
     {(data) => <>
       {data.devices.some((d:any)=>d.access?.can_issue_report) ? <section className="card"><form className="resource-form" onSubmit={e => { e.preventDefault(); void perform(async () => {
         const created = await apiFetch("/reports", { method: "POST", body: JSON.stringify({ device_id: device || data.devices.find((d:any)=>d.access?.can_issue_report).id, period_start: start, period_end: end }) });
@@ -29,7 +29,7 @@ export default function Page() {
       </section>
       {report && <>
         <div className="resource-actions">
-          {!report.revoked && share && <a className="btn btn-secondary" href={share}>Open seven-day sharing link</a>}
+          {!report.revoked && share && <a className="btn btn-secondary" href={share}>Open sharing link</a>}
           <button className="btn btn-primary" disabled={busy} onClick={() => void perform(async () => {
             const e = await apiFetch(`/reports/${report.id}/exports`, { method: "POST", body: "{}" });
             const csv = await apiFetch(e.download_path); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));

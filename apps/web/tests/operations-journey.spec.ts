@@ -62,7 +62,7 @@ test("real auth/database: resident issues a fixed report, downloads CSV and revo
   await page.getByRole("button", { name: "Issue signed snapshot", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Issued measurement snapshot", exact: true })).toBeVisible();
   await expect(page.getByText("Stored snapshot signature verified.", { exact: false })).toBeVisible();
-  const share = await page.getByRole("link", { name: "Open seven-day sharing link", exact: true }).getAttribute("href");
+  const share = await page.getByRole("link", { name: "Open sharing link", exact: true }).getAttribute("href");
   await page.getByRole('button',{name:'Show sharing QR',exact:true}).click();await expect(page.getByRole('img',{name:'Report sharing QR code',exact:true})).toBeVisible();
   await page.addScriptTag({content:fs.readFileSync('node_modules/jsqr/dist/jsQR.js','utf8')});
   const decoded=await page.evaluate(async()=>{const svg=document.querySelector('[data-report-qr] svg') as SVGSVGElement;const image=new Image();const loaded=new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('QR rasterization failed'));});image.src='data:image/svg+xml;base64,'+btoa(new XMLSerializer().serializeToString(svg));await loaded;const canvas=document.createElement('canvas');canvas.width=canvas.height=svg.viewBox.baseVal.width*3;const ctx=canvas.getContext('2d')!;ctx.drawImage(image,0,0,canvas.width,canvas.height);const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);return (window as any).jsQR(pixels.data,canvas.width,canvas.height)?.data;});
@@ -77,4 +77,12 @@ test("real auth/database: resident issues a fixed report, downloads CSV and revo
   await expect(page.getByRole('img',{name:'Report sharing QR code',exact:true})).toHaveCount(0);
   await publicPage.reload(); await expect(publicPage.getByRole("alert").filter({ hasText: "Report not found or no longer shared" })).toBeVisible();
   await publicPage.close();
+});
+
+test('real auth/database: administrator publishes scoped settings and operations stays read-only',async({page})=>{
+ test.skip(!file,'Requires isolated real auth/API/database services.');const f=JSON.parse(fs.readFileSync(file!,'utf8'));
+ async function login(user:any){await page.goto('/login');await page.evaluate(()=>localStorage.clear());await page.getByLabel('Phone number').fill(user.phone);await page.getByLabel('Password',{exact:true}).fill(user.password);await page.getByRole('button',{name:'Log in',exact:true}).click();await expect(page).toHaveURL(/\/ops$/);await page.goto('/ops/settings');}
+ await login(f.admin);await page.getByRole('combobox',{name:'Setting',exact:true}).selectOption('reports.link_lifetime_days');await page.getByRole('combobox',{name:'Scope',exact:true}).selectOption('device');await page.getByLabel('Scope reference').fill(f.message_device_id);await page.getByRole('button',{name:'Load selected scope'}).click();await page.getByLabel('Whole value',{exact:true}).fill('8');await page.getByLabel('Reason for this reviewed change').fill('Isolated QA report expiry review');await page.getByRole('button',{name:'Publish reviewed setting'}).click();await expect(page.getByRole('status').filter({hasText:'A new audited version'})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+ await login(f.ops);await page.getByRole('button',{name:'Load selected scope'}).click();await expect(page.getByRole('button',{name:'Publish reviewed setting'})).toBeDisabled();
 });

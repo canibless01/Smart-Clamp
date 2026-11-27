@@ -70,6 +70,8 @@ def issue():
         if g.actor['role']=='tenant':
             occupancy=one(c,'SELECT start_at FROM occupancies WHERE room_id=:room AND tenant_id=:uid AND end_at IS NULL',room=dev['room_id'],uid=g.actor['id'])
             if not occupancy or start<occupancy['start_at']:raise DomainError('report_occupancy_scope','Reports cannot include another resident’s occupancy.',403)
+        from .business_rules import value,device_scope
+        context=device_scope(c,dev['id']);share_days=value(c,'reports.link_lifetime_days',context);sharing=value(c,'features.public_reports',context)
         start_ms=int(start.timestamp()*1000);end_ms=int(end.timestamp()*1000)
         readings=rows(c,"""SELECT r.id,r.occurred_at_ms,r.quality,r.clock_quality,r.voltage_mv,r.current_ma,r.real_power_mw,r.import_mwh,r.export_mwh,
             i.payload_sha256,u.interval_start_ms,u.accounting_quality,u.consumed_mwh,ch.chain_hash
@@ -86,10 +88,10 @@ def issue():
                   'limitations':['Missing intervals remain unknown.','Counter-interval coverage is not waveform accuracy or supply availability.','No theft determination, liability allocation or approved utility credit is issued.']}
         raw=canonical(json.loads(json_text(snapshot)));digest=hashlib.sha256(raw).hexdigest();signature=base64.b64encode(key.sign(raw,padding.PKCS1v15(),hashes.SHA256())).decode()
         r=one(c,"""INSERT INTO reports(id,device_id,subject_type,subject_id,canonical_bytes,sha256,signature,key_id,public_key_pem,public_token_hash,public_token_hint,coverage,expires_at,created_by,period_start,period_end,issued_at)
-            VALUES(:id,:device,'device',:device,:raw,:hash,:signature,:key,:public,:token,:hint,CAST(:coverage AS jsonb),now()+interval '7 days',:uid,:start,:end,:issued) RETURNING id,expires_at""",
-            id=rid,device=dev['id'],raw=raw,hash=digest,signature=signature,key=key_id,public=public,token=hashlib.sha256(token.encode()).hexdigest(),hint=token[-4:],coverage=json_text(coverage),uid=g.actor['id'],start=start,end=end,issued=issued)
+            VALUES(:id,:device,'device',:device,:raw,:hash,:signature,:key,:public,:token,:hint,CAST(:coverage AS jsonb),now()+make_interval(days=>:share_days),:uid,:start,:end,:issued) RETURNING id,expires_at""",
+            share_days=share_days,id=rid,device=dev['id'],raw=raw,hash=digest,signature=signature,key=key_id,public=public,token=hashlib.sha256(token.encode()).hexdigest(),hint=token[-4:],coverage=json_text(coverage),uid=g.actor['id'],start=start,end=end,issued=issued)
         audit(c,g.actor['id'],'report_issued',rid,{'sha256':digest,'observation_count':len(readings)})
-    return jsonify(id=rid,expires_at=r['expires_at'],share_path='/verification-reports/'+token,sha256=digest),201
+    return jsonify(id=rid,expires_at=r['expires_at'],share_path='/verification-reports/'+token if sharing else None,sharing_enabled=sharing,sha256=digest),201
 
 
 @bp.get('/api/v1/reports/<report_id>')
@@ -106,6 +108,8 @@ def public_report(token):
     with transaction() as c:
         r=one(c,'SELECT * FROM reports WHERE public_token_hash=:hash AND revoked_at IS NULL AND expires_at>now()',hash=hashlib.sha256(token.encode()).hexdigest())
         if not r:raise DomainError('not_found','Report not found or no longer shared.',404)
+        from .business_rules import value,device_scope
+        if not value(c,'features.public_reports',device_scope(c,r['device_id'])):raise DomainError('not_found','Report not found or no longer shared.',404)
         audit(c,None,'shared_report_viewed',r['id']);result=view(r)
     return jsonify(result)
 

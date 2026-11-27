@@ -76,3 +76,7 @@ Operations follow-up: `/ops` adds sourced onboarding, profile, command/queue and
 Report follow-up: `/reports` and shared `/verification-reports/[token]` gain print/PDF and signed-evidence download. Private freshly issued reports can show a locally generated sharing QR. Existing scope, expiry, revocation and qualification wording are preserved.
 
 Latest: `/devices/[id]/automation` adds qualified-device budget/window configuration. `/control` and device details expose the proper entry points. Read-only accounts do not receive control/report-publication affordances. Other page-specific designs remain intact. The full current route inventory is `docs/implementation/ROUTE-INVENTORY.md`.
+
+## 27 November 2026 — business settings
+
+Touched `/ops/settings` (new typed editor and history), `/pricing` (approved price readout), `/reports` (time-limited link wording) and workspace navigation (settings discovery for authorised staff). Other public, resident, landlord, installer and utility screens intentionally retain the approved layout; backend rule enforcement is shared without a visual redesign.

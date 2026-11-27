@@ -15,16 +15,11 @@ def electrical(c,r,device):
     at=r['occurred_at_ms'];now=datetime.now(timezone.utc)
     if r['quality']!='valid' or r['clock_quality']!='trusted' or at is None or not 0<=now.timestamp()*1000-at<180000:return
     observed=datetime.fromtimestamp(at/1000,timezone.utc)
-    manifest=one(c,'SELECT channels FROM device_channel_manifests WHERE device_id=:id',id=device['id'])
-    for key,metric,low_name,high_name,low_type,high_type in [('voltage','voltage_mv','VOLTAGE_WARNING_LOW_MV','VOLTAGE_WARNING_HIGH_MV','under_voltage','over_voltage'),('current','current_ma','CURRENT_WARNING_LOW_MA','CURRENT_WARNING_HIGH_MA','under_current','over_current')]:
-        value=r[metric]
-        channel=manifest['channels'].get('voltage_v' if key=='voltage' else 'current_a') if manifest else None
-        band=channel.get('warning_band') if channel else None
-        try:
-            if band:low,high=[value*1000 for value in band]
-            else:low=int(current_app.config.get(low_name,''));high=int(current_app.config.get(high_name,''))
-            if not 0<=low<high:continue
-        except (ValueError,TypeError):continue
+    from .business_rules import advisory_band
+    for key,metric,low_type,high_type in [('voltage','voltage_mv','under_voltage','over_voltage'),('current','current_ma','under_current','over_current')]:
+        value=r[metric];band=advisory_band(c,device,key)
+        if band is None:continue
+        low,high=band
         if value is None:continue
         state='low' if value<low else 'high' if value>high else 'normal'
         code=low_type if state=='low' else high_type if state=='high' else key+'_restored'

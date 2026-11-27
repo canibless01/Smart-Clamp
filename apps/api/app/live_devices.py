@@ -147,7 +147,8 @@ def control_eligibility(c,actor,d):
     if 'relay' not in d['capabilities'] or d['install_state']!='commissioned' or d['calibration_status']!='qualified':return False,'capability_unavailable','Control needs a fitted, commissioned relay and qualified sensing.',422
     if actor['subscription_tier']!='pro' and d['profile']!='house_full':return False,'entitlement_required','An eligible control plan is required.',403
     if not actor.get('phone'):return False,'phone_verification_required','Verify a phone number before requesting power-control confirmation.',409
-    if not scalar(c,"SELECT enabled_globally FROM feature_flags WHERE key='pro_relay_control'"):return False,'control_rollout_disabled','Remote control is not enabled for this rollout.',503
+    from .business_rules import value,device_scope
+    if not value(c,'features.pro_relay_control',device_scope(c,d['id'])):return False,'control_rollout_disabled','Remote control is not enabled for this rollout.',503
     if d['last_seen_at'] is None or(datetime.now(timezone.utc)-d['last_seen_at']).total_seconds()>180:return False,'device_stale','The device must reconnect before a new control request can be sent.',409
     return True,None,None,200
 

@@ -10,7 +10,7 @@ from .providers import config,paystack
 bp=Blueprint('live_payments',__name__)
 
 def configured_payment():
-    for key in('PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN','PAYMENT_FEE_BPS','PAYMENT_FIXED_FEE_KOBO','PLATFORM_MARKUP_BPS'):config(key)
+    for key in('PAYSTACK_SECRET_KEY','VTPASS_API_KEY','VTPASS_SECRET_KEY','APP_ORIGIN'):config(key)
 
 def quote_lookup(c,qid):
     row=one(c,'SELECT * FROM quotes WHERE id=:id AND expires_at>now()',id=uuid_string(qid))
@@ -41,13 +41,17 @@ def quote():
         else:rate=one(c,'SELECT * FROM tariffs WHERE version=:version AND effective_from<=now() AND(effective_to IS NULL OR effective_to>now())',version=w['tariff_version'])
         if not rate or rate['day_rate_kobo_per_kwh']<=0:raise DomainError('tariff_required','A current approved tariff is required before quoting electricity.',503)
         if rate['night_rate_kobo_per_kwh'] is not None:raise DomainError('tariff_requires_provider_quote','Time-banded vending must use a compatible provider quote before purchase.',503)
-        fee_bps=int(config('PAYMENT_FEE_BPS'));fixed=int(config('PAYMENT_FIXED_FEE_KOBO'));markup_bps=int(config('PLATFORM_MARKUP_BPS'))
+        from .business_rules import resolve,device_scope
+        context=device_scope(c,w['device_id']);rules={key:resolve(c,key,context) for key in ('payments.fee_bps','payments.fixed_fee_kobo','payments.platform_markup_bps')}
+        if any(rule['value'] is None for rule in rules.values()):raise DomainError('fee_configuration_required','Approve the platform fee and markup settings before accepting payments.',503)
+        fee_bps=rules['payments.fee_bps']['value'];fixed=rules['payments.fixed_fee_kobo']['value'];markup_bps=rules['payments.platform_markup_bps']['value']
         if min(fee_bps,fixed,markup_bps)<0 or fee_bps+markup_bps>=10000:raise DomainError('invalid_fee_configuration','The payment fee configuration must be reviewed.',503)
         fee=int((Decimal(amount)*fee_bps/10000).quantize(Decimal('1'),rounding=ROUND_HALF_UP))+fixed
         markup=int((Decimal(amount)*markup_bps/10000).quantize(Decimal('1'),rounding=ROUND_HALF_UP));value=amount-fee-markup
         if value<=0:raise DomainError('amount_too_small','The amount must be greater than the itemized fees.')
         units=value*1000000//rate['day_rate_kobo_per_kwh']
         q=one(c,"INSERT INTO quotes(wallet_id,destination_token,amount_kobo,wallet_value_kobo,markup_kobo,fee_kobo,units_mwh,tariff_version,expires_at,destination_meter_id,destination_meter_number,destination_service_id) VALUES(:wallet,:dest,:amount,:value,:markup,:fee,:units,:rate,now()+interval '15 minutes',:meter,:number,:service) RETURNING *",wallet=w['id'],dest=d['destination_token'],amount=amount,value=value,markup=markup,fee=fee,units=units,rate=rate['version'],meter=meter['id'],number=meter['meter_number'],service=meter['disco_name'])
+        audit(c,None,'quote_business_rules_frozen',q['id'],{'rules':[{k:rule.get(k) for k in ('key','id','version','source','scope_type','scope_ref','value')} for rule in rules.values()]})
     return jsonify({**{k:q[k] for k in('id','expires_at','amount_kobo','wallet_value_kobo','markup_kobo','fee_kobo','units_mwh','tariff_version')},'units_are_estimate':True,'meter_hint':meter['meter_number'][-4:],'service_id':meter['disco_name']}),201
 
 def public_payment(p):

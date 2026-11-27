@@ -42,21 +42,17 @@ def projection(c):
         voltage=r['voltage_mv'] if r else None
         manifest=one(c,'SELECT version,channels,calibration_version FROM device_channel_manifests WHERE device_id=:id',id=d['id'])
         devices[-1]['channel_manifest']=dict(manifest) if manifest else None
-        band=None
-        try:
-            low=int(current_app.config.get('VOLTAGE_WARNING_LOW_MV',''));high=int(current_app.config.get('VOLTAGE_WARNING_HIGH_MV',''))
-            if not 0<low<high:raise ValueError()
-            band={'low_v':low/1000,'high_v':high/1000}
-        except (ValueError,TypeError):pass
-        declared=manifest['channels'].get('voltage_v') if manifest else None
-        if declared and declared.get('warning_band'):
-            low,high=[value*1000 for value in declared['warning_band']];band={'low_v':low/1000,'high_v':high/1000}
+        from .business_rules import advisory_band
+        voltage_band=advisory_band(c,dev,'voltage')
+        band={'low_v':voltage_band[0]/1000,'high_v':voltage_band[1]/1000} if voltage_band else None
+        if voltage_band:low,high=voltage_band
         voltage_status='unknown'
         if fresh and r['quality']=='valid' and r['clock_quality']=='trusted' and voltage is not None:
             if devices[-1]['supply_state']=='absent':voltage_status='no_supply'
             elif band:voltage_status='low' if voltage<low else 'high' if voltage>high else 'within_band'
             else:voltage_status='limits_unconfigured'
-        current_band=manifest['channels'].get('current_a',{}).get('warning_band') if manifest else None
+        current_limits=advisory_band(c,dev,'current')
+        current_band=[value/1000 for value in current_limits] if current_limits else None
         current_status='unknown'
         if current_band and fresh and r['quality']=='valid' and r['clock_quality']=='trusted' and r['current_ma'] is not None:
             current_status='low' if r['current_ma']/1000<current_band[0] else 'high' if r['current_ma']/1000>current_band[1] else 'within_band'

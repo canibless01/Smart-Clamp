@@ -1,3 +1,4 @@
+import ConfiguredPlanPrice from "@/components/ConfiguredPlanPrice";
 import PlanComparison from "@/components/PlanComparison";
 import PublicShell from "@/components/PublicShell";
 import Icon from "@/components/Icon";
@@ -81,8 +82,7 @@ export default function Page() {
               <span className="eyebrow">{p.name}</span>
               <h2>{p.label}</h2>
               <div className="plan-price">
-                {p.price}
-                <small>{p.detail}</small>
+                {p.name==='Free'?<>{p.price}<small>{p.detail}</small></>:<ConfiguredPlanPrice tier={p.name.toLowerCase().replace(/ /g,'_')} fallback={p.price} detail={p.detail}/>}
               </div>
               <ul>
                 {p.features.map((f) => (

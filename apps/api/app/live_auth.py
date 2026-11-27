@@ -10,8 +10,10 @@ PUBLIC_ROLES={'tenant','landlord','homeowner'}
 
 def enabled_public_roles():
     roles=set(PUBLIC_ROLES)
-    for role in ('agent','referrer'):
-        if str(current_app.config.get('ROLE_'+role.upper()+'_ENABLED','false')).lower()=='true':roles.add(role)
+    from .business_rules import value
+    with transaction() as c:
+        for role in ('agent','referrer'):
+            if value(c,'roles.'+role+'.enabled'):roles.add(role)
     return roles
 
 def authenticated(fn):

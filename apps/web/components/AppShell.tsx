@@ -81,6 +81,7 @@ export default function AppShell({
         ...(['internal_finance','internal_superadmin'].includes(role) ? [{label:'Billing disputes',href:'/disputes',icon:'wallet'}] : []),
         ...(!['internal_support','internal_finance'].includes(role) ? [{ label: "Operations", href: "/ops", icon: "chart" }] : []),
         ...(['internal_ops','internal_support','internal_superadmin'].includes(role) ? [{label:'Service messages',href:'/communications',icon:'bell'}] : []),
+        ...(["internal_ops","internal_engineering","internal_superadmin"].includes(role) ? [{label:"Business settings",href:"/ops/settings",icon:"settings"}] : []),
         ...(role === "internal_engineering" || role === "internal_superadmin" ? [{ label: "Firmware", href: "/ops/firmware", icon: "plug" }] : []),
       ]
     : (groups[role] || [{ label: "Home", href: "/", icon: "home" }]).filter(item=>item.href!=="/control"||hasRelay);

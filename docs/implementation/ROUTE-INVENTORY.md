@@ -44,6 +44,7 @@ Generated from current App Router files. An existing route does not prove its fe
 | `/ops/firmware` | `apps/web/app/ops/firmware/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |
 | `/ops/incidents/[id]` | `apps/web/app/ops/incidents/[id]/page.tsx` | Existing explicit availability gate; not feature completion. |
 | `/ops` | `apps/web/app/ops/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |
+| `/ops/settings` | `apps/web/app/ops/settings/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |
 | `/orders` | `apps/web/app/orders/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |
 | `/` | `apps/web/app/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |
 | `/payments/return` | `apps/web/app/payments/return/page.tsx` | Existing page/shared components retained; see register for functionality and gaps. |

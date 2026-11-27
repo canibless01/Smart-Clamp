@@ -12,8 +12,8 @@ The machine-readable source is [complete-register.json](implementation/complete-
 
 | Scope | Built | Partial | Stub | Missing | Total |
 |---|---:|---:|---:|---:|---:|
-| Launch | 57 | 80 | 4 | 47 | 188 |
-| Deferred | 0 | 4 | 5 | 27 | 36 |
+| Launch | 59 | 81 | 3 | 45 | 188 |
+| Deferred | 0 | 5 | 5 | 26 | 36 |
 
 Counts are an inventory, not a completion percentage. One missing physical adapter can block several otherwise implemented loops.
 
@@ -44,14 +44,14 @@ Source: AtoZ V; supplement 2.1b,2.13.
 | ID / feature | Status / scope | Code evidence and current boundary | Remaining work | Configuration / lane |
 |---|---|---|---|---|
 | B01 Server feature flags and capability checks | Partial / Launch | apps/api/app/live_resources.py; apps/api/app/live_devices.py | Complete per-building/per-organisation overrides and uniform enforcement on every gated handler. | Current: feature_flags; proposed: scoped flag overrides; Business configuration |
-| B02 Versioned audited configuration editor | Missing / Launch | No executable implementation identified. | Typed rule registry, admin editor, old/new audit, effective dates and rollback. | Proposed: business_rules; regional/org/building/device overrides; Business configuration |
-| B03 Subscription prices and frequencies | Stub / Launch | apps/web/app/settings/subscription/page.tsx | Configure approved products/prices and currencies; no paid amount may be invented. | Proposed: plans.prices; billing.cadences; Business configuration |
-| B04 Discounts, grace and retention rules | Missing / Launch | No executable implementation identified. | Configurable discounts/grace; expiry never creates an electricity OFF restriction. | Proposed: billing.discounts; billing.grace; retention.rules; Business configuration |
-| B05 Configurable payment markup/fees and tariff provenance | Partial / Launch | apps/api/app/live_payments.py; apps/api/app/providers.py | Move business-editable inputs into audited rules; preserve frozen quote values. | Current: PLATFORM_MARKUP_BPS; PAYMENT_FEE_BPS; PAYMENT_FIXED_FEE_KOBO; tariffs; Business configuration |
+| B02 Versioned audited configuration editor | Built / Launch | apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Typed 14-key registry and administrator editor; immutable scope versions, CAS, effective dates, restore-as-new-version and old/new audit. Provider approval remains external. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
+| B03 Subscription prices and frequencies | Partial / Launch | apps/web/app/settings/subscription/page.tsx; apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Approved monthly NGN prices are configurable and shown publicly; subscription cadence/product mapping and paid checkout remain unimplemented. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
+| B04 Discounts, grace and retention rules | Partial / Launch | apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Typed scoped quarterly/yearly discounts and grace settings exist; subscription application and retention workflow remain unimplemented. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
+| B05 Configurable payment markup/fees and tariff provenance | Built / Launch | apps/api/app/live_payments.py; apps/api/app/providers.py; apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Scoped audited fee/markup rules resolve into immutable quotes with rule-version provenance. Approved actual values and provider acceptance remain external. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
 | B06 Installation protection profiles and approved ranges | Partial / Launch | apps/api/app/datastreams.py; firmware/include/core.hpp | Separate install-approved limits from display bands; eliminate fixed production protection values. | Proposed: installation.protection_profiles; hardware hard limits; Business configuration |
 | B07 Drift windows and privacy thresholds | Missing / Launch | No executable implementation identified. | Typed calibration-dependent drift, sample coverage, persistence and aggregate privacy rules. | Proposed: reconciliation.*; privacy.minimum_cohort; Business configuration |
-| B08 Alert repeat, quiet hours and report lifetime rules | Partial / Launch | apps/api/app/alert_experience.py; apps/api/app/reports.py | Make currently fixed operating intervals/lifetimes configurable and audited. | Current: user sensory preferences; proposed: alerts.*; reports.link_lifetime; Business configuration |
-| B09 Role and payout programme switches | Missing / Deferred | No executable implementation identified. | Installer/agent/referrer visibility, training gates and enabled payout schedules. | Proposed: role.*; payout.rules; Business configuration |
+| B08 Alert repeat, quiet hours and report lifetime rules | Partial / Launch | apps/api/app/alert_experience.py; apps/api/app/reports.py; apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Report link lifetime is scoped/versioned; alert repeat/escalation intervals still need configuration. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
+| B09 Role and payout programme switches | Partial / Deferred | apps/api/app/business_rules.py; apps/web/app/ops/settings/page.tsx | Deferred agent/referrer signup remains unavailable through typed registry; programme/training/payout implementation remains deferred. | Current: typed business_rule_versions registry, scoped environment fallback; see CONFIGURATION-INVENTORY.md; Business configuration |
 | B10 Per-environment defaults with validation | Partial / Launch | .env.example; apps/api/.env.example | Document existing vs proposed keys; missing paid prices remain unset; enforce security/rating bounds. | Environment defaults plus approved persisted rules; Business configuration |
 ## C. Device identity, topology and capabilities
 

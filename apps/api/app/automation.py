@@ -56,7 +56,9 @@ def clear_for_transfer(c,room_id):
 def settings(device_id):
     with transaction() as c:
         d=resident(c,device_id);previous=latest(c,d['id']);receipt=receipt_state(c,previous)
-        ready=qualified(d);pro=g.actor['subscription_tier']=='pro';enabled=str(current_app.config.get('AUTOMATION_ENABLED','false')).lower()=='true'
+        ready=qualified(d);pro=g.actor['subscription_tier']=='pro'
+        from .business_rules import value,device_scope
+        enabled=value(c,'features.automation',device_scope(c,d['id']))
         if request.method=='GET':return jsonify(id=str(previous['id']) if previous else None,version=previous['seq'] if previous else 0,settings=previous['body']['settings'] if previous else DEFAULT,
             status=receipt['result'] if receipt else 'awaiting_device' if previous else 'not_configured',receipt=dict(receipt) if receipt else None,
             can_configure=ready and pro and enabled,can_disable=ready and bool(previous),unavailable_reason=None if ready and pro and enabled else 'A qualified persistent counter, offline automation firmware and commissioned relay are required.' if not ready else 'Automation is not enabled for this rollout.' if not enabled else 'An eligible Pro plan is required for active automation.',
@@ -87,7 +89,8 @@ def offer(c,d,p):
     policy=latest(c,d['id'])
     if not policy:return None
     cfg=policy['body']['settings']
-    if (cfg['daily_mwh'] or cfg['monthly_mwh'] or cfg['schedule_enabled']) and str(current_app.config.get('AUTOMATION_ENABLED','false')).lower()!='true':return None
+    from .business_rules import value,device_scope
+    if (cfg['daily_mwh'] or cfg['monthly_mwh'] or cfg['schedule_enabled']) and not value(c,'features.automation',device_scope(c,d['id'])):return None
     occupant=one(c,'SELECT tenant_id FROM occupancies WHERE room_id=:room AND end_at IS NULL',room=d['room_id'])
     subject=str(occupant['tenant_id']) if occupant else str(d['owner_id'])
     if subject!=str(policy['requested_by']) or policy['body']['key_epoch']!=d['key_epoch'] or policy['body']['config_epoch']!=d['config_epoch'] or policy['body']['counter_epoch']!=d['meter_counter_epoch']:return None

@@ -257,3 +257,35 @@ Current follow-up checkpoint against pushed commit f94a51e. Includes removal of 
 - `firmware/tests/automation_test.cpp`
 - `tools/export_runtime_contract.py`
 - `tools/render_build_register.py`
+
+## 27 November 2026 — scoped business settings
+
+Typed immutable settings, fees frozen with provenance, advisory defaults separate from physical protection, scoped report expiry, public approved monthly prices and read-only staff access.
+
+- `.env.example`
+- `apps/api/.env.example`
+- `apps/api/app/__init__.py`
+- `apps/api/app/automation.py`
+- `apps/api/app/device_experience.py`
+- `apps/api/app/live_auth.py`
+- `apps/api/app/live_devices.py`
+- `apps/api/app/live_payments.py`
+- `apps/api/app/live_resources.py`
+- `apps/api/app/reports.py`
+- `apps/web/app/pricing/page.tsx`
+- `apps/web/app/reports/page.tsx`
+- `apps/web/components/AppShell.tsx`
+- `apps/web/tests/operations-journey.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/CONFIGURATION-INVENTORY.md`
+- `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
+- `docs/implementation/ROUTE-INVENTORY.md`
+- `docs/implementation/complete-register.json`
+- `tools/export_runtime_contract.py`
+- `apps/api/app/business_rules.py`
+- `apps/api/tests/test_business_rules.py`
+- `apps/web/app/ops/settings/`
+- `apps/web/components/ConfiguredPlanPrice.tsx`
+- `database/migrations/043_versioned_business_rules.sql`
