@@ -156,6 +156,7 @@ test("landlord setup query is honored and create-building route exists", async (
   );
   await page.route("**/api/v1/buildings/test-building/energy-reconciliation?*",route=>route.fulfill({json:{status:'unknown',reason:'comparison_policy_unconfigured',parent_mwh:null,children_mwh:null,difference_mwh:null,sources:[],rules:{},limitations:[],period_start_ms:0,period_end_ms:0}}));
   await page.route("**/api/v1/buildings/test-building/topology",route=>route.fulfill({json:{version:1,devices:[],edges:[],devices_truncated:false}}));
+  await page.route("**/api/v1/energy-reviews?building_id=test-building",route=>route.fulfill({json:{items:[],truncated:false,limitations:[]}}));
   await page.route("**/api/v1/buildings/test-building/energy-reconciliation/schedule",route=>route.fulfill({json:{schedule:{enabled:false,minutes:15,version:0},can_enable:false,missing_rules:[],limitations:[]}}));
   await page.route("**/api/v1/buildings/test-building/energy-reconciliation/history?*",route=>route.fulfill({json:{items:[],trend:{status:'not_configured'},can_record:false,limitations:[]}}));
   await page.goto("/dashboard/landlord/buildings/new");

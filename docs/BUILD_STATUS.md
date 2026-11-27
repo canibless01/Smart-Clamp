@@ -12,7 +12,7 @@ The machine-readable source is [complete-register.json](implementation/complete-
 
 | Scope | Built | Partial | Stub | Missing | Total |
 |---|---:|---:|---:|---:|---:|
-| Launch | 59 | 85 | 3 | 41 | 188 |
+| Launch | 60 | 85 | 3 | 40 | 188 |
 | Deferred | 0 | 5 | 5 | 26 | 36 |
 
 Counts are an inventory, not a completion percentage. One missing physical adapter can block several otherwise implemented loops.
@@ -179,10 +179,10 @@ Source: AtoZ K,J11; supplement 1.5,2.6.
 | ID / feature | Status / scope | Code evidence and current boundary | Remaining work | Configuration / lane |
 |---|---|---|---|---|
 | K01 Authenticated tamper/protection log and packet evidence | Built / Launch | apps/api/app/trust.py; apps/web/components/DeviceTrust.tsx | Physical source acceptance; signed symptoms never prove theft. | No business value introduced by this item.; Core |
-| K02 Resident/utility scoped review and inspection handoff | Built / Launch | apps/api/app/trust.py; database/migrations/039_signal_investigations.sql | Field findings and full closed-case evidence policy acceptance. | No business value introduced by this item.; Core |
+| K02 Resident/utility scoped review and inspection handoff | Built / Launch | apps/api/app/trust.py; database/migrations/039_signal_investigations.sql; apps/api/app/energy_review.py | Signed-signal and persistent-building-difference review paths are implemented. Physical field findings, authority/contract acceptance and full closed-case evidence policy remain external. | No business value introduced by this item.; Core |
 | K03 Reading hash chain and integrity surface | Partial / Launch | apps/api/app/work.py; apps/api/app/reports.py | Dedicated verified chain traversal/UI; distinguish integrity from metrology accuracy. | No business value introduced by this item.; Core |
-| K04 Topology chain with aligned numbers/coverage | Missing / Launch | No executable implementation identified. | Transformer/pole/building/room links and break evidence. | Proposed: topology, sampling and coverage rules; Core |
-| K05 Persistent drift confirmation engine | Partial / Launch | apps/api/app/energy_history.py; database/migrations/044_energy_comparison_history.sql; apps/api/tests/test_energy_history.py; apps/api/app/energy_schedule.py; services/worker/worker.py | Owner opt-in, durable cursors, bounded worker catch-up, conservative consecutive review and explicit automatic provenance are implemented. Physical wiring qualification, scoped utility escalation and support/inspection routing from building drift remain open. | Current: reconciliation.consecutive_windows; reconciliation.collection_delay_ms; scoped comparison rules; Core |
+| K04 Topology chain with aligned numbers/coverage | Partial / Launch | apps/api/app/energy_reconciliation.py; apps/api/app/energy_review.py; apps/web/components/EnergyReconciliation.tsx | Qualified building incoming/branch values and evidence are implemented. Full transformer/pole/building/room chain, source provisioning and multi-level break visualisation remain unimplemented. | Proposed: topology, sampling and coverage rules; Core |
+| K05 Persistent drift confirmation engine | Built / Launch | apps/api/app/energy_history.py; database/migrations/044_energy_comparison_history.sql; apps/api/tests/test_energy_history.py; apps/api/app/energy_schedule.py; services/worker/worker.py; apps/api/app/energy_review.py; apps/api/tests/test_energy_review.py | Qualified building drift review, owner opt-in, worker catch-up, scoped utility notices, claimed support inspection and closure/reopen paths are implemented. Physical sensor/wiring qualification and live utility/provider acceptance remain external; wider topology chain is tracked under K04. | Current: reconciliation.consecutive_windows; reconciliation.collection_delay_ms; scoped comparison rules; Core |
 | K06 Relay/current and zero-balance correlation | Missing / Launch | No executable implementation identified. | Qualified feedback/current/time alignment; missing source stays unknown. | Proposed: correlation noise floors/persistence; Core |
 | K07 Partial bypass and neighbour-pattern review | Missing / Launch | No executable implementation identified. | Validated statistical flags, no suspect naming, contested period and inspection flow. | Proposed: minimum history and anomaly thresholds; Core |
 | K08 Enclosure/clamp removal/loose-contact signals | Partial / Launch | apps/api/app/live_devices.py | Actual fitted sensors/classifier qualification; no inference from ordinary zero load alone. | Qualified sensor manifest; Hardware |
@@ -405,10 +405,10 @@ Source: AtoZ 1,9,14; supplement 0,2.14.
 ## Current external and acceptance boundaries
 
 - Owner reports external migrations 001–039 verified with matching checksums. 039 hash: `80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8`. The receipts are in the other chat’s checkout; this workspace has not read those files.
-- Development migrations 040–045 are local pending work for one final consolidated handoff. The other chat’s proposed sequence fix must not overwrite this branch’s existing 040 transport migration.
+- Development migrations 040–046 are local pending work for one final consolidated handoff. The other chat’s proposed sequence fix must not overwrite this branch’s existing 040 transport migration.
 - Supabase project health now responds HTTP 401 here. No callable Supabase connector or configured administrative/runtime credentials are exposed in this chat. No review accounts have been created here.
 - Live Auth findings relayed by the owner: email confirmation on; SMTP unset; Google and phone disabled; localhost Site URL; no redirect allowlist; JWT 3600s, refresh rotation enabled. Production API/worker/TLS and app-level checks remain unverified behind the protected preview.
-- Latest full API checkpoint: 92 tests run, one separate SMTP class skipped (91 passed). Closed-window evidence/topology/unknown-coverage browser journeys passed 3/3; prior main regression: 50 passed plus corrected consent-history retry 1 passed across two runs. The actual SMTP suite separately passed two API checks and one browser journey. Repeat relevant checks after new code changes.
+- Latest full API checkpoint: 99 tests run, one separate SMTP class skipped (98 passed). Main browser suite passed 77/77 (includes the 21-test responsive matrix); final targeted automatic/utility UI checks passed 4/4. The actual SMTP suite separately passed two API checks and one browser journey. Repeat relevant checks after new code changes.
 - Responsive checkpoint: clean 21-test matrix passed across 390/768/1440 (234 visits; guards/error states explicitly included). Functional browser run 52 passed plus two corrected fixture retries; Auth-only readiness profile tests passed 3/3. Live sign-in/provider acceptance remains unverified.
 - All six ESP profiles compiled in the automation checkpoint; native policy tests pass. This does not instantiate production sensing, actuation, BLE, GSM or local-link adapters.
 - Exact launch BOM/pin map is still requested. No new price, payout, loss-allocation policy or claimed certification is invented.

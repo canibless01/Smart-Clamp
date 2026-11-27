@@ -14,7 +14,7 @@ Choose one secure administration route:
 
 A project URL, anon/publishable key or service-role HTTP API key alone is **not** a Management API SQL credential. Service-role keys do not substitute for the database password or management access token. The project URL is already known; do not create another project.
 
-Prepared SQL: `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`, currently through migration 045. It checks migration hashes and refuses unknown/untracked schema state. The owner reports external 001–039 execution by the connected chat with matching checksums. Development migrations 040–045 have run only in isolated QA here. Wait for the single final consolidated handoff before further external SQL. See `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md` for the exact commands.
+Prepared SQL: `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`, currently through migration 046. It checks migration hashes and refuses unknown/untracked schema state. The owner reports external 001–039 execution by the connected chat with matching checksums. Development migrations 040–046 have run only in isolated QA here. Wait for the single final consolidated handoff before further external SQL. See `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md` for the exact commands.
 
 Runtime API also needs `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `DATABASE_URL`. Configure Supabase Auth's site URL and approved redirect URLs for the actual frontend domain.
 

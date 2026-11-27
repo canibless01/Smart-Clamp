@@ -428,3 +428,38 @@ Shared styling affects form bounds/wrapping across pages. Individual page design
 - `apps/api/tests/test_energy_schedule.py`
 - `apps/web/components/AutomaticComparisonSchedule.tsx`
 - `database/migrations/045_energy_comparison_schedules.sql`
+
+## 27 November 2026 — scoped energy investigations and support handoff
+
+- `apps/api/app/__init__.py`
+- `apps/api/app/energy_history.py`
+- `apps/api/app/live_resources.py`
+- `apps/api/tests/test_energy_schedule.py`
+- `apps/web/app/alerts/page.tsx`
+- `apps/web/app/dashboard/utility/page.tsx`
+- `apps/web/app/experience.css`
+- `apps/web/app/support/tickets/[id]/page.tsx`
+- `apps/web/components/AutomaticComparisonSchedule.tsx`
+- `apps/web/components/EnergyReconciliation.tsx`
+- `apps/web/tests/redesign.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/CONFIGURATION-INVENTORY.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/IMPLEMENTATION-WORK-PACKAGES.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`
+- `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
+- `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
+- `docs/implementation/complete-register.json`
+- `docs/ui-overhaul/SCREEN-COVERAGE.md`
+- `tools/browser_qa.py`
+- `tools/render_build_register.py`
+- `apps/api/app/energy_review.py`
+- `apps/api/tests/test_energy_review.py`
+- `apps/web/components/EnergyReviewQueue.tsx`
+- `apps/web/tests/energy-review.spec.ts`
+- `database/migrations/046_energy_review_cases.sql`
+- `docs/verification/2026-11-27-energy-investigations.md`

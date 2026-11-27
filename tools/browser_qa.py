@@ -85,7 +85,21 @@ for age,rx,tx in [(60000,1000000,200000),(1000,2500000,700000)]:
     if transport_response.status_code!=200:raise RuntimeError('Could not create signed QA modem report')
 signal=t.client.post('/api/v1/device/events',json=t.envelope(message_device,kind='tamper'))
 if signal.status_code!=200:raise RuntimeError('Could not create signed QA signal')
-a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'topology_owner':topology_owner,'topology_building_id':str(topology_building),'topology_incoming_id':topology_devices[0]['id'],'topology_branch_id':topology_devices[1]['id'],'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
+# Measured-window investigation fixture: isolated signed test counters, never live metrology.
+from test_energy_schedule import fixture as energy_fixture,stop as stop_energy_schedule
+from app.energy_schedule import process_due
+review_fixture=energy_fixture(t)
+energy_owner,_,energy_sources,energy_building,energy_schedule_path,energy_first,energy_span=review_fixture
+with t.app.app_context(),transaction() as c:
+    for source in energy_sources:query(c,'INSERT INTO utility_device_scopes(organization_id,device_id,granted_by) VALUES(:org,:device,:uid)',org=utility_org,device=source['id'],uid=admin['id'])
+with t.app.app_context():
+    for _ in range(3):
+        if process_due(1,datetime.fromtimestamp((energy_first+3*energy_span+1000)/1000,timezone.utc))!=1:raise RuntimeError('Could not process isolated review window')
+if stop_energy_schedule(t,energy_owner,energy_schedule_path).status_code!=200:raise RuntimeError('Could not stop isolated review schedule')
+energy_cases=t.client.get('/api/v1/energy-reviews?building_id='+energy_building,headers=t.headers(energy_owner))
+if energy_cases.status_code!=200 or len(energy_cases.json['items'])!=1:raise RuntimeError('Could not create isolated energy investigation')
+energy_case_id=str(energy_cases.json['items'][0]['id'])
+a.fixture.parent.mkdir(parents=True,exist_ok=True);a.fixture.touch(mode=0o600);a.fixture.write_text(json.dumps({'energy_owner':energy_owner,'energy_building_id':energy_building,'energy_case_id':energy_case_id,'topology_owner':topology_owner,'topology_building_id':str(topology_building),'topology_incoming_id':topology_devices[0]['id'],'topology_branch_id':topology_devices[1]['id'],'support_reviewer':support_reviewer,'finance_reviewer':finance_reviewer,'dispute_bill_id':str(dispute_bill),'onesignal':bool(a.onesignal),'owner':owner,'tenant':tenant,'device_id':d['id'],'claim_code':response.json['claim_code'],'ops':ops,'installer':installer,'engineer':engineer,'pending_email':pending_email,'email_recipient':email_recipient,'email_device_id':email_device['id'] if email_device else None,'utility':utility,'admin':admin,'message_recipient':message_recipient,'message_device_id':message_device['id'],'cohort_ops':cohort_ops,'service_region':service_region,'service_area_id':area.json['id'],'utility_organization_id':str(utility_org),'job_id':job.json['id'],'firmware_bin':str(root/'firmware/.pio/build/house_full/firmware.bin')}));a.fixture.chmod(0o600)
 print('Isolated browser QA API ready',flush=True)
 try:t.app.run(host='127.0.0.1',port=a.port,use_reloader=False)
 finally:

@@ -1,6 +1,6 @@
 # Configuration inventory
 
-27 November 2026. Versioned typed settings are now available at `/ops/settings` (administrator edits; ops/engineering read-only). Scope order is device → building → organisation → region → global → environment/default. Every edit appends an audited effective version; restoring never rewrites history. Migrations 043–045 are local-tested and pending the final live handoff. **Current** means the named setting/storage exists. **Required** is a work item, not a callable setting yet. Unknown approved monetary values stay unset; old examples are not production prices. All business edits need role/scope checks, validation, effective versions and old/new audit. The complete register identifies each feature and owner.
+27 November 2026. Versioned typed settings are now available at `/ops/settings` (administrator edits; ops/engineering read-only). Scope order is device → building → organisation → region → global → environment/default. Every edit appends an audited effective version; restoring never rewrites history. Migrations 043–046 are local-tested and pending the final live handoff. **Current** means the named setting/storage exists. **Required** is a work item, not a callable setting yet. Unknown approved monetary values stay unset; old examples are not production prices. All business edits need role/scope checks, validation, effective versions and old/new audit. The complete register identifies each feature and owner.
 
 | Domain | Current implementation | Required configurable controls |
 |---|---|---|

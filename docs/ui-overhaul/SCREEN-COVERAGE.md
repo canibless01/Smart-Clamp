@@ -104,3 +104,7 @@ Every App Router page entry is represented by the responsive matrix, with valid 
 ## 27 November 2026 — automatic comparisons
 
 Touched landlord building recorded-window disclosure only: explicit opt-in, interval, saved setting versus committed worker completion and pause status. Approved layout/navigation preserved. Scheduling/history/mobile checks passed; other pages intentionally retain existing UI. No mains state or financial action inferred.
+
+## 27 November 2026 — energy investigation loop
+
+Touched landlord building comparisons (visible active investigation), utility dashboard (scope-checked aggregate queue), Notifications (known-route review link), support ticket detail (claim-gated source summary/inspection), and shared resource-list grid bounds for long evidence. Automatic recording state text now distinguishes disabled ownership-change from retry. Other page designs, colours, navigation and device controls remain unchanged; they were exercised in the full 77-test main browser run. This is not live provider or physical hardware acceptance.

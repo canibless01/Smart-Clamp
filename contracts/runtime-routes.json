@@ -336,6 +336,16 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/energy-reviews",
+    "handler": "energy_review.list_reviews"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/energy-reviews/{review_id}/actions",
+    "handler": "energy_review.action"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/exports/{export_id}",
     "handler": "reports.download_export"
   },
@@ -643,6 +653,11 @@
     "method": "GET",
     "path": "/api/v1/support/tickets/{ticket_id}",
     "handler": "live_resources.ticket_detail"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/support/tickets/{ticket_id}/energy-inspection",
+    "handler": "energy_review.inspection"
   },
   {
     "method": "POST",

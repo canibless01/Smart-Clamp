@@ -45,3 +45,6 @@ legend{max-inline-size:100%;white-space:normal;overflow-wrap:anywhere}
 .form-check-content{overflow-wrap:anywhere}
 :where(.main-content,.auth-card,.marketing-page) :where(p,dd,li,.text-link){overflow-wrap:anywhere}
 .main-content>.card+.card{margin-top:16px}
+/* Evidence-rich support cards must not enlarge their parent grid track. */
+.resource-list{min-width:0;grid-template-columns:minmax(0,1fr)}
+.resource-list>*{min-width:0;max-width:100%}

@@ -345,7 +345,9 @@ def ticket_detail(ticket_id):
     with transaction() as c:
         r=ticket_access(c,ticket_id);reviewers=case_assignment.responders(c,('internal_support','internal_superadmin'));messages=rows(c,'SELECT author_id,message,created_at FROM support_messages WHERE ticket_id=:id ORDER BY created_at',id=ticket_id)
         review=one(c,'SELECT review.signal_id,review.job_id,j.status AS inspection_status,s.kind,s.active,s.occurred_at_ms,s.clock_quality,i.payload_sha256 AS signed_payload_sha256,i.key_epoch,i.seq FROM signal_reviews review JOIN device_signals s ON s.id=review.signal_id JOIN device_inbox i ON i.id=s.inbox_id LEFT JOIN jobs j ON j.id=review.job_id WHERE review.ticket_id=:id',id=ticket_id)
-    return jsonify({**dict(r),'signal_review':dict(review) if review else None,'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin'),'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'responders':reviewers,'can_assign':g.actor['role']=='internal_superadmin'})
+        from .energy_review import for_ticket
+        energy_review=for_ticket(c,r)
+    return jsonify({**dict(r),'energy_review':energy_review,'signal_review':dict(review) if review else None,'messages':messages,'can_manage':g.actor['role'] in ('internal_support','internal_superadmin'),'assigned_to_me':str(r['assigned_to'])==g.actor['id'],'responders':reviewers,'can_assign':g.actor['role']=='internal_superadmin'})
 
 @bp.post('/api/v1/support/tickets/<ticket_id>/messages')
 @authenticated
@@ -396,6 +398,8 @@ def ticket_workflow(ticket_id):
           id=ticket_id,status=status,assignee=assignee)
         query(c,'INSERT INTO support_messages(ticket_id,author_id,message) VALUES(:id,:uid,:message)',id=ticket_id,uid=g.actor['id'],message=note)
         audit(c,g.actor['id'],'support_workflow_changed',ticket_id,{'action':action,'from':ticket['status'],'to':status,'version':result['version'],'previous_assignee':str(ticket['assigned_to']) if ticket['assigned_to'] else None,'assignee':str(assignee) if assignee else None})
+        from .energy_review import ticket_changed
+        ticket_changed(c,ticket_id,status)
         if action in ('assign','release'):case_assignment.notify_change(c,'support',ticket_id,result['version'],ticket['assigned_to'],assignee)
         recipient=ticket['assigned_to'] if str(ticket['reporter_id'])==g.actor['id'] else ticket['reporter_id']
         if recipient and str(recipient)!=g.actor['id']:

@@ -38,6 +38,8 @@ def record_window(c,b,minutes,end,actor_id=None,mode='manual',schedule_version=N
     created=bool(row)
     if created:audit(c,actor_id,'energy_comparison_recorded',row['id'],{'building_id':str(b['id']),'snapshot_sha256':digest,'status':snapshot['status'],'financial_effect':False,'recording_mode':mode,'schedule_version':schedule_version})
     else:row=one(c,'SELECT id FROM energy_comparison_windows WHERE building_id=:bid AND minutes=:minutes AND period_end_ms=:end AND topology_version=:version AND policy_sha256=:policy AND snapshot_sha256=:digest',**params)
+    from .energy_review import reconcile
+    reconcile(c,b,minutes)
     return row,created
 
 @bp.route('/api/v1/buildings/<building_id>/energy-reconciliation/history',methods=['GET','POST'])

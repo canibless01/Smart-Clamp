@@ -21,6 +21,9 @@ def fixture(self):
   r=self.client.post('/api/v1/ops/settings/reconciliation.'+key,headers=self.headers(admin),json={'scope_type':'building','scope_ref':bid,'expected_version':0,'value':val,'effective_from':datetime.fromtimestamp((first-2000)/1000,timezone.utc).isoformat(),'reason':'Isolated QA automatic evidence policy approval'});self.assertEqual(r.status_code,201,r.json)
  for d,step in zip(devices,[1000000,800000]):
   for n in range(4):self.assertEqual(self.client.post('/api/v1/device/events',json=self.envelope(d,occurred_at_ms=first+n*span,metrics={'import_mwh':n*step})).status_code,200)
+ def cleanup_schedule():
+  with self.app.app_context(),transaction() as c:query(c,'UPDATE energy_comparison_schedules SET enabled=false WHERE building_id=:id',id=bid)
+ self.addCleanup(cleanup_schedule)
  path='/api/v1/buildings/'+bid+'/energy-reconciliation/schedule'
  with patch('app.energy_schedule.datetime',wraps=datetime) as clock:
   clock.now.return_value=datetime.fromtimestamp((first-1)/1000,timezone.utc)

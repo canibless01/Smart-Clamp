@@ -1,4 +1,5 @@
 "use client";
+import EnergyReviewQueue from "@/components/EnergyReviewQueue";
 import {useState} from "react";
 import {apiFetch} from "@/lib/api";
 import ShortId from "@/components/ShortId";
@@ -14,6 +15,7 @@ export default function Page() {
     >
       {(data,reload) => (
         <>
+          <EnergyReviewQueue/>
           <section className="card">
             <h2>Contracted devices</h2>
             <RecordTable
