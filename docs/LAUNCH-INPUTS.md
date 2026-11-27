@@ -1,6 +1,6 @@
 # What to obtain for the electricity launch
 
-26 November 2026. Configuration names below match the current code and `.env.example` files. Store secrets in deployment/environment settings, not chat, screenshots or Git. This is the requested input list, not a claim that the remaining feature checklist or physical hardware acceptance is finished.
+27 November 2026. Configuration names below match the current code and `.env.example` files. Store secrets in deployment/environment settings, not chat, screenshots or Git. This is the requested input list, not a claim that the remaining feature checklist or physical hardware acceptance is finished.
 
 ## 1. Supabase and running SQL
 
@@ -14,7 +14,7 @@ Choose one secure administration route:
 
 A project URL, anon/publishable key or service-role HTTP API key alone is **not** a Management API SQL credential. Service-role keys do not substitute for the database password or management access token. The project URL is already known; do not create another project.
 
-Prepared SQL: `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`, currently through migration 042. It checks migration hashes and refuses unknown/untracked schema state. The owner reports external 001–039 execution by the connected chat with matching checksums. Development migrations 040–042 have run only in isolated QA here. Wait for the single final consolidated handoff before further external SQL. See `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md` for the exact commands.
+Prepared SQL: `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`, currently through migration 043. It checks migration hashes and refuses unknown/untracked schema state. The owner reports external 001–039 execution by the connected chat with matching checksums. Development migrations 040–043 have run only in isolated QA here. Wait for the single final consolidated handoff before further external SQL. See `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md` for the exact commands.
 
 Runtime API also needs `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `DATABASE_URL`. Configure Supabase Auth's site URL and approved redirect URLs for the actual frontend domain.
 
@@ -71,3 +71,9 @@ The implemented account/service-notice adapter uses Africa's Talking: approved s
 Electricity is the launch scope. Water/gas and other unsupported utilities remain unavailable behind feature gates. Utility/NEPA data requires the named organisation's reviewed device scopes and staff memberships; no public theft accusation or audible community tamper alarm is part of the workflow.
 
 `SUPPLY_PRESENT_MIN_MV=50000` configures sampled supply-presence analytics only (default 50 V). It does not change installation protection or override limits.
+
+## 10. Audited business values
+
+`/ops/settings` lets an internal superadmin publish validated effective versions, with read-only history for ops/engineering. Approve electricity markup and fee rules (`payments.*`), optional monthly subscription prices/discounts/grace (`billing.*`), report link lifetime and selected rollout flags. Device → building → organisation → region → global overrides precede environment fallbacks. Unconfirmed monetary values remain unset. Publishing a subscription price does not enable the unfinished subscription checkout; enabling rollout does not grant hardware, tenancy or physical acceptance. Advisory voltage/current bands remain separate from installation protection.
+
+Optional fallbacks are `BILLING_PLAN_PRICES_JSON`, `BILLING_DISCOUNT_BPS_JSON`, `BILLING_GRACE_DAYS`, `REPORT_SHARE_DAYS`, `VOLTAGE_ADVISORY_BAND_JSON`, `CURRENT_ADVISORY_BAND_JSON`. Use integer kobo/basis points and mV/mA respectively, not guessed live prices. Secrets remain environment-only.

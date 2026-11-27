@@ -8,16 +8,13 @@ projects are outside this action's scope.
 
 ## Current status
 
-**Owner reports 001–038 applied externally; 039 is prepared for follow-up.**
-The last check on 26 November reached the general Management API (401 without credentials), but the target project failed proxy CONNECT (403). No
-Supabase management connector, `SUPABASE_ACCESS_TOKEN` or external `DATABASE_URL`
-was available in this workspace. The public project URL does not authorize SQL.
-The migration command stopped before remote access because the management token
-is missing. No external migration receipt or success is claimed.
+**Build remains in progress; wait for one final consolidated handoff.** The owner reports external migrations 001–039 with matching checksums. The receipts remain in the other chat's checkout and have not been read here. Local development includes 040–043, tested only in isolated QA. The sequence-privilege fix is 042; do not overwrite this branch's existing 040 with the external draft.
+
+The latest project health check returned HTTP 401. No callable Supabase tool or configured administrative/runtime credentials are exposed here; this does not establish database/Auth/application readiness. No review accounts or external SQL were created/executed by this chat. The historical entries below preserve earlier checks, not current instructions.
 
 ## Prepared migration
 
-[Review the complete 001–040 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
+[Review the complete 001–043 SQL bundle](fmjzskjkvdbffwkiujnu-bootstrap.sql).
 It contains all current migration files, original SHA-256 checksums and a single
 transaction. It refuses untracked public tables or unknown migration history,
 skips matching applied migrations and stops on checksum drift. It creates no

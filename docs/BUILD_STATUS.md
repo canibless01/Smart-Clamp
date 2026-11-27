@@ -4,7 +4,7 @@ Updated 2026-11-27 (Africa/Lagos). 224 curated requirements across A–Z. This i
 
 The owner approved a focused electricity launch. Deferred requirements remain in this inventory, with flags off and no claim of launch availability. Preserve the approved light UI and familiar navigation. Status describes the named software path, not provider approval, certification, hardware qualification or live deployment.
 
-**Built:** described software path exists and has local evidence. **Partial:** working pieces exist but the complete flow/acceptance is unfinished. **Stub:** schema/page/gate exists without full execution. **Missing:** execution is not implemented. Current automation/resident-authority/sequence changes are a tested working checkpoint until its next push; do not interpret them as production hardware readiness.
+**Built:** described software path exists and has local evidence. **Partial:** working pieces exist but the complete flow/acceptance is unfinished. **Stub:** schema/page/gate exists without full execution. **Missing:** execution is not implemented. Verified Git checkpoints do not imply production hardware readiness.
 
 The machine-readable source is [complete-register.json](implementation/complete-register.json). [Work packages and scope decisions](IMPLEMENTATION-WORK-PACKAGES.md) explain how another chat can contribute without migration collisions. [Configuration inventory](CONFIGURATION-INVENTORY.md) distinguishes existing settings from required future controls.
 
@@ -405,9 +405,9 @@ Source: AtoZ 1,9,14; supplement 0,2.14.
 ## Current external and acceptance boundaries
 
 - Owner reports external migrations 001–039 verified with matching checksums. 039 hash: `80d823892481e1b2a3390c65d146e2f52d19c76ed7e22ad1a8de50170778b7e8`. The receipts are in the other chat’s checkout; this workspace has not read those files.
-- Development migrations 040–042 are local pending work for one final consolidated handoff. The other chat’s proposed sequence fix must not overwrite this branch’s existing 040 transport migration.
+- Development migrations 040–043 are local pending work for one final consolidated handoff. The other chat’s proposed sequence fix must not overwrite this branch’s existing 040 transport migration.
 - Supabase project health now responds HTTP 401 here. No callable Supabase connector or configured administrative/runtime credentials are exposed in this chat. No review accounts have been created here.
 - Live Auth findings relayed by the owner: email confirmation on; SMTP unset; Google and phone disabled; localhost Site URL; no redirect allowlist; JWT 3600s, refresh rotation enabled. Production API/worker/TLS and app-level checks remain unverified behind the protected preview.
-- Latest API checkpoint: 82 tests run, one separate SMTP class skipped (81 passed). The actual SMTP suite separately passed two API checks and one browser journey. Repeat relevant checks after new code changes.
+- Latest full API checkpoint: 87 tests run, one separate SMTP class skipped (86 passed). Browser regression: 50 passed plus corrected consent-history retry 1 passed across two runs. The actual SMTP suite separately passed two API checks and one browser journey. Repeat relevant checks after new code changes.
 - All six ESP profiles compiled in the automation checkpoint; native policy tests pass. This does not instantiate production sensing, actuation, BLE, GSM or local-link adapters.
 - Exact launch BOM/pin map is still requested. No new price, payout, loss-allocation policy or claimed certification is invented.

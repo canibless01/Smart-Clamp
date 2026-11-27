@@ -304,3 +304,17 @@ Typed immutable settings, fees frozen with provenance, advisory defaults separat
 - `docs/ui-overhaul/SCREEN-COVERAGE.md`
 - `apps/api/tests/test_consent_history.py`
 - `apps/web/components/ConsentHistory.tsx`
+
+## 27 November 2026 — regression and launch-input checkpoint
+
+- `apps/web/tests/operations-journey.spec.ts`
+- `docs/BUILD_STATUS.md`
+- `docs/IMPLEMENTATION-WORK-PACKAGES.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`
+- `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
+- `tools/render_build_register.py`
+- `docs/verification/`
+
+No additional product screen was redesigned in this verification batch.
