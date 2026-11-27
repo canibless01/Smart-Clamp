@@ -100,3 +100,7 @@ Touched landlord building rooms only: expandable recorded-window history, conser
 ## 27 November 2026 — shared responsive form audit
 
 Every App Router page entry is represented by the responsive matrix, with valid fixture detail pages and explicit guest/invalid-token/not-found states where full fixtures are absent. Shared form geometry/wrapping/spacing changed; individual page layouts, navigation, gauges and palette were intentionally preserved. Read RESPONSIVE-AUDIT-2026-11-27.md for remaining populated-state acceptance. Full feature implementation remains in BUILD_STATUS.md.
+
+## 27 November 2026 — automatic comparisons
+
+Touched landlord building recorded-window disclosure only: explicit opt-in, interval, saved setting versus committed worker completion and pause status. Approved layout/navigation preserved. Scheduling/history/mobile checks passed; other pages intentionally retain existing UI. No mains state or financial action inferred.

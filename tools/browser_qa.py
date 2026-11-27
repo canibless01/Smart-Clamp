@@ -31,7 +31,7 @@ if area.status_code!=201:raise RuntimeError('Could not create isolated browser s
 assigned=t.client.post('/api/v1/ops/devices/'+message_device['id']+'/service-area',json={'area_id':area.json['id']},headers=t.headers(ops))
 if assigned.status_code!=201:raise RuntimeError('Could not assign isolated browser service area')
 utility=t.promote(t.user('homeowner'),'nepa_staff');admin=t.promote(t.user('homeowner'),'internal_superadmin')
-for rule_key,rule_value in [('reconciliation.collection_delay_ms',0),('reconciliation.consecutive_windows',3)]:
+for rule_key,rule_value in [('reconciliation.collection_delay_ms',0),('reconciliation.consecutive_windows',3),('reconciliation.max_gap_ms',900000),('reconciliation.boundary_skew_ms',0),('reconciliation.tolerance_bps',500)]:
     configured=t.client.post('/api/v1/ops/settings/'+rule_key,headers=t.headers(admin),json={'scope_type':'building','scope_ref':str(topology_building),'expected_version':0,'value':rule_value,'reason':'Isolated QA history display; no physical qualification implied.'})
     if configured.status_code!=201:raise RuntimeError('Could not configure isolated history fixture')
 

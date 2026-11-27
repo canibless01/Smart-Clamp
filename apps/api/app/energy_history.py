@@ -27,6 +27,19 @@ def latest(c,bid,minutes):
       FROM energy_comparison_windows WHERE building_id=:bid AND minutes=:minutes
       ORDER BY period_end_ms DESC,created_at DESC,id DESC) chosen ORDER BY period_end_ms DESC LIMIT 100""",bid=bid,minutes=minutes)
 
+def record_window(c,b,minutes,end,actor_id=None,mode='manual',schedule_version=None):
+    snapshot=measurement(c,b,end-minutes*60000,end)
+    snapshot.update(recording_mode=mode,schedule_version=schedule_version)
+    snapshot=json.loads(json_text(snapshot));policy=fingerprint(snapshot['rules']);digest=fingerprint(snapshot)
+    params=dict(bid=str(b['id']),minutes=minutes,start=end-minutes*60000,end=end,version=b['topology_version'],policy=policy,digest=digest,status=snapshot['status'],difference=snapshot['difference_mwh'],snapshot=json_text(snapshot),uid=actor_id,mode=mode)
+    row=one(c,"""INSERT INTO energy_comparison_windows(building_id,minutes,period_start_ms,period_end_ms,topology_version,policy_sha256,snapshot_sha256,status,difference_mwh,snapshot,created_by,recording_mode)
+      VALUES(:bid,:minutes,:start,:end,:version,:policy,:digest,:status,:difference,CAST(:snapshot AS jsonb),:uid,:mode)
+      ON CONFLICT(building_id,minutes,period_end_ms,topology_version,policy_sha256,snapshot_sha256) DO NOTHING RETURNING id""",**params)
+    created=bool(row)
+    if created:audit(c,actor_id,'energy_comparison_recorded',row['id'],{'building_id':str(b['id']),'snapshot_sha256':digest,'status':snapshot['status'],'financial_effect':False,'recording_mode':mode,'schedule_version':schedule_version})
+    else:row=one(c,'SELECT id FROM energy_comparison_windows WHERE building_id=:bid AND minutes=:minutes AND period_end_ms=:end AND topology_version=:version AND policy_sha256=:policy AND snapshot_sha256=:digest',**params)
+    return row,created
+
 @bp.route('/api/v1/buildings/<building_id>/energy-reconciliation/history',methods=['GET','POST'])
 @authenticated
 @idempotent
@@ -47,19 +60,15 @@ def history(building_id):
             # Topology writers use this same building lock: snapshot and version stay together.
             b=one(c,'SELECT * FROM buildings WHERE id=:id FOR UPDATE',id=building_id)
             span=minutes*60000;end=((int(datetime.now(timezone.utc).timestamp()*1000)-delay['value'])//span)*span
-            snapshot=measurement(c,b,end-span,end);snapshot=json.loads(json_text(snapshot))
-            policy=fingerprint(snapshot['rules']);digest=fingerprint(snapshot)
-            recorded=one(c,"""INSERT INTO energy_comparison_windows(building_id,minutes,period_start_ms,period_end_ms,topology_version,policy_sha256,snapshot_sha256,status,difference_mwh,snapshot,created_by)
-              VALUES(:bid,:minutes,:start,:end,:version,:policy,:digest,:status,:difference,CAST(:snapshot AS jsonb),:uid)
-              ON CONFLICT(building_id,minutes,period_end_ms,topology_version,policy_sha256,snapshot_sha256) DO NOTHING RETURNING id""",bid=building_id,minutes=minutes,start=end-span,end=end,version=b['topology_version'],policy=policy,digest=digest,status=snapshot['status'],difference=snapshot['difference_mwh'],snapshot=json_text(snapshot),uid=g.actor['id'])
-            if recorded:audit(c,g.actor['id'],'energy_comparison_recorded',recorded['id'],{'building_id':building_id,'snapshot_sha256':digest,'status':snapshot['status'],'financial_effect':False})
+            row,created=record_window(c,b,minutes,end,g.actor['id'])
+            recorded=row if created else None
         windows=latest(c,building_id,minutes)
     return jsonify(items=windows,trend=trend(windows,required['value']),can_record=delay['value'] is not None,
         recorded_id=str(recorded['id']) if recorded else None,minutes=minutes,
         limitations=['Each interval counts once; reassessments retain earlier evidence without counting it again.',
           'Unknown coverage, missing intervals, changed topology or comparison policy break consecutive review windows.',
           'A persistent difference asks for investigation and does not prove theft or authorise a charge/disconnection.',
-          'Recording is requested explicitly. Automatic fleet scheduling, physical wiring qualification and financial settlement are separate workflows.'])
+          'Recording can be requested explicitly or enabled for this building; worker processing, physical wiring qualification and financial settlement remain separate.'])
 
 @bp.get('/api/v1/buildings/<building_id>/energy-reconciliation/history/<record_id>')
 @authenticated

@@ -399,3 +399,32 @@ No additional product screen was redesigned in this verification batch.
 - `tools/tests/test_check_config.py`
 
 Shared styling affects form bounds/wrapping across pages. Individual page designs and backend state/control behaviour were intentionally untouched. Coverage and remaining states are documented in RESPONSIVE-AUDIT-2026-11-27.md.
+
+## 27 November 2026 — opt-in automatic comparison recording
+
+- `.env.example`
+- `apps/api/.env.example`
+- `apps/api/app/__init__.py`
+- `apps/api/app/energy_history.py`
+- `apps/web/components/EnergyComparisonHistory.tsx`
+- `apps/web/tests/live-journey.spec.ts`
+- `apps/web/tests/redesign.spec.ts`
+- `contracts/runtime-openapi.yaml`
+- `contracts/runtime-routes.json`
+- `docs/BUILD_STATUS.md`
+- `docs/CONFIGURATION-INVENTORY.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/IMPLEMENTATION-WORK-PACKAGES.md`
+- `docs/LAUNCH-INPUTS.md`
+- `docs/NEXT-CHAT-PROMPT.md`
+- `docs/deployment/SUPABASE-FOLLOWUP-2026-11-27.md`
+- `docs/deployment/SUPABASE-fmjzskjkvdbffwkiujnu.md`
+- `docs/deployment/fmjzskjkvdbffwkiujnu-bootstrap.sql`
+- `docs/implementation/complete-register.json`
+- `services/worker/worker.py`
+- `tools/browser_qa.py`
+- `tools/render_build_register.py`
+- `apps/api/app/energy_schedule.py`
+- `apps/api/tests/test_energy_schedule.py`
+- `apps/web/components/AutomaticComparisonSchedule.tsx`
+- `database/migrations/045_energy_comparison_schedules.sql`

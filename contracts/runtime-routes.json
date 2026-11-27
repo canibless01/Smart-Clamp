@@ -146,6 +146,16 @@
   },
   {
     "method": "GET",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation/schedule",
+    "handler": "energy_schedule.schedule"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/buildings/{building_id}/energy-reconciliation/schedule",
+    "handler": "energy_schedule.schedule"
+  },
+  {
+    "method": "GET",
     "path": "/api/v1/buildings/{building_id}/rooms",
     "handler": "live_resources.rooms_route"
   },

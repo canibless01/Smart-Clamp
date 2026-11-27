@@ -10,7 +10,7 @@ AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.objid=c.oid AND d.classid='pg_c
 
 CREATE TABLE IF NOT EXISTS public.schema_migrations(name text PRIMARY KEY,sha256 text NOT NULL,applied_at timestamptz NOT NULL DEFAULT now());
 
-DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql','039_signal_investigations.sql','040_transport_reports.sql','041_automation_policy_sync.sql','042_revoke_browser_sequence_access.sql','043_versioned_business_rules.sql','044_energy_comparison_history.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
+DO $sc_known$ BEGIN IF EXISTS(SELECT 1 FROM public.schema_migrations WHERE name NOT IN('001_extensions_enums_identity.sql','002_buildings_rooms_devices.sql','003_telemetry_inbox.sql','004_wallets_ledger.sql','005_commands_outbox.sql','006_disputes_evidence_reports.sql','007_policies_rls.sql','008_consent_subscriptions_ops.sql','009_live_runtime.sql','010_financial_guardrails.sql','011_accounting_watermarks.sql','012_claims_and_utility_scope.sql','013_signal_observation.sql','014_measured_usage_intervals.sql','015_field_workflow.sql','016_sms_dispatch.sql','017_firmware_delivery.sql','018_provider_unit_reconciliation.sql','019_meter_payment_destinations.sql','020_central_meter_destinations.sql','021_signed_report_exports.sql','022_immutable_quotes_tariffs.sql','023_prepaid_policy_sync.sql','024_account_onboarding.sql','025_web_push.sql','026_scoped_service_notices.sql','027_email_dispatch.sql','028_email_provider_routing.sql','029_frozen_provider_payload.sql','030_onesignal_web_push.sql','031_notice_audiences.sql','032_notice_batch_capacity.sql','033_support_workflow.sql','034_dispute_review.sql','035_email_delivery_receipts.sql','036_alert_interactions.sql','037_device_experience_state.sql','038_signed_channel_manifests.sql','039_signal_investigations.sql','040_transport_reports.sql','041_automation_policy_sync.sql','042_revoke_browser_sequence_access.sql','043_versioned_business_rules.sql','044_energy_comparison_history.sql','045_energy_comparison_schedules.sql')) THEN RAISE EXCEPTION 'Unknown migration history; review the target or checkout'; END IF; END $sc_known$;
 
 DO $sc_step_0$
 DECLARE seen text;
@@ -2281,5 +2281,40 @@ $sc_source_bd6565cc857b5a5bcf654aa62cc0d5ac60827def0e89cb09e140cc97dd3d2bee$;
     INSERT INTO public.schema_migrations(name,sha256) VALUES('044_energy_comparison_history.sql','bd6565cc857b5a5bcf654aa62cc0d5ac60827def0e89cb09e140cc97dd3d2bee');
   END IF;
 END $sc_step_43$;
+
+DO $sc_step_44$
+DECLARE seen text;
+BEGIN
+  SELECT sha256 INTO seen FROM public.schema_migrations WHERE name='045_energy_comparison_schedules.sql';
+  IF FOUND THEN
+    IF seen IS DISTINCT FROM 'efdac6d4856449fc785157264fd74e983fb23cfffd710f67ad0c6fc80bd65a69' THEN RAISE EXCEPTION 'Migration checksum mismatch: 045_energy_comparison_schedules.sql'; END IF;
+  ELSE
+    EXECUTE $sc_source_efdac6d4856449fc785157264fd74e983fb23cfffd710f67ad0c6fc80bd65a69$
+-- Automated evidence has a system actor, not an impersonated resident.
+alter table energy_comparison_windows alter column created_by drop not null;
+alter table energy_comparison_windows add column recording_mode text not null default 'manual' check(recording_mode in('manual','automatic'));
+alter table energy_comparison_windows add constraint energy_comparison_actor check((recording_mode='manual')=(created_by is not null));
+create table energy_comparison_schedules (
+ building_id uuid primary key references buildings(id),
+ enabled boolean not null default false,
+ minutes integer not null default 15 check(minutes in(15,60,1440)),
+ version integer not null default 1 check(version>0),
+ next_window_end_ms bigint,
+ next_check_at timestamptz not null default now(),
+ last_record_id uuid references energy_comparison_windows(id),
+ last_recorded_at timestamptz,
+ last_error text,
+ updated_by uuid not null references profiles(id),
+ updated_at timestamptz not null default now(),
+ check(not enabled or next_window_end_ms is not null)
+);
+alter table energy_comparison_schedules enable row level security;
+revoke all on energy_comparison_schedules from public,anon,authenticated;
+create index energy_comparison_schedule_due on energy_comparison_schedules(next_check_at,building_id) where enabled;
+
+$sc_source_efdac6d4856449fc785157264fd74e983fb23cfffd710f67ad0c6fc80bd65a69$;
+    INSERT INTO public.schema_migrations(name,sha256) VALUES('045_energy_comparison_schedules.sql','efdac6d4856449fc785157264fd74e983fb23cfffd710f67ad0c6fc80bd65a69');
+  END IF;
+END $sc_step_44$;
 
 COMMIT;

@@ -24,12 +24,12 @@ These packages are ready to delegate if the owner wants parallel work. No second
 
 | Package | IDs | Boundary / deliverable |
 |---|---|---|
-| Business settings and commercial lifecycle | B01–B10, H07–H10, U13 | Dedicated branch, new namespaced modules and tests. Typed prices, fees, grace, mandates, invoices, cancellation. No subscription power cutoff. Coordinate migration names before committing; do not edit this branch's 001–044 or apply external SQL mid-build. |
+| Business settings and commercial lifecycle | B01–B10, H07–H10, U13 | Dedicated branch, new namespaced modules and tests. Typed prices, fees, grace, mandates, invoices, cancellation. No subscription power cutoff. Coordinate migration names before committing; do not edit this branch's 001–045 or apply external SQL mid-build. |
 | Review environment and live deployment acceptance | A10, Z01–Z04, Z07–Z10 | Secure Auth admin access, actual app/API routing, provider readiness and isolated review provisioning. Return sanitized evidence and credentials privately. No invented Google/Gmail mailboxes and no publication/protection change without the owner's deployment direction. |
 | Qualified firmware adapters | C07–C08, E03–E04, G02–G07, R02–R06, Z05–Z06 | Requires actual launch BOM/pin map and bench. Implement actual sensor/relay/feedback/GSM/local links/BLE and resumable relayed OTA. Preserve signed protocol and all independent restrictions. Report physical tests separately. |
 | Core application | Remaining launch IDs | Current chat: automation, resident authority, shared money/reconciliation, safe control, essential role flows, consolidated register and launch evidence. |
 
-Do not let two chats push overlapping changes directly to the same branch without fetching/reviewing. Return a branch/commit, file list, tests and remaining constraints for integration. Keep all SQL immutable after application; new migration numbers require coordination. The current development range is through 044.
+Do not let two chats push overlapping changes directly to the same branch without fetching/reviewing. Return a branch/commit, file list, tests and remaining constraints for integration. Keep all SQL immutable after application; new migration numbers require coordination. The current development range is through 045.
 
 ## Source reconciliation
 
