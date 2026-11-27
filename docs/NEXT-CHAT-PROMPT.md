@@ -1,3 +1,7 @@
+## Automation foundation — 27 November 2026
+
+Portable `automation_policy.hpp` and native tests now cover durable daily/monthly budget baselines, period rollover, extra daily allowance, weekly windows and independent restrictions. Cloud policy persistence/step-up/sync/receipts, UI and qualified application adapters are still open. The owner has been asked asynchronously for exact launch BOM/pin map; do not invent production sensor/relay/modem interfaces. This checkpoint is a foundation, not a completed schedule/budget feature.
+
 
 ## Signed-signal investigation checkpoint — 27 November 2026
 
