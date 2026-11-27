@@ -186,3 +186,19 @@ Current follow-up checkpoint against pushed commit f94a51e. Includes removal of 
 - `docs/ELECTRICITY-FEATURE-CHECKLIST.md`
 - `docs/NEXT-CHAT-PROMPT.md`
 - `tools/email_otp_qa.py`
+
+## Report sharing and export follow-up
+
+- `apps/api/app/reports.py`
+- `apps/api/tests/test_api.py`
+- `apps/web/app/experience.css`
+- `apps/web/app/reports/page.tsx`
+- `apps/web/components/MeasurementReport.tsx`
+- `apps/web/components/ReportSharingQr.tsx`
+- `apps/web/package-lock.json`
+- `apps/web/package.json`
+- `apps/web/tests/operations-journey.spec.ts`
+- `docs/BUILD_STATUS.md`
+- `docs/DATA-PROVENANCE.md`
+- `docs/ELECTRICITY-FEATURE-CHECKLIST.md`
+- `docs/NEXT-CHAT-PROMPT.md`

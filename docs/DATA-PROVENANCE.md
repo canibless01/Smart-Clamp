@@ -33,3 +33,7 @@ A pole/transformer channel enables upstream-to-downstream comparison only where 
 ## Operations and cellular data
 
 Onboarding counts come from persisted profiles; fleet qualification and contact counts come from the device registry; queue/outcome counts come from outbox and commands. Cellular usage comes only from authenticated gateway modem counter reports, paired within the same counter session and trusted source time. Missing or reset intervals are unknown. Signal strength is current only with trusted time and observation age below 180 seconds. Stored JSON text byte size is shown separately and is not network traffic or a SIM billing estimate. The production modem HAL remains dependent on the approved BOM.
+
+## Downloaded reports
+
+The signed JSON download preserves the server's exact canonical bytes, SHA-256, signature, public key and key fingerprint, alongside the parsed snapshot and qualification wording. New snapshots sign their issuing environment, including isolated QA. Integrity verification must use the canonical bytes and establish trust in the issuer's key fingerprint independently; an embedded public key alone is not proof of issuer identity. Print/save-PDF retains the signature reference, source coverage, limitations and QA disclosure. Sharing QR codes are generated locally from the issued revocable link, without third-party QR requests. Revocation blocks future public access but cannot erase copies already downloaded or printed.

@@ -1111,7 +1111,7 @@ class LiveIntegration(unittest.TestCase):
                 r=self.client.post('/api/v1/reports',json={'device_id':d['id'],'period_start':start.isoformat(),'period_end':end.isoformat()},headers=self.headers(owner));self.assertEqual(r.status_code,201,r.json)
                 rid=r.json['id'];token=r.json['share_path'].split('/')[-1]
                 report=self.client.get('/api/v1/reports/'+rid,headers=self.headers(owner));self.assertEqual(report.status_code,200,report.json);original=report.json
-                self.assertTrue(original['signature_valid']);self.assertEqual(original['snapshot']['measured_consumption_mwh'],1000000);self.assertEqual(len(original['snapshot']['readings']),2)
+                self.assertEqual(original['environment'],'isolated_qa');self.assertEqual(original['snapshot']['environment'],'isolated_qa');self.assertTrue(original['signature_valid']);self.assertEqual(original['snapshot']['measured_consumption_mwh'],1000000);self.assertEqual(len(original['snapshot']['readings']),2)
                 raw=base64.b64decode(original['canonical_base64']);key.public_key().verify(base64.b64decode(original['signature']),raw,padding.PKCS1v15(),hashes.SHA256())
                 self.assertEqual(hashlib.sha256(raw).hexdigest(),original['sha256']);self.assertNotIn(owner['phone'],raw.decode())
                 self.assertEqual(self.client.get('/api/v1/reports/'+rid,headers=self.headers(stranger)).status_code,404)

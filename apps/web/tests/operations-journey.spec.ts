@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
+import {createHash,verify} from "node:crypto";
 const file = process.env.SMARTCLAMP_BROWSER_FIXTURE;
 test("real auth/database: operations assigns work and installer submits diagnostics for review", async ({ page }) => {
   test.skip(!file, "Requires isolated real auth/API/database services.");
@@ -62,11 +63,18 @@ test("real auth/database: owner issues a fixed report, downloads CSV and revokes
   await expect(page.getByRole("heading", { name: "Issued measurement snapshot", exact: true })).toBeVisible();
   await expect(page.getByText("Stored snapshot signature verified.", { exact: false })).toBeVisible();
   const share = await page.getByRole("link", { name: "Open seven-day sharing link", exact: true }).getAttribute("href");
+  await page.getByRole('button',{name:'Show sharing QR',exact:true}).click();await expect(page.getByRole('img',{name:'Report sharing QR code',exact:true})).toBeVisible();
+  await page.addScriptTag({content:fs.readFileSync('node_modules/jsqr/dist/jsQR.js','utf8')});
+  const decoded=await page.evaluate(async()=>{const svg=document.querySelector('[data-report-qr] svg') as SVGSVGElement;const image=new Image();const loaded=new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('QR rasterization failed'));});image.src='data:image/svg+xml;base64,'+btoa(new XMLSerializer().serializeToString(svg));await loaded;const canvas=document.createElement('canvas');canvas.width=canvas.height=svg.viewBox.baseVal.width*3;const ctx=canvas.getContext('2d')!;ctx.drawImage(image,0,0,canvas.width,canvas.height);const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);return (window as any).jsQR(pixels.data,canvas.width,canvas.height)?.data;});
+  expect(decoded).toBe(new URL(share!,page.url()).href);
+  const evidenceDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Download signed evidence',exact:true}).click();const evidenceFile=await evidenceDownload;const evidence=JSON.parse(fs.readFileSync((await evidenceFile.path())!,'utf8')),canonical=Buffer.from(evidence.canonical_base64,'base64');expect(createHash('sha256').update(canonical).digest('hex')).toBe(evidence.sha256);expect(verify('RSA-SHA256',canonical,evidence.public_key_pem,Buffer.from(evidence.signature,'base64'))).toBeTruthy();expect(JSON.parse(canonical.toString()).environment).toBe('isolated_qa');expect(evidence.snapshot).toEqual(JSON.parse(canonical.toString()));
+  await page.emulateMedia({media:'print'});await expect(page.getByRole('heading',{name:'Choose a completed period',exact:true})).not.toBeVisible();await expect(page.getByRole('heading',{name:'Issued measurement snapshot',exact:true})).toBeVisible();await expect(page.getByText('Isolated QA · no production hardware evidence.',{exact:true})).toBeVisible();await expect(page.locator('.report-print-proof')).toBeVisible();const pdf=await page.pdf({format:'A4'});expect(pdf.subarray(0,4).toString()).toBe('%PDF');await page.emulateMedia({media:'screen'});
   const download = page.waitForEvent("download"); await page.getByRole("button", { name: "Download snapshot CSV", exact: true }).click();
   const received = await download; const csv = fs.readFileSync((await received.path())!, "utf8"); expect(csv).toContain("occurred_at_ms,quality,clock_quality");
   const publicPage = await context.newPage(); await publicPage.goto(share!); await expect(publicPage.getByText("Stored snapshot signature verified.", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Revoke sharing link", exact: true }).click();
   await expect(page.getByText("Public sharing revoked.", { exact: false })).toBeVisible();
+  await expect(page.getByRole('img',{name:'Report sharing QR code',exact:true})).toHaveCount(0);
   await publicPage.reload(); await expect(publicPage.getByRole("alert").filter({ hasText: "Report not found or no longer shared" })).toBeVisible();
   await publicPage.close();
 });

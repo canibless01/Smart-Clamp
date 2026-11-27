@@ -55,7 +55,7 @@ def view(r):
         public.verify(base64.b64decode(r['signature'],validate=True),raw,padding.PKCS1v15(),hashes.SHA256())
         snapshot=json.loads(raw)
     except (ValueError,TypeError,AttributeError,InvalidSignature):raise DomainError('report_integrity_failure','The stored report could not be verified. Contact support with its reference.',503)
-    return dict(id=str(r['id']),snapshot=snapshot,sha256=r['sha256'],signature=r['signature'],key_id=r['key_id'],public_key_pem=r['public_key_pem'],
+    return dict(id=str(r['id']),environment=snapshot.get('environment') or ('isolated_qa' if current_app.testing is True else 'unrecorded'),snapshot=snapshot,sha256=r['sha256'],signature=r['signature'],key_id=r['key_id'],public_key_pem=r['public_key_pem'],
                 canonical_base64=base64.b64encode(raw).decode(),signature_valid=True,issued_at=r['issued_at'],expires_at=r['expires_at'],revoked=r['revoked_at'] is not None,
                 qualification='Signature verifies the issued bytes. It does not certify electrical accuracy, theft, liability or a utility-approved refund.')
 
@@ -80,7 +80,7 @@ def issue():
         eligible=[r for r in readings if r['accounting_quality']=='measured' and r['interval_start_ms'] is not None and start_ms<=r['interval_start_ms']<r['occurred_at_ms']]
         covered=sum(r['occurred_at_ms']-r['interval_start_ms'] for r in eligible)
         coverage={'counter_interval_ms':min(covered,end_ms-start_ms),'requested_period_ms':end_ms-start_ms,'eligible_intervals':len(eligible),'observation_count':len(readings)}
-        snapshot={'schema_version':1,'report_id':rid,'issued_at':issued.isoformat(),'device_id':str(dev['id']),'period_start':start.isoformat(),'period_end':end.isoformat(),
+        snapshot={'schema_version':1,'environment':'isolated_qa' if current_app.testing is True else 'configured','report_id':rid,'issued_at':issued.isoformat(),'device_id':str(dev['id']),'period_start':start.isoformat(),'period_end':end.isoformat(),
                   'display_timezone':'Africa/Lagos','coverage':coverage,'measured_consumption_mwh':sum(r['consumed_mwh'] for r in eligible),
                   'consumption_status':'measured_intervals_only' if eligible else 'unavailable','readings':readings,
                   'limitations':['Missing intervals remain unknown.','Counter-interval coverage is not waveform accuracy or supply availability.','No theft determination, liability allocation or approved utility credit is issued.']}

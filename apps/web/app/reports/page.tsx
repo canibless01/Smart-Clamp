@@ -39,7 +39,7 @@ export default function Page() {
             await apiFetch(`/reports/${report.id}/revoke`, { method: "POST", body: "{}" }); setReport({ ...report, revoked: true }); setShare("");
           })}>Revoke sharing link</button>}
         </div>
-        <MeasurementReport data={report} />
+        <MeasurementReport key={report.id} data={report} sharePath={share||undefined} />
       </>}
     </>}
   </RecordWorkspace>;

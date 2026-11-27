@@ -1,4 +1,11 @@
 
+## Report sharing and export checkpoint — 27 November 2026
+
+Reports now include locally generated sharing QR, print/save-PDF and downloadable signed JSON evidence. New snapshots sign environment provenance; isolated-QA wording survives downloads and print. Public sharing expiry/revocation remains enforced server-side, and revoked QR display is removed. Downloaded/printed copies cannot be recalled. The embedded public key supports integrity verification, while issuer trust requires a known/pinned fingerprint.
+
+Verification: production build and targeted signed-report API test passed; two real browser journeys passed (landlord/room/claim/invite and report issue/QR/CSV/evidence/print/revoke). The report journey decodes the QR with an independent test-only decoder, verifies exported canonical bytes using Node crypto, and checks print media retains qualifications. Runtime QR generation uses the small MIT qrcode-generator library; jsQR is dev-only. No external QR service, manual site publication or new SQL migration. Scheduled report delivery remains open.
+
+
 ## Verified email enrollment acceptance — 27 November 2026
 
 The earlier email-contact validation gap is closed locally. Separate GoTrue with email auto-confirm **disabled** and non-relaying Mailpit exercised the real delivered email-change OTP. Two API tests passed: unconfirmed contacts stay unbound, wrong codes are rejected, a different signed-in account cannot bind the contact, a verified contact enables email/password sign-in, and changing an already bound email requires recovery support. One browser journey passed: settings → send code → read actual local SMTP code → verify → reload retains the bound email.

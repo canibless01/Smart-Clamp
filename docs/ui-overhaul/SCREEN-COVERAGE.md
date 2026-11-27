@@ -72,3 +72,5 @@ Follow-up: `/settings` adds device/access discovery; `/devices/[id]` adds family
 Signal investigation follow-up: `/devices/[id]` adds Signals & trust; `/support/tickets/[id]` adds source evidence and claimed inspection handoff; `/dashboard/utility` adds scoped review actions and packet references. Other screen content remains as recorded above.
 
 Operations follow-up: `/ops` adds sourced onboarding, profile, command/queue and cellular usage views. Shared shells/branding remain unchanged; unmodified screens retain their prior functionality and the reasons above.
+
+Report follow-up: `/reports` and shared `/verification-reports/[token]` gain print/PDF and signed-evidence download. Private freshly issued reports can show a locally generated sharing QR. Existing scope, expiry, revocation and qualification wording are preserved.
